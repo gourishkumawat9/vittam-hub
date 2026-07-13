@@ -1,0 +1,854 @@
+// VittamHub database schema.
+// See docs/08-database-planning.md for the ERD narrative and indexing rationale,
+// and docs/11-onboarding-architecture.md for why onboarding uses a draft-JSON
+// autosave + commit-on-publish pattern instead of normalizing every wizard
+// step as it's typed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("SHADOW_DATABASE_URL")
+}
+
+// ─── Enums: identity & auth ─────────────────────────────────────────────
+
+enum UserRole {
+  FOUNDER
+  INVESTOR
+  MENTOR
+  INCUBATOR
+  UNIVERSITY
+  SERVICE_PROVIDER
+  JOB_SEEKER
+  ADMIN
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  LOGIN_MFA
+}
+
+enum DocumentType {
+  INCORPORATION_CERTIFICATE
+  PAN
+  GST
+  DPIIT_RECOGNITION
+  TRADEMARK
+  PATENT
+  PITCH_DECK
+  FINANCIAL_STATEMENT
+  GOVERNMENT_ID
+  DIGITAL_SIGNATURE
+  OTHER
+}
+
+// ─── Enums: startup domain ──────────────────────────────────────────────
+
+enum StartupStage {
+  IDEA
+  VALIDATION
+  PROTOTYPE
+  MVP
+  CUSTOMERS
+  REVENUE
+  FUNDED
+  SCALING
+  UNICORN
+}
+
+enum RegistrationStatus {
+  NOT_REGISTERED
+  IN_PROGRESS
+  REGISTERED
+}
+
+enum CompanyType {
+  PRIVATE_LIMITED
+  LLP
+  PARTNERSHIP
+  SOLE_PROPRIETORSHIP
+  PUBLIC_LIMITED
+  NOT_REGISTERED
+  OTHER
+}
+
+enum CustomerModel {
+  B2B
+  B2C
+  D2C
+  B2B2C
+}
+
+enum TeamMemberCategory {
+  FOUNDER
+  COFOUNDER
+  EMPLOYEE
+  ADVISOR
+  BOARD_MEMBER
+}
+
+enum HiringStatus {
+  NOT_HIRING
+  HIRING
+  OPEN_TO_ADVISORS
+}
+
+enum FundingType {
+  BOOTSTRAPPED
+  GRANT
+  ANGEL
+  SEED
+  SERIES_A
+  SERIES_B
+  SERIES_C_PLUS
+}
+
+enum LookingForType {
+  INVESTORS
+  MENTORS
+  INCUBATORS
+  ACCELERATORS
+  SERVICE_PROVIDERS
+  OFFICE_SPACE
+  COFOUNDER
+  EMPLOYEES
+  GRANTS
+  GOVERNMENT_SCHEMES
+  CORPORATE_PARTNERSHIPS
+}
+
+// ─── Enums: other roles ─────────────────────────────────────────────────
+
+enum InvestorType {
+  ANGEL
+  VC_FIRM
+  FAMILY_OFFICE
+  CORPORATE_VC
+  ACCELERATOR
+}
+
+enum SessionType {
+  ONE_ON_ONE
+  GROUP
+  WORKSHOP
+  ADVISORY
+}
+
+enum ServiceCategory {
+  LEGAL
+  FINANCE
+  CA
+  MARKETING
+  BRANDING
+  TECHNOLOGY
+  RECRUITMENT
+  IP
+  HR
+  OPERATIONS
+  OTHER
+}
+
+enum AvailabilityType {
+  IMMEDIATE
+  TWO_WEEKS
+  ONE_MONTH
+  FLEXIBLE
+}
+
+// ─── Enums: platform ─────────────────────────────────────────────────────
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  IGNORED
+  WITHDRAWN
+}
+
+enum NotificationType {
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  PROFILE_VERIFIED
+  PROFILE_REJECTED
+  NEW_MESSAGE
+  BILLING_ISSUE
+  SYSTEM
+}
+
+enum SubscriptionPlan {
+  FREE
+  FOUNDER_PRO
+  INVESTOR_PRO
+  ENTERPRISE
+}
+
+// ─── Identity & auth ────────────────────────────────────────────────────
+
+model User {
+  id                 String              @id @default(uuid()) @db.Uuid
+  email              String              @unique
+  passwordHash       String? // null for OAuth-only accounts
+  fullName           String
+  avatarUrl          String?
+  role               UserRole
+  verificationStatus VerificationStatus  @default(UNVERIFIED)
+  emailVerifiedAt    DateTime?
+  twoFactorEnabled   Boolean             @default(false)
+  twoFactorSecret    String? // encrypted at rest by the app layer, never returned by any endpoint
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime? // soft delete — preserves FK history for audit logs
+
+  profile             UserProfile?
+  startup             Startup?
+  investorProfile     Investor?
+  mentorProfile       MentorProfile?
+  incubatorProfile    IncubatorProfile?
+  universityProfile   UniversityProfile?
+  serviceProviderProfile ServiceProviderProfile?
+  jobSeekerProfile    JobSeekerProfile?
+  oauthAccounts       OAuthAccount[]
+  refreshTokens       RefreshToken[]
+  otpCodes            OtpCode[]
+  passwordResetTokens PasswordResetToken[]
+  mfaRecoveryCodes    MfaRecoveryCode[]
+  documents           Document[]
+  notifications       Notification[]
+  sentConnections     Connection[]        @relation("ConnectionRequester")
+  receivedConnections Connection[]        @relation("ConnectionRecipient")
+  sentMessages        Message[]           @relation("MessageSender")
+  subscription        Subscription?
+  auditLogs           AuditLog[]
+
+  @@index([role])
+  @@map("users")
+}
+
+// Shared "personal details" extension — every role's onboarding starts with
+// this same form (Step 1 in the founder wizard, "Personal Details" in every
+// other role's flow) before branching into role-specific fields, so these
+// columns live once instead of being duplicated across seven profile tables.
+model UserProfile {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @db.Uuid
+  mobileNumber   String?
+  dateOfBirth    DateTime?
+  gender         Gender?
+  nationality    String?
+  linkedinUrl    String?
+  githubUrl      String?
+  portfolioUrl   String?
+  city           String?
+  state          String?
+  country        String?
+  bio            String?
+
+  // Onboarding wizard state — see docs/11-onboarding-architecture.md.
+  // `onboardingDraft` accumulates every step's answers as JSON so autosave
+  // never has to satisfy full relational constraints on a half-finished
+  // wizard; `publish()` validates the complete draft and commits it into
+  // the normalized tables below in one transaction.
+  onboardingStatus OnboardingStatus @default(NOT_STARTED)
+  onboardingStep   Int              @default(0)
+  onboardingDraft  Json?
+  updatedAt        DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @db.Uuid
+  provider          String // "google" | "linkedin" | "github" | "apple" | "microsoft"
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+// Doubles as the "session" record for the Session Management / Device List
+// UI — one row per active refresh token, one refresh token per device/browser.
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenHash   String    @unique // never store the raw token — see docs/09-authentication-security.md
+  deviceLabel String? // parsed from User-Agent at issuance, e.g. "Chrome on macOS"
+  userAgent   String?
+  ipAddress   String?
+  rememberMe  Boolean   @default(false) // short session (browser-close) vs. long-lived, see auth.service.ts
+  expiresAt   DateTime
+  lastUsedAt  DateTime  @default(now())
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// Short-lived codes for email verification and login-time MFA (email fallback).
+// TOTP MFA doesn't need this — it's verified against `User.twoFactorSecret` directly.
+model OtpCode {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String     @db.Uuid
+  purpose     OtpPurpose
+  codeHash    String // SHA-256 of the 6-digit code — same "never store raw secrets" rule as refresh tokens
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  attempts    Int        @default(0) // capped in service logic to blunt brute-force guessing
+  createdAt   DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("otp_codes")
+}
+
+// Link-based reset (emailed URL), deliberately separate from OtpCode — see docs/09-authentication-security.md.
+model PasswordResetToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// One-time-use backup codes issued at MFA enrollment for account recovery if the authenticator device is lost.
+model MfaRecoveryCode {
+  id       String    @id @default(uuid()) @db.Uuid
+  userId   String    @db.Uuid
+  codeHash String
+  usedAt   DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_recovery_codes")
+}
+
+// Generic verification document, keyed to the uploading user rather than a
+// specific profile table — every role's "Verification Documents" step
+// (Startup Step 8, Investor, Mentor, ...) writes here uniformly.
+model Document {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @db.Uuid
+  type           DocumentType
+  fileUrl        String
+  fileName       String
+  uploadedAt     DateTime     @default(now())
+  verifiedAt     DateTime?
+  verifiedByAdminId String?   @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("documents")
+}
+
+// ─── Startup domain ─────────────────────────────────────────────────────
+
+model Startup {
+  id                    String              @id @default(uuid()) @db.Uuid
+  ownerId               String              @unique @db.Uuid
+  name                  String
+  slug                  String              @unique
+  tagline               String
+  description           String
+  logoUrl               String?
+  website               String?
+  industry              String
+  subIndustry           String?
+  stage                 StartupStage        @default(IDEA)
+  foundedYear            Int
+  registrationStatus    RegistrationStatus  @default(NOT_REGISTERED)
+  companyType           CompanyType?
+  headquarters          String? // city/country the company is legally headquartered in
+  businessModelSummary  String? // free-text model description (e.g. "subscription", "marketplace take-rate")
+  mission               String?
+  vision                String?
+  problemStatement      String?
+  solution              String?
+  uniqueValueProposition String?
+  teamSize              Int                 @default(1)
+  hiringStatus          HiringStatus        @default(NOT_HIRING)
+  openRoles             String[]
+  location              String
+  fundingRaisedUsd      Decimal             @default(0) @db.Decimal(14, 2)
+  isFundraising         Boolean             @default(false)
+  verificationStatus    VerificationStatus  @default(UNVERIFIED)
+  isPublic              Boolean             @default(true)
+  termsAcceptedAt       DateTime? // Step 10 "Accept Terms" — e-signature is the typed founder name + this timestamp
+  publishedAt           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt              DateTime?
+
+  owner       User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  teamMembers StartupTeamMember[]
+  product     StartupProduct?
+  market      StartupMarket?
+  traction    StartupTraction?
+  funding     StartupFunding?
+  preference  StartupPreference?
+  connections Connection[]
+
+  @@index([industry])
+  @@index([stage])
+  @@index([isFundraising])
+  @@index([isPublic, verificationStatus]) // backs the public discovery feed's primary filter
+  @@map("startups")
+}
+
+model StartupTeamMember {
+  id          String              @id @default(uuid()) @db.Uuid
+  startupId   String              @db.Uuid
+  category    TeamMemberCategory  @default(EMPLOYEE)
+  fullName    String
+  role        String // job title, free text
+  linkedinUrl String?
+  photoUrl    String?
+  createdAt   DateTime            @default(now())
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@index([startupId])
+  @@map("startup_team_members")
+}
+
+// Step 3 — Product Details. 1:1 with Startup; split out because it's a distinct, optional-until-MVP concern.
+model StartupProduct {
+  id                String   @id @default(uuid()) @db.Uuid
+  startupId         String   @unique @db.Uuid
+  productName       String?
+  description       String?
+  currentVersion    String?
+  website           String?
+  appStoreUrl       String?
+  playStoreUrl      String?
+  demoVideoUrl      String?
+  pitchVideoUrl     String?
+  screenshots       String[]
+  technologyStack   String[]
+  hasApi            Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@map("startup_products")
+}
+
+// Step 4 — Market Details. Personas/competitors are semi-structured lists — JSON keeps the schema stable as their shape evolves.
+model StartupMarket {
+  id                    String          @id @default(uuid()) @db.Uuid
+  startupId             String          @unique @db.Uuid
+  targetAudience        String?
+  targetGeography       String[]
+  primaryCustomer       String?
+  customerModel         CustomerModel[]
+  tamUsd                Decimal?        @db.Decimal(16, 2)
+  samUsd                Decimal?        @db.Decimal(16, 2)
+  somUsd                Decimal?        @db.Decimal(16, 2)
+  customerPersonas      Json?
+  competitors           Json?
+  competitiveAdvantage  String?
+  goToMarketStrategy    String?
+  updatedAt             DateTime        @updatedAt
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@map("startup_markets")
+}
+
+// Step 6 — Traction.
+model StartupTraction {
+  id                    String   @id @default(uuid()) @db.Uuid
+  startupId             String   @unique @db.Uuid
+  monthlyRevenueUsd     Decimal? @db.Decimal(14, 2)
+  arrUsd                Decimal? @db.Decimal(14, 2)
+  mrrUsd                Decimal? @db.Decimal(14, 2)
+  totalUsers            Int?
+  totalCustomers        Int?
+  downloads             Int?
+  retentionRatePercent  Decimal? @db.Decimal(5, 2)
+  growthRatePercent     Decimal? @db.Decimal(6, 2)
+  partnerships          String[]
+  awards                String[]
+  patents               String[]
+  mediaMentions         String[]
+  updatedAt             DateTime @updatedAt
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@map("startup_tractions")
+}
+
+// Step 7 — Funding.
+model StartupFunding {
+  id                  String        @id @default(uuid()) @db.Uuid
+  startupId           String        @unique @db.Uuid
+  fundingTypes        FundingType[]
+  currentRaiseUsd     Decimal?      @db.Decimal(14, 2)
+  fundingGoalUsd      Decimal?      @db.Decimal(14, 2)
+  valuationUsd        Decimal?      @db.Decimal(16, 2)
+  previousInvestors   String[]
+  useOfFunds          String?
+  runwayMonths        Int?
+  monthlyBurnRateUsd  Decimal?      @db.Decimal(14, 2)
+  updatedAt           DateTime      @updatedAt
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@map("startup_fundings")
+}
+
+// Step 9 — Preferences ("Looking For").
+model StartupPreference {
+  id         String           @id @default(uuid()) @db.Uuid
+  startupId  String           @unique @db.Uuid
+  lookingFor LookingForType[]
+  updatedAt  DateTime         @updatedAt
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@map("startup_preferences")
+}
+
+// ─── Other role profiles ────────────────────────────────────────────────
+
+model Investor {
+  id                  String         @id @default(uuid()) @db.Uuid
+  ownerId             String         @unique @db.Uuid
+  firmName            String?
+  designation         String?
+  investorType        InvestorType
+  bio                 String
+  logoUrl             String?
+  website             String?
+  checkSizeMinUsd     Decimal        @default(0) @db.Decimal(14, 2)
+  checkSizeMaxUsd     Decimal        @default(0) @db.Decimal(14, 2)
+  preferredStages     StartupStage[]
+  preferredIndustries String[]
+  preferredGeography  String[]
+  portfolioCompanies  String[]
+  investmentThesis    String?
+  openForPitches      Boolean        @default(true)
+  location            String
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  isPublic            Boolean        @default(true)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  deletedAt           DateTime?
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([investorType])
+  @@index([isPublic, verificationStatus])
+  @@map("investors")
+}
+
+model MentorProfile {
+  id                 String        @id @default(uuid()) @db.Uuid
+  ownerId            String        @unique @db.Uuid
+  headline           String?
+  expertise          String[]
+  industries         String[]
+  yearsExperience    Int?
+  availability       String?
+  sessionTypes       SessionType[]
+  pricingModel       String? // e.g. "Free", "$150/hr", "Equity-based"
+  languages          String[]
+  pastStartups       String[] // free-text company names — often off-platform, so not an FK relation
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  isPublic           Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([isPublic, verificationStatus])
+  @@map("mentor_profiles")
+}
+
+model IncubatorProfile {
+  id                    String   @id @default(uuid()) @db.Uuid
+  ownerId               String   @unique @db.Uuid
+  organizationName      String
+  description           String?
+  website               String?
+  logoUrl               String?
+  industries            String[]
+  portfolioCompanies    String[]
+  affiliatedMentorCount Int?
+  verificationStatus    VerificationStatus @default(UNVERIFIED)
+  isPublic              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  owner    User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  programs IncubatorProgram[]
+
+  @@index([isPublic, verificationStatus])
+  @@map("incubator_profiles")
+}
+
+model IncubatorProgram {
+  id                   String    @id @default(uuid()) @db.Uuid
+  incubatorId          String    @db.Uuid
+  name                 String
+  description          String?
+  durationWeeks        Int?
+  applicationCycleStart DateTime?
+  applicationCycleEnd   DateTime?
+  createdAt            DateTime  @default(now())
+
+  incubator IncubatorProfile @relation(fields: [incubatorId], references: [id], onDelete: Cascade)
+
+  @@index([incubatorId])
+  @@map("incubator_programs")
+}
+
+model UniversityProfile {
+  id                  String   @id @default(uuid()) @db.Uuid
+  ownerId             String   @unique @db.Uuid
+  institutionName     String
+  affiliationType     String? // "Public" | "Private" | free text
+  website             String?
+  logoUrl             String?
+  incubationCellName  String?
+  departments         String[]
+  programsOffered     String[]
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  isPublic            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([isPublic, verificationStatus])
+  @@map("university_profiles")
+}
+
+model ServiceProviderProfile {
+  id                 String            @id @default(uuid()) @db.Uuid
+  ownerId            String            @unique @db.Uuid
+  companyName        String
+  categories         ServiceCategory[]
+  description        String?
+  pricingModel       String?
+  yearsExperience    Int?
+  clientsServed      Int?
+  website            String?
+  logoUrl            String?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  isPublic           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([isPublic, verificationStatus])
+  @@map("service_provider_profiles")
+}
+
+model JobSeekerProfile {
+  id                    String            @id @default(uuid()) @db.Uuid
+  ownerId               String            @unique @db.Uuid
+  headline              String?
+  resumeUrl             String?
+  skills                String[]
+  preferredRoles        String[]
+  expectedSalaryMinUsd  Decimal?          @db.Decimal(12, 2)
+  expectedSalaryMaxUsd  Decimal?          @db.Decimal(12, 2)
+  availability          AvailabilityType  @default(FLEXIBLE)
+  isPublic              Boolean           @default(true)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  owner      User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  experience WorkExperienceEntry[]
+  education  EducationEntry[]
+
+  @@map("job_seeker_profiles")
+}
+
+model WorkExperienceEntry {
+  id           String    @id @default(uuid()) @db.Uuid
+  jobSeekerId  String    @db.Uuid
+  company      String
+  title        String
+  startDate    DateTime?
+  endDate      DateTime?
+  description  String?
+
+  jobSeeker JobSeekerProfile @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+
+  @@index([jobSeekerId])
+  @@map("work_experience_entries")
+}
+
+model EducationEntry {
+  id           String  @id @default(uuid()) @db.Uuid
+  jobSeekerId  String  @db.Uuid
+  institution  String
+  degree       String?
+  fieldOfStudy String?
+  startYear    Int?
+  endYear      Int?
+
+  jobSeeker JobSeekerProfile @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+
+  @@index([jobSeekerId])
+  @@map("education_entries")
+}
+
+// ─── Platform ────────────────────────────────────────────────────────────
+
+// The "Smart Connect Request" — a founder can never message an investor
+// directly; this is the only channel, and it's rate-limited per calendar
+// month by PlanLimit.monthlyConnectRequestLimit. Chat (Message, below) only
+// unlocks once status flips to ACCEPTED. See docs/12-connect-requests.md.
+model Connection {
+  id                   String           @id @default(uuid()) @db.Uuid
+  requesterId          String           @db.Uuid
+  recipientId          String           @db.Uuid
+  startupId            String?          @db.Uuid
+  status               ConnectionStatus @default(PENDING)
+  introduction         String? // short intro + startup summary, written by the requester
+  fundingRequirementUsd Int?
+  pitchDeckUrl         String?
+  executiveSummaryUrl  String?
+  createdAt            DateTime         @default(now())
+  respondedAt          DateTime?
+
+  requester User      @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient User      @relation("ConnectionRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  startup   Startup?  @relation(fields: [startupId], references: [id], onDelete: SetNull)
+  messages  Message[]
+
+  @@unique([requesterId, recipientId, startupId]) // prevents duplicate pending requests
+  @@index([recipientId, status])
+  @@map("connections")
+}
+
+// Unlocked only once its parent Connection is ACCEPTED — see
+// MessagesService.assertCanMessage. Deliberately simple (no threads,
+// reactions, or read receipts) since real-time chat infra isn't in scope yet.
+model Message {
+  id           String    @id @default(uuid()) @db.Uuid
+  connectionId String    @db.Uuid
+  senderId     String    @db.Uuid
+  body         String
+  attachmentUrl String?
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  connection Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  sender     User       @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, createdAt])
+  @@map("messages")
+}
+
+// Admin-configurable quota per plan (e.g. Free founders get N connect
+// requests/month) — a row missing for a given plan means "not yet
+// configured"; services fall back to a hardcoded default rather than
+// failing, see PlanLimitsService.
+model PlanLimit {
+  id                         String           @id @default(uuid()) @db.Uuid
+  plan                       SubscriptionPlan @unique
+  monthlyConnectRequestLimit Int? // null = unlimited
+  updatedAt                  DateTime         @updatedAt
+
+  @@map("plan_limits")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  body      String
+  linkUrl   String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// ─── Billing ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                   String           @id @default(uuid()) @db.Uuid
+  userId               String           @unique @db.Uuid
+  plan                 SubscriptionPlan @default(FREE)
+  stripeCustomerId     String?          @unique
+  stripeSubscriptionId String?          @unique
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean          @default(false)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// ─── Compliance ─────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid // null for system-initiated actions
+  action     String // e.g. "startup.verified", "user.role_changed", "auth.login"
+  entityType String
+  entityId   String
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
+}

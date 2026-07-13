@@ -1,0 +1,14 @@
+{
+  "root": true,
+  "extends": ["../../packages/config/eslint-preset/index.js"],
+  "rules": {
+    // NestJS resolves constructor-injected providers via emitDecoratorMetadata,
+    // which needs the real class reference at runtime. `import type` erases the
+    // import, so TypeScript falls back to emitting the generic `Function` type
+    // instead of the actual class — Nest then fails to resolve the dependency
+    // at boot. Verified empirically; see docs/07-backend-architecture.md.
+    // The shared preset's `error` is correct for apps/web and plain type
+    // packages, just not here.
+    "@typescript-eslint/consistent-type-imports": "off"
+  }
+}

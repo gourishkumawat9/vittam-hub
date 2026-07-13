@@ -1,0 +1,14 @@
+{
+  "name": "@vittamhub/utils",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Framework-agnostic helpers shared by web and api (formatting, slugs, pagination math).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@vittamhub/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

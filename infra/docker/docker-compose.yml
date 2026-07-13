@@ -1,0 +1,40 @@
+version: "3.9"
+
+# Local dev only — staging/production use managed Postgres (Neon/Supabase)
+# and Upstash Redis (see docs/10-deployment-infrastructure.md). This compose
+# file exists so a fresh clone can `docker compose up` and get a working
+# DATABASE_URL/REDIS_URL without provisioning cloud resources first.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vittamhub
+      POSTGRES_PASSWORD: vittamhub
+      POSTGRES_DB: vittamhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vittamhub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Semantic color variables as raw "R G B" triples (no rgb() wrapper) so
+ * Tailwind's `rgb(var(--x) / <alpha-value>)` pattern in tailwind-preset.ts
+ * can apply opacity modifiers, e.g. `bg-brand-primary/10`.
+ */
+@layer base {
+  :root {
+    --color-background: 255 255 255;
+    --color-background-secondary: 248 250 252;
+    --color-surface: 255 255 255;
+    --color-border: 229 231 235;
+    --color-text-primary: 17 24 39;
+    --color-text-secondary: 107 114 128;
+    --color-brand-primary: 95 137 200;
+    --color-brand-secondary: 126 167 216;
+
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
+  }
+
+  :root[data-theme="dark"] {
+    --color-background: 2 6 23;
+    --color-background-secondary: 11 18 32;
+    --color-surface: 17 24 39;
+    --color-border: 31 41 55;
+    --color-text-primary: 241 245 249;
+    --color-text-secondary: 148 163 184;
+    --color-brand-primary: 108 151 206;
+    --color-brand-secondary: 126 167 216;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.32), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.44), 0 4px 8px rgba(0, 0, 0, 0.28);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-background: 2 6 23;
+      --color-background-secondary: 11 18 32;
+      --color-surface: 17 24 39;
+      --color-border: 31 41 55;
+      --color-text-primary: 241 245 249;
+      --color-text-secondary: 148 163 184;
+      --color-brand-primary: 108 151 206;
+      --color-brand-secondary: 126 167 216;
+    }
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-body antialiased;
+  }
+
+  ::selection {
+    @apply bg-brand-primary/20;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-brand-primary));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Blurred sticky nav-on-scroll, applied via a `scrolled` data attribute toggled in NavBar */
+  .nav-blur {
+    @apply backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-200;
+  }
+
+  /* Subtle background grid for the hero — kept low-opacity per the "very subtle" spec. */
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, rgb(var(--color-text-primary) / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--color-text-primary) / 0.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+}
+
+@layer utilities {
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 32s linear infinite;
+  }
+
+  .animate-marquee-slow {
+    animation: marquee 60s linear infinite;
+  }
+
+  .pause-on-hover:hover .animate-marquee,
+  .pause-on-hover:hover .animate-marquee-slow {
+    animation-play-state: paused;
+  }
+}
