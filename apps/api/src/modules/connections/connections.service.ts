@@ -6,9 +6,18 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import type { ConnectionResponseAction, CreateConnectionInput, CreateMessageInput } from "@vittamhub/types";
+import type { Prisma } from "@prisma/client";
+import type {
+  ConnectionListFilters,
+  ConnectionResponseAction,
+  CreateConnectionInput,
+  CreateMessageInput,
+  ScheduleMeetingInput,
+} from "@vittamhub/types";
+import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
+import { AuditLogService } from "../audit-log/audit-log.service";
 import { PlanLimitsService } from "../plan-limits/plan-limits.service";
 
 const RESPONSE_ACTION_TO_STATUS: Record<ConnectionResponseAction, "ACCEPTED" | "DECLINED" | "IGNORED"> = {
@@ -28,6 +37,7 @@ export class ConnectionsService {
     private readonly prisma: PrismaService,
     private readonly planLimits: PlanLimitsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   /**
@@ -59,6 +69,7 @@ export class ConnectionsService {
           fundingRequirementUsd: input.fundingRequirementUsd,
           pitchDeckUrl: input.pitchDeckUrl,
           executiveSummaryUrl: input.executiveSummaryUrl,
+          demoLinkUrl: input.demoLinkUrl,
         },
       });
 
@@ -111,17 +122,104 @@ export class ConnectionsService {
       });
     }
 
+    await this.auditLog.record({
+      actorId: recipientId,
+      action: `connection.${status.toLowerCase()}`,
+      entityType: "Connection",
+      entityId: connectionId,
+      metadata: { action },
+    });
+
     return updated;
   }
 
-  listForUser(userId: string) {
-    return this.prisma.connection.findMany({
-      where: { OR: [{ requesterId: userId }, { recipientId: userId }] },
-      orderBy: { createdAt: "desc" },
+  async listForUser(userId: string, filters: ConnectionListFilters) {
+    const where: Prisma.ConnectionWhereInput = {
+      OR: [{ requesterId: userId }, { recipientId: userId }],
+      ...(filters.status?.length ? { status: { in: filters.status } } : {}),
+    };
+
+    const { skip, take } = paginationToOffset(filters.page, filters.pageSize);
+    const [items, totalItems] = await Promise.all([
+      this.prisma.connection.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: {
+          startup: { select: { id: true, name: true, slug: true, logoUrl: true, tagline: true } },
+          requester: { select: { id: true, fullName: true, avatarUrl: true } },
+          recipient: { select: { id: true, fullName: true, avatarUrl: true } },
+        },
+      }),
+      this.prisma.connection.count({ where }),
+    ]);
+
+    return buildPaginatedResult(items, totalItems, filters.page, filters.pageSize);
+  }
+
+  /** Doesn't change status — just flags to the founder that the investor wants more detail before deciding. */
+  async requestMoreInfo(connectionId: string, recipientId: string) {
+    const connection = await this.prisma.connection.findUnique({ where: { id: connectionId } });
+    if (!connection) throw new NotFoundException("Connection request not found");
+    if (connection.recipientId !== recipientId) throw new ForbiddenException("Not your connection request");
+
+    const updated = await this.prisma.connection.update({
+      where: { id: connectionId },
+      data: { infoRequestedAt: new Date() },
+    });
+
+    const recipient = await this.prisma.user.findUniqueOrThrow({ where: { id: recipientId } });
+    this.eventEmitter.emit("connection.info-requested", {
+      requesterId: connection.requesterId,
+      recipientName: recipient.fullName,
+    });
+
+    return updated;
+  }
+
+  /** Either party can propose a time — allowed before acceptance too (an intro call can happen ahead of a formal Accept). */
+  async scheduleMeeting(connectionId: string, callerId: string, input: ScheduleMeetingInput) {
+    const connection = await this.prisma.connection.findUnique({ where: { id: connectionId } });
+    if (!connection) throw new NotFoundException("Connection not found");
+    if (connection.requesterId !== callerId && connection.recipientId !== callerId) {
+      throw new ForbiddenException("You're not part of this connection");
+    }
+
+    const meeting = await this.prisma.meeting.create({
+      data: {
+        connectionId,
+        scheduledAt: new Date(input.scheduledAt),
+        notes: input.notes,
+        videoCallUrl: input.videoCallUrl,
+      },
+    });
+
+    const otherPartyId = connection.requesterId === callerId ? connection.recipientId : connection.requesterId;
+    const caller = await this.prisma.user.findUniqueOrThrow({ where: { id: callerId } });
+    this.eventEmitter.emit("meeting.scheduled", { userId: otherPartyId, schedulerName: caller.fullName });
+
+    return meeting;
+  }
+
+  listMeetings(connectionId: string) {
+    return this.prisma.meeting.findMany({ where: { connectionId }, orderBy: { scheduledAt: "asc" } });
+  }
+
+  /** Every meeting across every one of the caller's connections — backs the dashboard card and the Meetings page. */
+  listMyMeetings(userId: string) {
+    return this.prisma.meeting.findMany({
+      where: { connection: { OR: [{ requesterId: userId }, { recipientId: userId }] } },
+      orderBy: { scheduledAt: "asc" },
       include: {
-        startup: { select: { id: true, name: true, slug: true, logoUrl: true, tagline: true } },
-        requester: { select: { id: true, fullName: true, avatarUrl: true } },
-        recipient: { select: { id: true, fullName: true, avatarUrl: true } },
+        connection: {
+          select: {
+            id: true,
+            requester: { select: { fullName: true } },
+            recipient: { select: { fullName: true } },
+            startup: { select: { name: true, logoUrl: true } },
+          },
+        },
       },
     });
   }

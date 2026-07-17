@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { SubscriptionPlan } from "@vittamhub/types";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
+import { AuditLogService } from "../audit-log/audit-log.service";
 
 /** Falls back to this when a plan has no PlanLimit row yet (e.g. right after a fresh migration, before the admin has configured anything). */
 const DEFAULT_MONTHLY_CONNECT_REQUEST_LIMIT: Record<SubscriptionPlan, number | null> = {
@@ -13,7 +14,10 @@ const DEFAULT_MONTHLY_CONNECT_REQUEST_LIMIT: Record<SubscriptionPlan, number | n
 
 @Injectable()
 export class PlanLimitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async getMonthlyConnectRequestLimit(plan: SubscriptionPlan): Promise<number | null> {
     const row = await this.prisma.planLimit.findUnique({ where: { plan } });
@@ -34,11 +38,21 @@ export class PlanLimitsService {
     });
   }
 
-  upsert(plan: SubscriptionPlan, monthlyConnectRequestLimit: number | null) {
-    return this.prisma.planLimit.upsert({
+  async upsert(plan: SubscriptionPlan, monthlyConnectRequestLimit: number | null, actorId: string) {
+    const updated = await this.prisma.planLimit.upsert({
       where: { plan },
       create: { plan, monthlyConnectRequestLimit },
       update: { monthlyConnectRequestLimit },
     });
+
+    await this.auditLog.record({
+      actorId,
+      action: "plan_limit.updated",
+      entityType: "PlanLimit",
+      entityId: updated.id,
+      metadata: { plan, monthlyConnectRequestLimit },
+    });
+
+    return updated;
   }
 }

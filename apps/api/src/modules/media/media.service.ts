@@ -1,11 +1,30 @@
 import { randomUUID } from "node:crypto";
 
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { S3Client } from "@aws-sdk/client-s3";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
-const ALLOWED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
+const ALLOWED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/csv",
+]);
+
+type UploadFolder = "logos" | "avatars" | "documents" | "resumes";
+
+/** Per-folder max upload size, enforced by S3/R2 itself via the presigned POST policy's content-length-range condition — never trusted to the client. */
+const MAX_UPLOAD_BYTES: Record<UploadFolder, number> = {
+  logos: 5 * 1024 * 1024,
+  avatars: 5 * 1024 * 1024,
+  documents: 20 * 1024 * 1024,
+  resumes: 10 * 1024 * 1024,
+};
 
 @Injectable()
 export class MediaService {
@@ -23,12 +42,19 @@ export class MediaService {
   }
 
   /**
-   * Returns a short-lived PUT URL so the browser uploads straight to R2 —
-   * files never transit through our API process. Caller (e.g. logo upload
-   * form) PUTs directly to `uploadUrl`, then persists `publicUrl` on the
+   * Returns a presigned POST policy (url + form fields) so the browser
+   * uploads straight to R2 — files never transit through our API process.
+   * A presigned PUT (the previous mechanism) can't cap the byte size the
+   * client sends; a POST policy's `content-length-range` condition is
+   * enforced by S3/R2 itself before the object is even written, so this is
+   * real, non-bypassable size enforcement rather than a client-reported
+   * value we'd have to trust.
+   *
+   * Caller (e.g. logo upload form) POSTs a multipart form to `uploadUrl`
+   * with `uploadFields` plus the file, then persists `publicUrl` on the
    * owning record (Startup.logoUrl, User.avatarUrl, ...).
    */
-  async createUploadUrl(mimeType: string, folder: "logos" | "avatars" | "documents" | "resumes") {
+  async createUploadUrl(mimeType: string, folder: UploadFolder) {
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
       throw new Error(`Unsupported mime type: ${mimeType}`);
     }
@@ -36,15 +62,17 @@ export class MediaService {
     const key = `${folder}/${randomUUID()}`;
     const bucket = this.configService.get("STORAGE_BUCKET", "");
 
-    // A presigned PUT can't cap the byte size the client sends — enforcing a
-    // max upload size needs an S3 POST policy (content-length-range condition)
-    // instead; switch to that before launch if abuse via oversized uploads is a concern.
-    const uploadUrl = await getSignedUrl(
-      this.s3,
-      new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: mimeType }),
-      { expiresIn: 300 },
-    );
+    const { url, fields } = await createPresignedPost(this.s3, {
+      Bucket: bucket,
+      Key: key,
+      Expires: 300,
+      Conditions: [
+        ["content-length-range", 0, MAX_UPLOAD_BYTES[folder]],
+        ["eq", "$Content-Type", mimeType],
+      ],
+      Fields: { "Content-Type": mimeType },
+    });
 
-    return { uploadUrl, publicUrl: `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/${key}` };
+    return { uploadUrl: url, uploadFields: fields, publicUrl: `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/${key}` };
   }
 }

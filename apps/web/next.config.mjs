@@ -1,3 +1,8 @@
+// In dev the API runs on http://localhost:4000, not the production domain — without this,
+// the browser's CSP silently blocks every fetch() to the API and every request just
+// rejects with a generic "Failed to fetch" (no visible error unless you check the console).
+const apiConnectSrc = process.env.NODE_ENV === "production" ? "https://api.vittamhub.com" : "http://localhost:4000";
+
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -12,7 +17,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://media.vittamhub.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://api.vittamhub.com",
+      `connect-src 'self' ${apiConnectSrc}`,
       "frame-ancestors 'none'",
     ].join("; "),
   },

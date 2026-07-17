@@ -7,7 +7,16 @@ import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { MediaService } from "./media.service";
 
 const uploadUrlRequestSchema = z.object({
-  mimeType: z.enum(["image/png", "image/jpeg", "image/webp", "application/pdf"]),
+  mimeType: z.enum([
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx — cap tables
+    "application/vnd.ms-excel", // legacy .xls
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx — contracts, notes
+    "text/csv",
+  ]),
   folder: z.enum(["logos", "avatars", "documents", "resumes"]),
 });
 type UploadUrlRequest = z.infer<typeof uploadUrlRequestSchema>;

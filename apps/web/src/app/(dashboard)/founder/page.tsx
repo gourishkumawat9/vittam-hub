@@ -1,14 +1,34 @@
 "use client";
 
-import { useConnectionQuota, useConnections, useInvestors, type InvestorWithOwner } from "@vittamhub/api-client";
+import {
+  useConnectionQuota,
+  useConnections,
+  useFounderRecommendations,
+  useInvestors,
+  useMyStartup,
+  useMyStartupHealth,
+  type InvestorWithOwner,
+} from "@vittamhub/api-client";
+import type { InvestorSearchFilters } from "@vittamhub/types";
 import { Badge, Button, Card, EmptyState } from "@vittamhub/ui";
 import { formatCompactUsd, formatRelativeTime } from "@vittamhub/utils";
-import { Handshake, Inbox, MessageCircle } from "lucide-react";
+import { Handshake, Inbox, MessageCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { ConnectionStatusBadge } from "@/components/connections/ConnectionStatusBadge";
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
+import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
+import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { FounderActivityCard } from "@/components/dashboard/founder/FounderActivityCard";
+import { FounderReputationCard } from "@/components/dashboard/founder/FounderReputationCard";
+import { InvestorFiltersBar } from "@/components/dashboard/founder/InvestorFiltersBar";
+import { ProfileCompletionCard } from "@/components/dashboard/founder/ProfileCompletionCard";
+import { QuickActionsCard } from "@/components/dashboard/founder/QuickActionsCard";
+import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentProfileViewsCard";
+import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
+import { StartupHealthCard } from "@/components/dashboard/founder/StartupHealthCard";
+import { TrustScoreCard } from "@/components/dashboard/founder/TrustScoreCard";
 
 function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; onConnect: (investor: InvestorWithOwner) => void }) {
   return (
@@ -33,6 +53,16 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
         ))}
       </div>
 
+      {investor.metrics && (investor.metrics.responseRate != null || investor.metrics.isActive) && (
+        <div className="flex flex-wrap items-center gap-3 text-xs text-text-secondary">
+          {investor.metrics.responseRate != null && <span>Responds to {Math.round(investor.metrics.responseRate * 100)}% of requests</span>}
+          {investor.metrics.avgResponseTimeHours != null && (
+            <span>~{Math.round(investor.metrics.avgResponseTimeHours)}h avg response</span>
+          )}
+          {investor.metrics.isActive && <Badge variant="success">Recently active</Badge>}
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-t border-border pt-4 text-xs text-text-secondary">
         <span>
           {formatCompactUsd(Number(investor.checkSizeMinUsd))} – {formatCompactUsd(Number(investor.checkSizeMaxUsd))}
@@ -46,9 +76,15 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
 }
 
 export default function FounderDashboardPage() {
-  const { data: investors, isLoading: investorsLoading } = useInvestors();
-  const { data: connections, isLoading: connectionsLoading } = useConnections();
+  const { data: startup, isLoading: startupLoading, isError: startupError } = useMyStartup();
+  const { data: health } = useMyStartupHealth();
+  const [investorFilters, setInvestorFilters] = useState<InvestorSearchFilters>({ matchMyStartup: true, page: 1, pageSize: 20 });
+  const { data: investorResults, isLoading: investorsLoading } = useInvestors(investorFilters);
+  const investors = investorResults?.items ?? [];
+  const { data: connectionsResult, isLoading: connectionsLoading } = useConnections();
+  const connections = connectionsResult?.items;
   const { data: quota } = useConnectionQuota();
+  const { data: recommendations, isLoading: recommendationsLoading } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
 
   return (
@@ -64,6 +100,15 @@ export default function FounderDashboardPage() {
         )}
       </div>
 
+      {startupError && !startupLoading && (
+        <Card className="flex items-center justify-between gap-4 border-warning-200 bg-warning-50">
+          <p className="text-sm text-text-primary">Finish publishing your startup profile to unlock your dashboard.</p>
+          <Button size="sm" asChild>
+            <Link href="/onboarding/founder">Continue onboarding</Link>
+          </Button>
+        </Card>
+      )}
+
       {quota?.remaining === 0 && (
         <Card className="flex items-center justify-between gap-4 border-warning-200 bg-warning-50">
           <p className="text-sm text-text-primary">
@@ -75,10 +120,69 @@ export default function FounderDashboardPage() {
         </Card>
       )}
 
-      <section className="flex flex-col gap-4">
+      {startup && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <StartupHealthCard startup={startup} />
+          {health && <TrustScoreCard trustScore={health.trustScore} />}
+          {health && <ProfileCompletionCard completion={health.profileCompletion} />}
+        </div>
+      )}
+
+      {startup && health && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <FounderReputationCard founderReputation={health.founderReputation} />
+        </div>
+      )}
+
+      {startup && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <RecentUpdatesCard milestones={startup.milestones} />
+          </div>
+          <QuickActionsCard startupSlug={startup.slug} />
+        </div>
+      )}
+
+      {startup && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <FounderActivityCard />
+          </div>
+          <RecentProfileViewsCard />
+        </div>
+      )}
+
+      {startup && (
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-text-primary">Recommended investors</h2>
+            <p className="text-sm text-text-secondary">
+              Ranked by industry, stage, funding fit, geography, and pitch availability — not machine-learned.
+            </p>
+          </div>
+          {recommendationsLoading ? (
+            <CardGridSkeleton count={3} />
+          ) : recommendations && recommendations.recommendedInvestors.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {recommendations.recommendedInvestors.map((match) => (
+                <InvestorCard key={match.investorId} investor={match.investor} onConnect={setConnectingTo} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Sparkles}
+              title="No recommendations yet"
+              description="Complete your startup profile to get matched with investors."
+            />
+          )}
+        </section>
+      )}
+
+      <section id="discover-investors" className="flex flex-col gap-4 scroll-mt-20">
         <h2 className="font-heading text-lg font-semibold text-text-primary">Discover investors</h2>
+        <InvestorFiltersBar filters={investorFilters} onChange={setInvestorFilters} />
         {investorsLoading ? (
-          <p className="text-sm text-text-secondary">Loading investors…</p>
+          <CardGridSkeleton />
         ) : investors && investors.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {investors.map((investor) => (
@@ -93,7 +197,7 @@ export default function FounderDashboardPage() {
       <section className="flex flex-col gap-4">
         <h2 className="font-heading text-lg font-semibold text-text-primary">Your connect requests</h2>
         {connectionsLoading ? (
-          <p className="text-sm text-text-secondary">Loading…</p>
+          <ListRowsSkeleton />
         ) : connections && connections.length > 0 ? (
           <div className="flex flex-col divide-y divide-border rounded-card border border-border">
             {connections.map((connection) => (

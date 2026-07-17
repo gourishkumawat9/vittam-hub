@@ -82,6 +82,14 @@ export function Step1PersonalDetails({
           error={errors.portfolioUrl?.message}
           {...register("portfolioUrl")}
         />
+        <Input
+          label="Years of experience"
+          type="number"
+          min={0}
+          hint="Used to help investors filter for founder experience"
+          error={errors.yearsOfExperience?.message}
+          {...register("yearsOfExperience")}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

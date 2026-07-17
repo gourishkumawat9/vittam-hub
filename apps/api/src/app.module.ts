@@ -14,17 +14,32 @@ import { TransformInterceptor } from "./common/interceptors/transform.intercepto
 import { validateEnv } from "./config/env.validation";
 import { PrismaModule } from "./database/prisma/prisma.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { AuditLogModule } from "./modules/audit-log/audit-log.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
+import { CommunityModule } from "./modules/community/community.module";
 import { ConnectionsModule } from "./modules/connections/connections.module";
 import { DiscoveryModule } from "./modules/discovery/discovery.module";
+import { DocumentsModule } from "./modules/documents/documents.module";
+import { FollowsModule } from "./modules/follows/follows.module";
+import { FutureModulesModule } from "./modules/future-modules/future-modules.module";
+import { HiringModule } from "./modules/hiring/hiring.module";
+import { IncubatorsModule } from "./modules/incubators/incubators.module";
 import { InvestorsModule } from "./modules/investors/investors.module";
 import { MediaModule } from "./modules/media/media.module";
+import { MentorsModule } from "./modules/mentors/mentors.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
+import { PipelineModule } from "./modules/pipeline/pipeline.module";
+import { PortfolioModule } from "./modules/portfolio/portfolio.module";
+import { SearchModule } from "./modules/search/search.module";
+import { ServiceProvidersModule } from "./modules/service-providers/service-providers.module";
 import { StartupsModule } from "./modules/startups/startups.module";
+import { UniversitiesModule } from "./modules/universities/universities.module";
 import { UsersModule } from "./modules/users/users.module";
+import { VerificationModule } from "./modules/verification/verification.module";
+import { WatchlistModule } from "./modules/watchlist/watchlist.module";
 
 @Module({
   imports: [
@@ -54,6 +69,21 @@ import { UsersModule } from "./modules/users/users.module";
     MediaModule,
     AuditLogModule,
     AdminModule,
+    FutureModulesModule,
+    WatchlistModule,
+    PipelineModule,
+    PortfolioModule,
+    AnalyticsModule,
+    DocumentsModule,
+    VerificationModule,
+    MentorsModule,
+    IncubatorsModule,
+    HiringModule,
+    CommunityModule,
+    UniversitiesModule,
+    ServiceProvidersModule,
+    FollowsModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [

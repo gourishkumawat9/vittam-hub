@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@vittamhub/ui";
 import { motion } from "framer-motion";
 
 import { LEARNING_TRACKS } from "@/data/learning";
@@ -13,7 +14,8 @@ export function LearningHub() {
         <SectionHeading
           eyebrow="Learning Hub"
           title="Everything you need to build, taught by builders"
-          description="Structured, practical tracks — track your progress as you go."
+          description="Illustrative example tracks — content is coming soon, so lesson counts and progress aren't live yet."
+          action={<Badge variant="neutral">Coming soon</Badge>}
         />
 
         <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

@@ -33,3 +33,14 @@ export const createMentorInputSchema = z.object({
   pastStartups: z.array(z.string().max(120)).default([]),
 });
 export type CreateMentorInput = z.infer<typeof createMentorInputSchema>;
+
+/** Mentor directory filters — same shape family as investorSearchFiltersSchema. */
+export const mentorSearchFiltersSchema = z.object({
+  query: z.string().max(200).optional(),
+  expertise: z.array(z.string()).optional(),
+  industries: z.array(z.string()).optional(),
+  sessionTypes: z.array(z.nativeEnum(SessionType)).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type MentorSearchFilters = z.infer<typeof mentorSearchFiltersSchema>;

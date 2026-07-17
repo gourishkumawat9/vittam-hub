@@ -15,3 +15,9 @@ export const notificationSchema = z.object({
   createdAt: z.string().datetime(),
 });
 export type Notification = z.infer<typeof notificationSchema>;
+
+export const notificationListFiltersSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type NotificationListFilters = z.infer<typeof notificationListFiltersSchema>;

@@ -149,6 +149,14 @@ export function SendConnectRequestDialog({ investor, open, onOpenChange }: SendC
             </div>
           </div>
 
+          <Input
+            label="Demo link (optional)"
+            placeholder="https://…"
+            hint="A live product demo, video walkthrough, or Loom link."
+            error={errors.demoLinkUrl?.message}
+            {...register("demoLinkUrl")}
+          />
+
           {submitError && <p className="text-sm text-danger-600">{submitError}</p>}
         </form>
       )}

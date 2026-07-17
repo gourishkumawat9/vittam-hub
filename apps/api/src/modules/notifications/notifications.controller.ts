@@ -1,7 +1,9 @@
-import { Controller, Get, Patch, Param } from "@nestjs/common";
+import { Controller, Get, Patch, Param, Query, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { notificationListFiltersSchema, type NotificationListFilters } from "@vittamhub/types";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { NotificationsService } from "./notifications.service";
@@ -12,9 +14,22 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  @ApiOperation({ summary: "List the caller's most recent notifications" })
-  list(@CurrentUser() user: AuthenticatedUser) {
-    return this.notificationsService.listForUser(user.sub);
+  @UsePipes(new ZodValidationPipe(notificationListFiltersSchema))
+  @ApiOperation({ summary: "List the caller's notifications, newest first" })
+  list(@CurrentUser() user: AuthenticatedUser, @Query() filters: NotificationListFilters) {
+    return this.notificationsService.listForUser(user.sub, filters);
+  }
+
+  @Get("unread-count")
+  @ApiOperation({ summary: "Get the caller's unread notification count (poll this for the dashboard bell badge)" })
+  unreadCount(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.unreadCount(user.sub);
+  }
+
+  @Patch("read-all")
+  @ApiOperation({ summary: "Mark every one of the caller's notifications as read" })
+  markAllRead(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.markAllRead(user.sub);
   }
 
   @Patch(":id/read")

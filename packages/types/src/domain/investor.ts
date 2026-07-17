@@ -35,6 +35,29 @@ const urlOrEmpty = z
 // "LinkedIn" from the spec's Investor field list is collected once, on the
 // shared Personal Details step (UserProfile.linkedinUrl) — not duplicated
 // here. "Investment Type" is this schema's `investorType` field.
+/**
+ * Investor discovery filters — the mirror image of startupSearchFiltersSchema.
+ * `matchMyStartup` asks the API to default industry/stage to the caller's own
+ * startup when no explicit filters are given (see InvestorsService.list).
+ */
+export const investorSearchFiltersSchema = z.object({
+  query: z.string().max(200).optional(),
+  industry: z.array(z.string()).optional(),
+  country: z.array(z.string()).optional(),
+  stage: z.array(z.nativeEnum(StartupStage)).optional(),
+  minTicketSizeUsd: z.coerce.number().nonnegative().optional(),
+  investorType: z.array(z.nativeEnum(InvestorType)).optional(),
+  portfolioCompanies: z.array(z.string()).optional(),
+  matchMyStartup: z.coerce.boolean().optional(),
+  // "Recently active" = most recently edited profile (updatedAt) — there's no
+  // login-tracking column today, so this is the cheapest real signal available.
+  sortBy: z.enum(["createdAt", "updatedAt"]).optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type InvestorSearchFilters = z.infer<typeof investorSearchFiltersSchema>;
+
 export const createInvestorInputSchema = z.object({
   firmName: z.string().max(120).optional(),
   designation: z.string().max(120).optional(),
@@ -52,3 +75,6 @@ export const createInvestorInputSchema = z.object({
   openForPitches: z.boolean().default(true),
 });
 export type CreateInvestorInput = z.infer<typeof createInvestorInputSchema>;
+
+export const updateInvestorInputSchema = createInvestorInputSchema.partial();
+export type UpdateInvestorInput = z.infer<typeof updateInvestorInputSchema>;

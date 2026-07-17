@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Prisma } from "@prisma/client";
 import {
   fundingStepSchema,
@@ -26,7 +27,10 @@ import { applyPersonalDetails } from "./apply-personal-details";
  */
 @Injectable()
 export class StartupPublisher {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async publish(userId: string, rawDraft: StartupOnboardingDraft, confirmation: unknown) {
     const confirm = publishStartupInputSchema.safeParse(confirmation);
@@ -50,7 +54,7 @@ export class StartupPublisher {
 
     const slug = existing?.slug ?? (await this.generateUniqueSlug(startupInfo.name));
 
-    return this.prisma.$transaction(async (tx) => {
+    const startup = await this.prisma.$transaction(async (tx) => {
       await applyPersonalDetails(tx, userId, rawDraft.personalDetails);
 
       const startupFields = {
@@ -140,6 +144,9 @@ export class StartupPublisher {
 
       return startup;
     });
+
+    this.eventEmitter.emit("profile.upserted", { ownerId: userId });
+    return startup;
   }
 
   private parseStep<T>(schema: { parse: (input: unknown) => T }, value: unknown, label: string): T {

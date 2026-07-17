@@ -7,7 +7,7 @@ import { OtpPurpose, UserRole, type LoginInput, type RegisterInput } from "@vitt
 import * as argon2 from "argon2";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
-import { EmailService } from "../email/email.service";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { UsersService } from "../users/users.service";
 
 import { CaptchaService } from "./services/captcha.service";
@@ -43,7 +43,7 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly mfaService: MfaService,
     private readonly sessionService: SessionService,
-    private readonly emailService: EmailService,
+    private readonly emailQueueService: EmailQueueService,
   ) {}
 
   async register(input: RegisterInput, meta: RequestMeta) {
@@ -74,6 +74,9 @@ export class AuthService {
 
     const user = await this.usersService.findByEmail(input.email);
     if (!user?.passwordHash || !(await argon2.verify(user.passwordHash, input.password))) {
+      throw new UnauthorizedException("Invalid email or password");
+    }
+    if (user.deletedAt) {
       throw new UnauthorizedException("Invalid email or password");
     }
 
@@ -115,11 +118,13 @@ export class AuthService {
 
     const existingByOAuth = await this.usersService.findByOAuthAccount(profile.provider, profile.providerAccountId);
     if (existingByOAuth) {
+      if (existingByOAuth.deletedAt) throw new UnauthorizedException("This account is no longer available");
       return this.issueSession(existingByOAuth.id, existingByOAuth.email, existingByOAuth.role, meta);
     }
 
     const existingByEmail = await this.usersService.findByEmail(profile.email);
     if (existingByEmail) {
+      if (existingByEmail.deletedAt) throw new UnauthorizedException("This account is no longer available");
       await this.prisma.oAuthAccount.create({
         data: { userId: existingByEmail.id, provider: profile.provider, providerAccountId: profile.providerAccountId },
       });
@@ -213,15 +218,24 @@ export class AuthService {
     return createHash("sha256").update(rawToken).digest("hex");
   }
 
-  /** Audit trail write is awaited (cheap, local); the login-alert email is fire-and-forget so a slow provider never delays the login response. */
+  /**
+   * Audit trail write is awaited (cheap, local); the login-alert email is
+   * queued (BullMQ, see modules/jobs) rather than sent inline, so a slow or
+   * down email provider never delays the login response — and unlike a bare
+   * fire-and-forget promise, a failed send gets retried instead of silently
+   * dropped.
+   */
   private async recordLogin(userId: string, email: string, meta: RequestMeta): Promise<void> {
     await this.prisma.auditLog.create({
       data: { actorId: userId, action: "auth.login", entityType: "User", entityId: userId, ipAddress: meta.ipAddress },
     });
 
     const deviceLabel = this.sessionService.parseDeviceLabel(meta.userAgent);
-    this.emailService
-      .sendLoginAlert(email, deviceLabel, meta.ipAddress ?? "unknown", new Date().toUTCString())
-      .catch(() => undefined);
+    await this.emailQueueService.enqueueLoginAlert({
+      email,
+      deviceLabel,
+      ipAddress: meta.ipAddress ?? "unknown",
+      timestamp: new Date().toUTCString(),
+    });
   }
 }

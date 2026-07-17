@@ -63,6 +63,10 @@ enum DocumentType {
   FINANCIAL_STATEMENT
   GOVERNMENT_ID
   DIGITAL_SIGNATURE
+  CAP_TABLE
+  LEGAL_CONTRACT
+  DUE_DILIGENCE_REPORT
+  MEETING_NOTES
   OTHER
 }
 
@@ -117,6 +121,29 @@ enum HiringStatus {
   OPEN_TO_ADVISORS
 }
 
+enum MilestoneType {
+  IDEA_CREATED
+  PROTOTYPE
+  MVP
+  FIRST_CUSTOMER
+  REVENUE
+  SEED_ROUND
+  AWARD
+  HIRING
+  PRODUCT_LAUNCH
+  OTHER
+}
+
+enum PipelineStage {
+  TARGET
+  INTERESTED
+  MEETING
+  DUE_DILIGENCE
+  NEGOTIATION
+  INVESTED
+  CLOSED
+}
+
 enum FundingType {
   BOOTSTRAPPED
   GRANT
@@ -158,6 +185,11 @@ enum SessionType {
   ADVISORY
 }
 
+enum IncubatorKind {
+  INCUBATOR
+  ACCELERATOR
+}
+
 enum ServiceCategory {
   LEGAL
   FINANCE
@@ -194,9 +226,54 @@ enum NotificationType {
   CONNECTION_ACCEPTED
   PROFILE_VERIFIED
   PROFILE_REJECTED
+  PROFILE_VIEWED
+  DOCUMENT_UPLOADED
+  MILESTONE_ADDED
+  MEETING_SCHEDULED
   NEW_MESSAGE
   BILLING_ISSUE
   SYSTEM
+  MENTOR_BOOKING_REQUESTED
+  MENTOR_BOOKING_RESPONDED
+  JOB_APPLICATION_RECEIVED
+  JOB_APPLICATION_STATUS_CHANGED
+  POST_COMMENTED
+  FOUNDER_REVIEW_RECEIVED
+  NEW_FOLLOWER
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  ADVISORY
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  REJECTED
+  HIRED
+}
+
+enum PostType {
+  FOUNDER_POST
+  STARTUP_UPDATE
+  ANNOUNCEMENT
+  POLL
+  EVENT
 }
 
 enum SubscriptionPlan {
@@ -243,6 +320,23 @@ model User {
   sentMessages        Message[]           @relation("MessageSender")
   subscription        Subscription?
   auditLogs           AuditLog[]
+  startupFollows      StartupFollow[]
+  startupProfileViews StartupProfileView[]
+  pipelineEntries     PipelineEntry[]
+  investments         Investment[]
+  sentMentorBookings     MentorBookingRequest[] @relation("MentorBookingFounder")
+  receivedMentorBookings MentorBookingRequest[] @relation("MentorBookingMentor")
+  jobApplications        JobApplication[]
+  posts                  Post[]
+  comments               Comment[]
+  likes                  Like[]
+  pollVotes              PollVote[]
+  eventRsvps             EventRsvp[]
+  postBookmarks          PostBookmark[]
+  sentFollows            Follow[] @relation("Follower")
+  receivedFollows        Follow[] @relation("Following")
+  founderReviewsGiven    FounderReview[] @relation("FounderReviewMentor")
+  founderReviewsReceived FounderReview[] @relation("FounderReviewFounder")
 
   @@index([role])
   @@map("users")
@@ -266,6 +360,7 @@ model UserProfile {
   state          String?
   country        String?
   bio            String?
+  yearsOfExperience Int? // backs the "founder experience" discovery filter — see StartupsService.search
 
   // Onboarding wizard state — see docs/11-onboarding-architecture.md.
   // `onboardingDraft` accumulates every step's answers as JSON so autosave
@@ -375,7 +470,6 @@ model Document {
   fileName       String
   uploadedAt     DateTime     @default(now())
   verifiedAt     DateTime?
-  verifiedByAdminId String?   @db.Uuid
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -414,6 +508,7 @@ model Startup {
   fundingRaisedUsd      Decimal             @default(0) @db.Decimal(14, 2)
   isFundraising         Boolean             @default(false)
   verificationStatus    VerificationStatus  @default(UNVERIFIED)
+  verifiedAt            DateTime? // set by VerificationEngineService when verificationStatus automatically reaches VERIFIED — see modules/verification
   isPublic              Boolean             @default(true)
   termsAcceptedAt       DateTime? // Step 10 "Accept Terms" — e-signature is the typed founder name + this timestamp
   publishedAt           DateTime?
@@ -429,12 +524,38 @@ model Startup {
   funding     StartupFunding?
   preference  StartupPreference?
   connections Connection[]
+  milestones  StartupMilestone[]
+  followedBy  StartupFollow[]
+  profileViews StartupProfileView[]
+  pipelineEntries PipelineEntry[]
+  investments Investment[]
+  mentorBookingRequests MentorBookingRequest[]
+  jobs        Job[]
+  posts       Post[]
 
   @@index([industry])
   @@index([stage])
   @@index([isFundraising])
   @@index([isPublic, verificationStatus]) // backs the public discovery feed's primary filter
   @@map("startups")
+}
+
+// Founder-curated milestones ("Idea Created" -> "Product Launch") shown on the
+// public profile in chronological order and counted as one TrustScore factor.
+model StartupMilestone {
+  id           String        @id @default(uuid()) @db.Uuid
+  startupId    String        @db.Uuid
+  type         MilestoneType
+  title        String
+  description  String?
+  achievedAt   DateTime
+  evidenceUrls String[]      @default([]) // optional photos/links/documents — type is a rendering concern (sniff by extension), not storage, mirrors Post.mediaUrls
+  createdAt    DateTime      @default(now())
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@index([startupId, achievedAt])
+  @@map("startup_milestones")
 }
 
 model StartupTeamMember {
@@ -551,6 +672,52 @@ model StartupPreference {
   @@map("startup_preferences")
 }
 
+// A startup's own job postings — separate from the `jobs` BullMQ email
+// queue module of the same informal name; this is the hiring-portal domain.
+model Job {
+  id             String         @id @default(uuid()) @db.Uuid
+  startupId      String         @db.Uuid
+  title          String
+  description    String
+  employmentType EmploymentType
+  location       String
+  isRemote       Boolean        @default(false)
+  skills         String[]
+  minSalaryUsd   Decimal?       @db.Decimal(12, 2)
+  maxSalaryUsd   Decimal?       @db.Decimal(12, 2)
+  status         JobStatus      @default(OPEN)
+  closedAt       DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  startup      Startup         @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
+
+  @@index([startupId])
+  @@index([status])
+  @@map("jobs_board_postings")
+}
+
+// `resumeUrl`/`coverLetter` are captured on the row at apply-time rather than
+// joined from JobSeekerProfile — mirrors Connection.pitchDeckUrl's precedent,
+// so applying never requires completed JOB_SEEKER onboarding.
+model JobApplication {
+  id           String            @id @default(uuid()) @db.Uuid
+  jobId        String            @db.Uuid
+  applicantId  String            @db.Uuid
+  resumeUrl    String
+  coverLetter  String?
+  status       ApplicationStatus @default(SUBMITTED)
+  createdAt    DateTime          @default(now())
+
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicant User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, applicantId])
+  @@index([jobId])
+  @@map("job_applications")
+}
+
 // ─── Other role profiles ────────────────────────────────────────────────
 
 model Investor {
@@ -572,6 +739,7 @@ model Investor {
   openForPitches      Boolean        @default(true)
   location            String
   verificationStatus  VerificationStatus @default(UNVERIFIED)
+  verifiedAt          DateTime? // set by VerificationEngineService — see modules/verification
   isPublic            Boolean        @default(true)
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
@@ -597,6 +765,7 @@ model MentorProfile {
   languages          String[]
   pastStartups       String[] // free-text company names — often off-platform, so not an FK relation
   verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedAt         DateTime? // set by VerificationEngineService — see modules/verification
   isPublic           Boolean       @default(true)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -617,7 +786,9 @@ model IncubatorProfile {
   industries            String[]
   portfolioCompanies    String[]
   affiliatedMentorCount Int?
+  kind                  IncubatorKind @default(INCUBATOR) // lets Accelerators surface as a filter on this same directory, no separate entity
   verificationStatus    VerificationStatus @default(UNVERIFIED)
+  verifiedAt            DateTime? // set by VerificationEngineService — see modules/verification
   isPublic              Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -630,19 +801,68 @@ model IncubatorProfile {
 }
 
 model IncubatorProgram {
-  id                   String    @id @default(uuid()) @db.Uuid
-  incubatorId          String    @db.Uuid
-  name                 String
-  description          String?
-  durationWeeks        Int?
+  id                    String    @id @default(uuid()) @db.Uuid
+  incubatorId           String    @db.Uuid
+  name                  String
+  description           String?
+  durationWeeks         Int?
   applicationCycleStart DateTime?
   applicationCycleEnd   DateTime?
-  createdAt            DateTime  @default(now())
+  applicationUrl        String? // external link founders click through to apply — no in-app application flow yet
+  eligibilityCriteria   String?
+  createdAt             DateTime  @default(now())
 
   incubator IncubatorProfile @relation(fields: [incubatorId], references: [id], onDelete: Cascade)
 
   @@index([incubatorId])
   @@map("incubator_programs")
+}
+
+// A founder requesting time with a mentor — deliberately not a Connection:
+// no monthly quota, repeatable per pair, no messaging/meeting gate. See
+// MentorBookingService.
+model MentorBookingRequest {
+  id             String        @id @default(uuid()) @db.Uuid
+  founderId      String        @db.Uuid
+  mentorId       String        @db.Uuid
+  startupId      String?       @db.Uuid
+  sessionType    SessionType?
+  message        String
+  preferredTimes String?
+  status         BookingStatus @default(PENDING)
+  respondedAt    DateTime?
+  createdAt      DateTime      @default(now())
+
+  founder User     @relation("MentorBookingFounder", fields: [founderId], references: [id], onDelete: Cascade)
+  mentor  User     @relation("MentorBookingMentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  startup Startup? @relation(fields: [startupId], references: [id], onDelete: SetNull)
+  review  FounderReview?
+
+  @@index([mentorId, status])
+  @@index([founderId])
+  @@map("mentor_booking_requests")
+}
+
+// A mentor's review of a founder after an accepted booking — feeds
+// FounderReputationService. Gated on the booking being ACCEPTED (not a
+// separate COMPLETED state — there's no real session-datetime field to gate
+// true completion on yet); the unique constraint on bookingRequestId is what
+// stops a mentor reviewing the same booking twice.
+model FounderReview {
+  id               String   @id @default(uuid()) @db.Uuid
+  mentorId         String   @db.Uuid
+  founderId        String   @db.Uuid
+  bookingRequestId String   @unique @db.Uuid
+  rating           Int
+  comment          String?
+  createdAt        DateTime @default(now())
+
+  mentor         User                  @relation("FounderReviewMentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  founder        User                  @relation("FounderReviewFounder", fields: [founderId], references: [id], onDelete: Cascade)
+  bookingRequest MentorBookingRequest  @relation(fields: [bookingRequestId], references: [id], onDelete: Cascade)
+
+  @@index([founderId])
+  @@map("founder_reviews")
 }
 
 model UniversityProfile {
@@ -755,6 +975,8 @@ model Connection {
   fundingRequirementUsd Int?
   pitchDeckUrl         String?
   executiveSummaryUrl  String?
+  demoLinkUrl          String?
+  infoRequestedAt      DateTime? // investor asked for more detail before deciding — doesn't change status, just flags it on the founder's side
   createdAt            DateTime         @default(now())
   respondedAt          DateTime?
 
@@ -762,10 +984,125 @@ model Connection {
   recipient User      @relation("ConnectionRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   startup   Startup?  @relation(fields: [startupId], references: [id], onDelete: SetNull)
   messages  Message[]
+  meetings  Meeting[]
 
   @@unique([requesterId, recipientId, startupId]) // prevents duplicate pending requests
   @@index([recipientId, status])
   @@map("connections")
+}
+
+// A lightweight proposed meeting time attached to a connection — no calendar
+// sync or video-call provider integration yet (see CLAUDE.md future-modules
+// note); `videoCallUrl` is whatever link the two parties paste in themselves.
+model Meeting {
+  id           String    @id @default(uuid()) @db.Uuid
+  connectionId String    @db.Uuid
+  scheduledAt  DateTime
+  notes        String?
+  videoCallUrl String?
+  createdAt    DateTime  @default(now())
+
+  connection Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId])
+  @@map("meetings")
+}
+
+// A founder's own bookmark ("Saved") vs. an active follow that triggers
+// update notifications ("Watchlist") are the same relationship with one flag
+// — see WatchlistService for how milestone/product/funding events fan out
+// to `notifyOnUpdate: true` followers only.
+model StartupFollow {
+  id             String   @id @default(uuid()) @db.Uuid
+  investorId     String   @db.Uuid
+  startupId      String   @db.Uuid
+  notifyOnUpdate Boolean  @default(false)
+  notes          String? // private investor note about this startup
+  listName       String? // free-text grouping label — a lightweight "list" without a separate collections table
+  createdAt      DateTime @default(now())
+
+  investor User    @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  startup  Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([investorId, startupId])
+  @@map("startup_follows")
+}
+
+// Generic user-to-user follow (follow a founder, an investor, a mentor…) —
+// deliberately separate from StartupFollow, which is investor→startup with
+// its own notifyOnUpdate/watchlist semantics. This is the plain "follow a
+// person" mechanism network-effects features build on.
+model Follow {
+  id          String   @id @default(uuid()) @db.Uuid
+  followerId  String   @db.Uuid
+  followingId String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// Day-bucketed view log — `viewDate` (date-only) + the unique constraint is
+// the throttle: one row per investor per startup per calendar day, repeat
+// same-day views just increment `viewCount` rather than inserting, and only
+// the first view of a new day emits a `startup.profile-viewed` event, so a
+// founder never gets spammed by one investor refreshing the page repeatedly.
+model StartupProfileView {
+  id         String   @id @default(uuid()) @db.Uuid
+  startupId  String   @db.Uuid
+  investorId String   @db.Uuid
+  viewDate   DateTime @db.Date
+  viewCount  Int      @default(1)
+  createdAt  DateTime @default(now())
+
+  startup  Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  investor User    @relation(fields: [investorId], references: [id], onDelete: Cascade)
+
+  @@unique([startupId, investorId, viewDate])
+  @@index([startupId, viewDate])
+  @@map("startup_profile_views")
+}
+
+// One row per (investor, startup) the investor is actively evaluating —
+// the Kanban board is just this table grouped by `stage`. Reaching INVESTED
+// auto-creates the matching Investment row (see PipelineService.moveStage).
+model PipelineEntry {
+  id         String        @id @default(uuid()) @db.Uuid
+  investorId String        @db.Uuid
+  startupId  String        @db.Uuid
+  stage      PipelineStage @default(TARGET)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  investor User    @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  startup  Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([investorId, startupId])
+  @@map("pipeline_entries")
+}
+
+// The investor's actual portfolio — created once a PipelineEntry reaches
+// INVESTED; "Current Stage", "Revenue", "Team Size" for the portfolio card
+// are read live off the Startup/StartupTraction rows, not duplicated here.
+model Investment {
+  id         String    @id @default(uuid()) @db.Uuid
+  investorId String    @db.Uuid
+  startupId  String    @db.Uuid
+  investedAt DateTime  @default(now())
+  amountUsd  Decimal?  @db.Decimal(14, 2)
+  notes      String?
+  createdAt  DateTime  @default(now())
+
+  investor User    @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  startup  Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([investorId, startupId])
+  @@map("investments")
 }
 
 // Unlocked only once its parent Connection is ACCEPTED — see
@@ -814,6 +1151,131 @@ model Notification {
 
   @@index([userId, readAt])
   @@map("notifications")
+}
+
+// ─── Community ──────────────────────────────────────────────────────────
+
+// One table + a type discriminator, not four separate models — FOUNDER_POST/
+// STARTUP_UPDATE/ANNOUNCEMENT are structurally identical (author + optional
+// startup context + body + media); an Event is "a Post with 3 extra optional
+// fields," not a structurally different entity. Poll/Event get their own
+// *child* tables (PollOption/PollVote, EventRsvp) because they have real
+// structured child data the other types don't.
+model Post {
+  id            String   @id @default(uuid()) @db.Uuid
+  authorId      String   @db.Uuid
+  startupId     String?  @db.Uuid
+  type          PostType
+  body          String
+  mediaUrls     String[]
+  eventStartsAt DateTime?
+  eventLocation String?
+  eventUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  startup     Startup?      @relation(fields: [startupId], references: [id], onDelete: SetNull)
+  comments    Comment[]
+  likes       Like[]
+  pollOptions PollOption[]
+  rsvps       EventRsvp[]
+  bookmarks   PostBookmark[]
+
+  @@index([type, createdAt])
+  @@index([authorId])
+  @@map("posts")
+}
+
+// Flat, single-level — no nested replies, matches "keep it simple, no algorithmic ranking."
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+
+  post   Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes  Like[]
+
+  @@index([postId, createdAt])
+  @@map("comments")
+}
+
+// Two nullable FKs with onDelete: Cascade — real referential integrity
+// (unlike AuditLog's stringly-typed entityType/entityId, which intentionally
+// avoids cascade). Service layer enforces exactly one of postId/commentId set.
+model Like {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  postId    String?  @db.Uuid
+  commentId String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@map("likes")
+}
+
+model PostBookmark {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  postId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("post_bookmarks")
+}
+
+model PollOption {
+  id    String @id @default(uuid()) @db.Uuid
+  postId String @db.Uuid
+  label String
+  order Int
+
+  post  Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([postId])
+  @@map("poll_options")
+}
+
+// One-vote-per-poll-per-user is an app-level invariant (checked via a join
+// through PollOption.postId before insert) — a plain unique on
+// [userId, pollOptionId] alone wouldn't stop a user voting for two different
+// options in the same poll.
+model PollVote {
+  id           String   @id @default(uuid()) @db.Uuid
+  pollOptionId String   @db.Uuid
+  userId       String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  pollOption PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pollOptionId])
+  @@map("poll_votes")
+}
+
+model EventRsvp {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("event_rsvps")
 }
 
 // ─── Billing ────────────────────────────────────────────────────────────

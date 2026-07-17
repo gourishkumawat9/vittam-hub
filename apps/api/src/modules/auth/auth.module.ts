@@ -3,6 +3,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 
 import { EmailModule } from "../email/email.module";
+import { JobsModule } from "../jobs/jobs.module";
 import { UsersModule } from "../users/users.module";
 
 import { AuthController } from "./auth.controller";
@@ -18,7 +19,7 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LinkedinStrategy } from "./strategies/linkedin.strategy";
 
 @Module({
-  imports: [PassportModule, JwtModule.register({}), UsersModule, EmailModule],
+  imports: [PassportModule, JwtModule.register({}), UsersModule, EmailModule, JobsModule],
   controllers: [AuthController],
   providers: [
     AuthService,

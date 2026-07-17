@@ -29,4 +29,4 @@ COPY --from=build /repo/apps/api/node_modules ./node_modules
 COPY --from=build /repo/apps/api/src/database/prisma ./src/database/prisma
 USER vittamhub
 EXPOSE 4000
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

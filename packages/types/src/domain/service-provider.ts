@@ -35,3 +35,11 @@ export const createServiceProviderInputSchema = z.object({
   website: urlOrEmpty,
 });
 export type CreateServiceProviderInput = z.infer<typeof createServiceProviderInputSchema>;
+
+/** Service-provider directory filters — same shape family as investorSearchFiltersSchema. */
+export const serviceProviderSearchFiltersSchema = z.object({
+  categories: z.array(z.nativeEnum(ServiceCategory)).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type ServiceProviderSearchFilters = z.infer<typeof serviceProviderSearchFiltersSchema>;

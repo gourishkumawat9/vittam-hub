@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { StartupStage, VerificationStatus } from "./enums";
+import { CustomerModel, StartupStage, VerificationStatus } from "./enums";
 
 export const startupSchema = z.object({
   id: z.string().uuid(),
@@ -38,14 +38,48 @@ export const createStartupInputSchema = startupSchema.pick({
 });
 export type CreateStartupInput = z.infer<typeof createStartupInputSchema>;
 
-/** Discovery/search filters — shared between the investor search UI and the API query layer. */
+/**
+ * Discovery/search filters — shared between the investor search UI and the
+ * API query layer. `industry` doubles as the "tags" filter (B2B/SaaS/FinTech/
+ * etc. from the Discover Startups advanced filters) since Startup.industry is
+ * free text rather than a closed enum — see StartupsService.search.
+ * `query` (Smart Search) matches name, tagline, and the founder's name.
+ */
 export const startupSearchFiltersSchema = z.object({
   query: z.string().max(200).optional(),
   industry: z.array(z.string()).optional(),
   stage: z.array(z.nativeEnum(StartupStage)).optional(),
   location: z.string().optional(),
   isFundraising: z.boolean().optional(),
-  page: z.number().int().min(1).default(1),
-  pageSize: z.number().int().min(1).max(50).default(20),
+  businessModel: z.array(z.nativeEnum(CustomerModel)).optional(),
+  technology: z.array(z.string()).optional(),
+  minFundingRequirementUsd: z.coerce.number().nonnegative().optional(),
+  hasRevenue: z.coerce.boolean().optional(),
+  foundedYearMin: z.coerce.number().int().min(1990).optional(),
+  foundedYearMax: z.coerce.number().int().min(1990).optional(),
+  teamSizeMin: z.coerce.number().int().min(1).optional(),
+  teamSizeMax: z.coerce.number().int().min(1).optional(),
+  // Caller-controlled opt-in — public/anonymous callers still only ever see
+  // VERIFIED startups (enforced server-side in StartupsService.search);
+  // this only lets an authenticated investor widen the net to PENDING too.
+  verificationStatus: z.array(z.nativeEnum(VerificationStatus)).optional(),
+  growthRateMin: z.coerce.number().optional(),
+  founderExperienceMin: z.coerce.number().int().nonnegative().optional(),
+  matchMyPreferences: z.coerce.boolean().optional(),
+  sortBy: z.enum(["createdAt", "updatedAt"]).optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
 export type StartupSearchFilters = z.infer<typeof startupSearchFiltersSchema>;
+
+/** Day-bucketed view log entry — see StartupProfileView in schema.prisma for the throttling rationale. */
+export const startupProfileViewSchema = z.object({
+  id: z.string().uuid(),
+  startupId: z.string().uuid(),
+  investorId: z.string().uuid(),
+  viewDate: z.string(),
+  viewCount: z.number().int().positive(),
+  createdAt: z.string().datetime(),
+});
+export type StartupProfileView = z.infer<typeof startupProfileViewSchema>;

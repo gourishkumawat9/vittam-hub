@@ -1,12 +1,16 @@
-import { Body, Controller, Get, Param, Post, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
+  connectionListFiltersSchema,
   createConnectionInputSchema,
   createMessageInputSchema,
   respondToConnectionInputSchema,
+  scheduleMeetingInputSchema,
+  type ConnectionListFilters,
   type CreateConnectionInput,
   type CreateMessageInput,
   type RespondToConnectionInput,
+  type ScheduleMeetingInput,
 } from "@vittamhub/types";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -22,9 +26,10 @@ export class ConnectionsController {
   constructor(private readonly connectionsService: ConnectionsService) {}
 
   @Get()
-  @ApiOperation({ summary: "List the caller's sent and received connect requests" })
-  list(@CurrentUser() user: AuthenticatedUser) {
-    return this.connectionsService.listForUser(user.sub);
+  @UsePipes(new ZodValidationPipe(connectionListFiltersSchema))
+  @ApiOperation({ summary: "List the caller's sent and received connect requests, optionally filtered by status" })
+  list(@CurrentUser() user: AuthenticatedUser, @Query() filters: ConnectionListFilters) {
+    return this.connectionsService.listForUser(user.sub, filters);
   }
 
   @Get("quota")
@@ -32,6 +37,12 @@ export class ConnectionsController {
   @ApiOperation({ summary: "Get the caller's remaining monthly connect-request quota" })
   quota(@CurrentUser() user: AuthenticatedUser) {
     return this.connectionsService.getQuota(user.sub);
+  }
+
+  @Get("meetings")
+  @ApiOperation({ summary: "List every meeting across all of the caller's connections" })
+  listMyMeetings(@CurrentUser() user: AuthenticatedUser) {
+    return this.connectionsService.listMyMeetings(user.sub);
   }
 
   @Post()
@@ -61,5 +72,25 @@ export class ConnectionsController {
   @ApiOperation({ summary: "Send a message in an accepted connection's thread" })
   sendMessage(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: CreateMessageInput) {
     return this.connectionsService.sendMessage(id, user.sub, input);
+  }
+
+  @Post(":id/request-info")
+  @Roles("INVESTOR")
+  @ApiOperation({ summary: "Ask the founder for more information before deciding (doesn't change status)" })
+  requestInfo(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.connectionsService.requestMoreInfo(id, user.sub);
+  }
+
+  @Get(":id/meetings")
+  @ApiOperation({ summary: "List proposed/scheduled meeting times for a connection" })
+  listMeetings(@Param("id") id: string) {
+    return this.connectionsService.listMeetings(id);
+  }
+
+  @Post(":id/meetings")
+  @UsePipes(new ZodValidationPipe(scheduleMeetingInputSchema))
+  @ApiOperation({ summary: "Propose a meeting time — allowed before acceptance too" })
+  scheduleMeeting(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: ScheduleMeetingInput) {
+    return this.connectionsService.scheduleMeeting(id, user.sub, input);
   }
 }

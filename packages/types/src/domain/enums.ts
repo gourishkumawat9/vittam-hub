@@ -47,6 +47,10 @@ export const DocumentType = {
   FINANCIAL_STATEMENT: "FINANCIAL_STATEMENT",
   GOVERNMENT_ID: "GOVERNMENT_ID",
   DIGITAL_SIGNATURE: "DIGITAL_SIGNATURE",
+  CAP_TABLE: "CAP_TABLE",
+  LEGAL_CONTRACT: "LEGAL_CONTRACT",
+  DUE_DILIGENCE_REPORT: "DUE_DILIGENCE_REPORT",
+  MEETING_NOTES: "MEETING_NOTES",
   OTHER: "OTHER",
 } as const;
 export type DocumentType = (typeof DocumentType)[keyof typeof DocumentType];
@@ -106,6 +110,31 @@ export const HiringStatus = {
 } as const;
 export type HiringStatus = (typeof HiringStatus)[keyof typeof HiringStatus];
 
+export const MilestoneType = {
+  IDEA_CREATED: "IDEA_CREATED",
+  PROTOTYPE: "PROTOTYPE",
+  MVP: "MVP",
+  FIRST_CUSTOMER: "FIRST_CUSTOMER",
+  REVENUE: "REVENUE",
+  SEED_ROUND: "SEED_ROUND",
+  AWARD: "AWARD",
+  HIRING: "HIRING",
+  PRODUCT_LAUNCH: "PRODUCT_LAUNCH",
+  OTHER: "OTHER",
+} as const;
+export type MilestoneType = (typeof MilestoneType)[keyof typeof MilestoneType];
+
+export const PipelineStage = {
+  TARGET: "TARGET",
+  INTERESTED: "INTERESTED",
+  MEETING: "MEETING",
+  DUE_DILIGENCE: "DUE_DILIGENCE",
+  NEGOTIATION: "NEGOTIATION",
+  INVESTED: "INVESTED",
+  CLOSED: "CLOSED",
+} as const;
+export type PipelineStage = (typeof PipelineStage)[keyof typeof PipelineStage];
+
 export const FundingType = {
   BOOTSTRAPPED: "BOOTSTRAPPED",
   GRANT: "GRANT",
@@ -149,6 +178,12 @@ export const SessionType = {
 } as const;
 export type SessionType = (typeof SessionType)[keyof typeof SessionType];
 
+export const IncubatorKind = {
+  INCUBATOR: "INCUBATOR",
+  ACCELERATOR: "ACCELERATOR",
+} as const;
+export type IncubatorKind = (typeof IncubatorKind)[keyof typeof IncubatorKind];
+
 export const ServiceCategory = {
   LEGAL: "LEGAL",
   FINANCE: "FINANCE",
@@ -187,14 +222,64 @@ export const ConnectionStatus = {
 } as const;
 export type ConnectionStatus = (typeof ConnectionStatus)[keyof typeof ConnectionStatus];
 
+export const BookingStatus = {
+  PENDING: "PENDING",
+  ACCEPTED: "ACCEPTED",
+  DECLINED: "DECLINED",
+} as const;
+export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
+
+export const JobStatus = {
+  OPEN: "OPEN",
+  CLOSED: "CLOSED",
+} as const;
+export type JobStatus = (typeof JobStatus)[keyof typeof JobStatus];
+
+export const EmploymentType = {
+  FULL_TIME: "FULL_TIME",
+  PART_TIME: "PART_TIME",
+  CONTRACT: "CONTRACT",
+  INTERNSHIP: "INTERNSHIP",
+  ADVISORY: "ADVISORY",
+} as const;
+export type EmploymentType = (typeof EmploymentType)[keyof typeof EmploymentType];
+
+export const ApplicationStatus = {
+  SUBMITTED: "SUBMITTED",
+  SHORTLISTED: "SHORTLISTED",
+  REJECTED: "REJECTED",
+  HIRED: "HIRED",
+} as const;
+export type ApplicationStatus = (typeof ApplicationStatus)[keyof typeof ApplicationStatus];
+
+export const PostType = {
+  FOUNDER_POST: "FOUNDER_POST",
+  STARTUP_UPDATE: "STARTUP_UPDATE",
+  ANNOUNCEMENT: "ANNOUNCEMENT",
+  POLL: "POLL",
+  EVENT: "EVENT",
+} as const;
+export type PostType = (typeof PostType)[keyof typeof PostType];
+
 export const NotificationType = {
   CONNECTION_REQUEST: "CONNECTION_REQUEST",
   CONNECTION_ACCEPTED: "CONNECTION_ACCEPTED",
   PROFILE_VERIFIED: "PROFILE_VERIFIED",
   PROFILE_REJECTED: "PROFILE_REJECTED",
+  PROFILE_VIEWED: "PROFILE_VIEWED",
+  DOCUMENT_UPLOADED: "DOCUMENT_UPLOADED",
+  MILESTONE_ADDED: "MILESTONE_ADDED",
+  MEETING_SCHEDULED: "MEETING_SCHEDULED",
   NEW_MESSAGE: "NEW_MESSAGE",
   BILLING_ISSUE: "BILLING_ISSUE",
   SYSTEM: "SYSTEM",
+  MENTOR_BOOKING_REQUESTED: "MENTOR_BOOKING_REQUESTED",
+  MENTOR_BOOKING_RESPONDED: "MENTOR_BOOKING_RESPONDED",
+  JOB_APPLICATION_RECEIVED: "JOB_APPLICATION_RECEIVED",
+  JOB_APPLICATION_STATUS_CHANGED: "JOB_APPLICATION_STATUS_CHANGED",
+  POST_COMMENTED: "POST_COMMENTED",
+  FOUNDER_REVIEW_RECEIVED: "FOUNDER_REVIEW_RECEIVED",
+  NEW_FOLLOWER: "NEW_FOLLOWER",
 } as const;
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
 

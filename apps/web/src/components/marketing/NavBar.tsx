@@ -49,7 +49,7 @@ export function NavBar() {
     >
       <div className="mx-auto flex h-16 max-w-content items-center justify-between px-6">
         <Link href="/" className="shrink-0" aria-label="VittamHub home">
-          <Logo />
+          <Logo height={44} />
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary">

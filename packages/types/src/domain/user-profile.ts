@@ -22,6 +22,7 @@ export const userProfileSchema = z.object({
   state: z.string().max(80).nullable(),
   country: z.string().max(80).nullable(),
   bio: z.string().max(1000).nullable(),
+  yearsOfExperience: z.number().int().nonnegative().nullable(),
   onboardingStatus: z.nativeEnum(OnboardingStatus),
   onboardingStep: z.number().int().min(0),
 });
@@ -46,5 +47,6 @@ export const personalDetailsInputSchema = z.object({
   state: z.string().min(1, "State is required").max(80),
   country: z.string().min(1, "Country is required").max(80),
   bio: z.string().max(1000).optional(),
+  yearsOfExperience: z.coerce.number().int().nonnegative().optional(),
 });
 export type PersonalDetailsInput = z.infer<typeof personalDetailsInputSchema>;

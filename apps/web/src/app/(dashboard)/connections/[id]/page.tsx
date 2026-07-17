@@ -22,8 +22,8 @@ export default function ConnectionThreadPage() {
   const connectionId = params.id;
 
   const { data: user } = useCurrentUser();
-  const { data: connections } = useConnections();
-  const connection = connections?.find((c) => c.id === connectionId);
+  const { data: connectionsResult } = useConnections({ page: 1, pageSize: 100 });
+  const connection = connectionsResult?.items.find((c) => c.id === connectionId);
 
   const { data: messages, isLoading } = useConnectionMessages(connectionId);
   const sendMessage = useSendMessage(connectionId);

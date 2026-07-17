@@ -35,6 +35,7 @@ export async function applyPersonalDetails(tx: Tx, userId: string, rawPersonalDe
     state: details.state,
     country: details.country,
     bio: details.bio,
+    yearsOfExperience: details.yearsOfExperience,
   };
 
   await tx.userProfile.update({ where: { userId }, data: profileData });

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Prisma } from "@prisma/client";
 import { createMentorInputSchema } from "@vittamhub/types";
 
@@ -8,7 +9,10 @@ import { applyPersonalDetails } from "./apply-personal-details";
 
 @Injectable()
 export class MentorPublisher {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async publish(userId: string, draft: Record<string, unknown>) {
     const parsed = createMentorInputSchema.safeParse(draft.mentorInfo ?? {});
@@ -17,7 +21,7 @@ export class MentorPublisher {
     }
     const input = parsed.data;
 
-    return this.prisma.$transaction(async (tx) => {
+    const mentor = await this.prisma.$transaction(async (tx) => {
       await applyPersonalDetails(tx, userId, draft.personalDetails);
 
       const mentor = await tx.mentorProfile.upsert({
@@ -33,5 +37,8 @@ export class MentorPublisher {
 
       return mentor;
     });
+
+    this.eventEmitter.emit("profile.upserted", { ownerId: userId });
+    return mentor;
   }
 }

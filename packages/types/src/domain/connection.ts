@@ -18,6 +18,8 @@ export const connectionSchema = z.object({
   fundingRequirementUsd: z.number().nonnegative().nullable(),
   pitchDeckUrl: z.string().url().nullable(),
   executiveSummaryUrl: z.string().url().nullable(),
+  demoLinkUrl: z.string().url().nullable(),
+  infoRequestedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   respondedAt: z.string().datetime().nullable(),
 });
@@ -29,6 +31,7 @@ export const createConnectionInputSchema = z.object({
   fundingRequirementUsd: z.coerce.number().nonnegative().optional(),
   pitchDeckUrl: z.string().url().optional(),
   executiveSummaryUrl: z.string().url().optional(),
+  demoLinkUrl: z.string().url().optional(),
 });
 export type CreateConnectionInput = z.infer<typeof createConnectionInputSchema>;
 
@@ -40,3 +43,10 @@ export const respondToConnectionInputSchema = z.object({
   action: connectionResponseAction,
 });
 export type RespondToConnectionInput = z.infer<typeof respondToConnectionInputSchema>;
+
+export const connectionListFiltersSchema = z.object({
+  status: z.array(z.nativeEnum(ConnectionStatus)).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type ConnectionListFilters = z.infer<typeof connectionListFiltersSchema>;
