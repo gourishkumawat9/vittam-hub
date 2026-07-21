@@ -5,23 +5,51 @@ on:
   push:
     branches: [main]
 
+# Least-privilege default token — jobs read the repo and nothing else.
+permissions:
+  contents: read
+
+# One in-flight run per ref; a newer push cancels superseded runs to save minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20.11.0"
+
 jobs:
-  build:
+  # ── Infra-free checks: lint, typecheck, unit tests, build. ──
+  quality:
+    name: Lint · Typecheck · Unit · Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      # pnpm before setup-node, so setup-node's pnpm-store cache can resolve it.
+      # Version comes from package.json "packageManager" — single source of truth.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          version: 9
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm # caches the pnpm content-addressable store
 
-      - uses: actions/setup-node@v4
+      - name: Cache Turborepo
+        uses: actions/cache@v4
         with:
-          node-version: 20.11.0
-          cache: pnpm
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
+      # Prisma client is a generated import target needed by typecheck and build.
       - name: Generate Prisma client
         run: pnpm --filter @vittamhub/api db:generate
 
@@ -31,8 +59,119 @@ jobs:
       - name: Typecheck
         run: pnpm turbo run typecheck
 
-      - name: Test
-        run: pnpm turbo run test
+      # API unit tests only — the web package has no tests yet and vitest exits
+      # non-zero on an empty suite, so we target the API rather than `turbo run test`.
+      - name: Unit tests + coverage
+        run: pnpm --filter @vittamhub/api exec jest --coverage --ci --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_DIR: reports
+          JEST_JUNIT_OUTPUT_NAME: junit-unit.xml
 
       - name: Build
         run: pnpm turbo run build
+
+      - name: Upload unit coverage & test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: |
+            apps/api/coverage
+            apps/api/reports
+          if-no-files-found: warn
+          retention-days: 14
+
+      # Optional: uploads if CODECOV_TOKEN is set (or a public repo). Never blocks CI.
+      - name: Upload coverage to Codecov (optional)
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: apps/api/coverage/lcov.info
+          flags: api-unit
+          fail_ci_if_error: false
+
+  # ── Integration/e2e against real Postgres + Redis service containers. ──
+  e2e:
+    name: E2E (Postgres + Redis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality # fail fast: don't spin services if the cheap checks fail
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vittamhub
+        ports:
+          - 5432:5432
+        # GitHub blocks the job until this health check passes — no sleeps, no races.
+        options: >-
+          --health-cmd="pg_isready -U postgres -d vittamhub"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      NODE_ENV: test
+      APP_URL: http://localhost:3000
+      API_URL: http://localhost:4000
+      # Ephemeral service-container credentials — throwaway, never touch production data.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vittamhub
+      REDIS_URL: redis://localhost:6379
+      # CI-only, non-sensitive test secrets: they sign ephemeral tokens against a
+      # throwaway database and are discarded when the runner is destroyed. These are
+      # NOT production secrets and intentionally require no GitHub Secrets — CI never
+      # has access to production credentials. See docs/testing/CI.md.
+      JWT_ACCESS_SECRET: ci_only_access_secret_not_for_production_0123456789
+      JWT_REFRESH_SECRET: ci_only_refresh_secret_not_for_production_0123456789
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @vittamhub/api db:generate
+
+      # The e2e global-setup migrates an isolated `vittamhub_test` schema (never
+      # `public`) via `prisma migrate deploy` before the suite runs — see
+      # apps/api/test/support/global-setup.ts. No seed step: tests self-provision
+      # data through factories.
+      - name: E2E tests
+        run: pnpm --filter @vittamhub/api exec jest --config ./test/jest-e2e.json --ci --runInBand --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_DIR: reports
+          JEST_JUNIT_OUTPUT_NAME: junit-e2e.xml
+
+      - name: Upload e2e test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: apps/api/reports
+          if-no-files-found: warn
+          retention-days: 14

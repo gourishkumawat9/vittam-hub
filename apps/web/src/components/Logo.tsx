@@ -3,62 +3,37 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /**
- * Hand-drawn stand-in for the official mark, used only where an icon-only,
- * recolorable (currentColor) SVG is structurally required — e.g. tinted white
- * on a colored background (AuthIllustration, CtaSection) or as the center
- * node of a diagram (EcosystemDiagram). The official logo file
- * (public/brand/vittamhub-logo.jpg, used by <Logo> below) is a single flat
- * raster combining icon + wordmark, so it can't be cropped to an icon-only
- * asset or recolored without altering the provided file — see CLAUDE.md §1.
- * Swap this out once an official icon-only asset exists.
+ * The official icon-only mark (public/brand/vittamhub-icon.png). Because it's a
+ * fixed-color raster it can't be recolored via CSS, so a pre-rendered white
+ * silhouette (vittamhub-icon-white.png) is provided for dark/colored
+ * backgrounds — select it with `variant="white"`. Used exactly as provided,
+ * never redrawn or recolored, per CLAUDE.md §1.
  */
-export function LogoMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" className={cn("text-brand-primary", className)} aria-hidden="true">
-      {/* Left pillar — flat-capped flanges tapering to the stem (dogbone/I-beam profile) */}
-      <path
-        d="M17 8H43V14L35 20V72L43 78V84H17V78L25 72V20L17 14Z"
-        fill="currentColor"
-      />
-      {/* Right pillar */}
-      <path
-        d="M57 8H83V14L75 20V72L83 78V84H57V78L65 72V20L57 14Z"
-        fill="currentColor"
-      />
-      {/* Crossbar — spans the full width, behind/through both pillars */}
-      <rect x="10" y="44" width="80" height="6" fill="currentColor" />
-      {/* V bridge, dipping from the crossbar into the gap between pillars */}
-      <path
-        d="M35 47L50 68L65 47"
-        stroke="currentColor"
-        strokeWidth="6"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-        fill="none"
-      />
-    </svg>
-  );
+export function LogoMark({ className, variant = "color" }: { className?: string; variant?: "color" | "white" }) {
+  const src = variant === "white" ? "/brand/vittamhub-icon-white.png" : "/brand/vittamhub-icon.png";
+  return <Image src={src} alt="" width={96} height={96} aria-hidden className={className} />;
 }
 
 export interface LogoProps {
   className?: string;
-  /** Rendered height in pixels — width follows the source image's native aspect ratio (1600×628) so it's never stretched or distorted. */
+  /** Rendered height in pixels — width follows the source image's native aspect ratio (836×172) so it's never stretched or distorted. */
   height?: number;
 }
 
 /**
- * The official VittamHub logo (public/brand/vittamhub-logo.jpg) — used
+ * The official VittamHub logo (public/brand/vittamhub-logo.png) — used
  * exactly as provided, never redrawn, recolored, or cropped, per CLAUDE.md §1.
- * It's a single flat-background raster combining icon + wordmark + tagline,
- * so there's no separate "icon only" or "on dark background" variant yet —
- * see the note on LogoMark above for where that gap still shows up.
+ * Transparent-background raster of the mark + "VITTAMHUB" wordmark (no
+ * tagline), so it sits cleanly on any surface. The icon-only variant lives at
+ * public/brand/vittamhub-icon.png (and drives the favicon/app icon); the
+ * white-tintable mark used on colored backgrounds is still LogoMark above.
  */
 export function Logo({ className, height = 32 }: LogoProps) {
-  const width = Math.round((height * 1600) / 628);
+  const width = Math.round((height * 836) / 172);
   return (
     <Image
-      src="/brand/vittamhub-logo.jpg"
-      alt="VittamHub — Visibility for Tomorrow's Unicorns"
+      src="/brand/vittamhub-logo.png"
+      alt="VittamHub"
       width={width}
       height={height}
       priority

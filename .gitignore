@@ -12,6 +12,7 @@ out/
 
 # Testing
 coverage/
+reports/
 playwright-report/
 test-results/
 

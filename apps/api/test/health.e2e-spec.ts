@@ -1,6 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import * as request from "supertest";
+import request from "supertest";
 
 import { AppModule } from "../src/app.module";
 
@@ -22,7 +22,8 @@ describe("Health (e2e)", () => {
       .get("/health")
       .expect(200)
       .expect((res) => {
-        expect(res.body.status).toBe("ok");
+        // Responses are wrapped by TransformInterceptor as { data, requestId }.
+        expect(res.body.data.status).toBe("ok");
       });
   });
 });

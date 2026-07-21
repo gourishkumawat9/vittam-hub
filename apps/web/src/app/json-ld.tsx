@@ -5,7 +5,7 @@ const ORGANIZATION_SCHEMA = {
   "@type": "Organization",
   name: "VittamHub",
   url: SITE_URL,
-  logo: `${SITE_URL}/icon.svg`,
+  logo: `${SITE_URL}/brand/vittamhub-icon.png`,
   description:
     "VittamHub is the verified digital identity and discovery platform connecting startups with investors, mentors, incubators, universities, and strategic partners.",
   sameAs: [],

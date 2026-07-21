@@ -20,7 +20,7 @@ export function CtaSection() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-primary/20 via-transparent to-transparent"
         />
-        <LogoMark className="mx-auto mb-6 h-12 w-12 text-white" />
+        <LogoMark variant="white" className="mx-auto mb-6 h-12 w-12" />
         <h2 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Ready to build tomorrow&apos;s unicorn?
         </h2>

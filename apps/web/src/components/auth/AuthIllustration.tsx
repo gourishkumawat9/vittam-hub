@@ -19,7 +19,7 @@ export function AuthIllustration() {
       />
 
       <div className="relative z-10 flex items-center gap-2">
-        <LogoMark className="h-8 w-8 text-white" />
+        <LogoMark variant="white" className="h-8 w-8" />
         <span className="font-brand text-lg font-bold">VittamHub</span>
       </div>
 

@@ -17,7 +17,13 @@ import { ACCOUNT_TYPES } from "@/data/account-types";
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const roleFromQuery = searchParams.get("role") as RegisterableRole | null;
+  // Marketing CTAs link with lowercase roles (?role=investor) while the role
+  // enum values are uppercase (INVESTOR) — match case-insensitively and fall
+  // back to the account-type picker for anything unrecognized, so a bad or
+  // lowercase param can never crash the page on `selectedType.icon`.
+  const rawRoleParam = searchParams.get("role");
+  const roleFromQuery =
+    ACCOUNT_TYPES.find((type) => type.role.toLowerCase() === rawRoleParam?.toLowerCase())?.role ?? null;
 
   const [selectedRole, setSelectedRole] = useState<RegisterableRole | null>(roleFromQuery);
   const { data: captcha } = useCaptchaSiteKey();
@@ -31,7 +37,10 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerInputSchema),
-    defaultValues: { email: "", password: "", fullName: "", acceptedTerms: undefined },
+    // `role` is chosen via the account-type UI (query param or picker), not a
+    // form field — but the schema requires it, so it must live in form state
+    // or validation silently fails and the submit handler never runs.
+    defaultValues: { email: "", password: "", fullName: "", role: roleFromQuery ?? undefined, acceptedTerms: undefined },
   });
 
   const onSubmit = handleSubmit((data) => {
@@ -58,7 +67,10 @@ export default function RegisterPage() {
         <RadioCardGroup
           columns={3}
           value={selectedRole ?? ""}
-          onChange={(value) => setSelectedRole(value as RegisterableRole)}
+          onChange={(value) => {
+            setSelectedRole(value as RegisterableRole);
+            setValue("role", value as RegisterableRole);
+          }}
           options={ACCOUNT_TYPES.map((type) => ({
             value: type.role,
             icon: type.icon,
