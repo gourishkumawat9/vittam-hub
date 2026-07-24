@@ -25,13 +25,21 @@ export const connectionSchema = z.object({
 });
 export type Connection = z.infer<typeof connectionSchema>;
 
+// Optional URL fields arrive as "" from empty form inputs — `.url().optional()`
+// rejects "" (optional only permits undefined), which silently fails the whole
+// form and makes the Send button do nothing. Accept "" and normalize to undefined.
+const urlOrEmpty = z
+  .union([z.string().url(), z.literal("")])
+  .optional()
+  .transform((value) => (value === "" ? undefined : value));
+
 export const createConnectionInputSchema = z.object({
   recipientId: z.string().uuid(),
   introduction: z.string().min(1, "Add a short introduction").max(1000),
   fundingRequirementUsd: z.coerce.number().nonnegative().optional(),
-  pitchDeckUrl: z.string().url().optional(),
-  executiveSummaryUrl: z.string().url().optional(),
-  demoLinkUrl: z.string().url().optional(),
+  pitchDeckUrl: urlOrEmpty,
+  executiveSummaryUrl: urlOrEmpty,
+  demoLinkUrl: urlOrEmpty,
 });
 export type CreateConnectionInput = z.infer<typeof createConnectionInputSchema>;
 
@@ -47,6 +55,6 @@ export type RespondToConnectionInput = z.infer<typeof respondToConnectionInputSc
 export const connectionListFiltersSchema = z.object({
   status: z.array(z.nativeEnum(ConnectionStatus)).optional(),
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 export type ConnectionListFilters = z.infer<typeof connectionListFiltersSchema>;
