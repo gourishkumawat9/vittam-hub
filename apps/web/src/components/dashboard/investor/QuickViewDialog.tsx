@@ -2,8 +2,12 @@
 
 import type { StartupSearchResultItem } from "@vittamhub/api-client";
 import { Badge, Button, Dialog } from "@vittamhub/ui";
-import { formatCompactUsd } from "@vittamhub/utils";
+import { formatCompactMoney } from "@vittamhub/utils";
 import Link from "next/link";
+
+function titleCase(value: string) {
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 interface QuickViewDialogProps {
   startup: StartupSearchResultItem | null;
@@ -29,7 +33,7 @@ export function QuickViewDialog({ startup, onOpenChange }: QuickViewDialogProps)
         <p className="text-sm text-text-secondary">{startup.description}</p>
 
         <div className="flex flex-wrap gap-1.5">
-          <Badge variant="brand">{startup.industry}</Badge>
+          <Badge variant="brand">{titleCase(startup.industry)}</Badge>
           <Badge variant="neutral">{startup.headquarters ?? startup.location}</Badge>
           <Badge variant="neutral">Founded {startup.foundedYear}</Badge>
           <Badge variant="neutral">{startup.teamSize} people</Badge>
@@ -40,11 +44,11 @@ export function QuickViewDialog({ startup, onOpenChange }: QuickViewDialogProps)
           <span className="text-right font-medium text-text-primary">{startup.owner.fullName}</span>
           <span className="text-text-secondary">Funding requirement</span>
           <span className="text-right font-medium text-text-primary">
-            {startup.funding?.fundingGoalUsd ? formatCompactUsd(startup.funding.fundingGoalUsd) : "Not specified"}
+            {startup.funding?.fundingGoalAmount ? formatCompactMoney(startup.funding.fundingGoalAmount, startup.currency) : "Not specified"}
           </span>
           <span className="text-text-secondary">Revenue status</span>
           <span className="text-right font-medium text-text-primary">
-            {startup.traction?.monthlyRevenueUsd ? "Revenue generating" : "Pre-revenue"}
+            {startup.traction?.monthlyRevenueAmount ? "Revenue generating" : "Pre-revenue"}
           </span>
         </div>
 

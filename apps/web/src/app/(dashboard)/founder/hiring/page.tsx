@@ -98,8 +98,8 @@ function PostJobDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           )}
         />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Min salary (USD, optional)" type="number" {...register("minSalaryUsd")} />
-          <Input label="Max salary (USD, optional)" type="number" {...register("maxSalaryUsd")} />
+          <Input label="Min salary (₹, optional)" type="number" {...register("minSalaryAmount")} />
+          <Input label="Max salary (₹, optional)" type="number" {...register("maxSalaryAmount")} />
         </div>
       </form>
     </Dialog>

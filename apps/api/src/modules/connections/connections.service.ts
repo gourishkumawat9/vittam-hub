@@ -66,7 +66,7 @@ export class ConnectionsService {
           recipientId: input.recipientId,
           startupId: startup.id,
           introduction: input.introduction,
-          fundingRequirementUsd: input.fundingRequirementUsd,
+          fundingRequirementAmount: input.fundingRequirementAmount,
           pitchDeckUrl: input.pitchDeckUrl,
           executiveSummaryUrl: input.executiveSummaryUrl,
           demoLinkUrl: input.demoLinkUrl,

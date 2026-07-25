@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ConnectionStatus } from "./enums";
+import { ConnectionStatus, Currency } from "./enums";
 
 /**
  * The Smart Connect Request — the only channel a founder has to reach an
@@ -15,7 +15,8 @@ export const connectionSchema = z.object({
   startupId: z.string().uuid().nullable(),
   status: z.nativeEnum(ConnectionStatus),
   introduction: z.string().max(1000).nullable(),
-  fundingRequirementUsd: z.number().nonnegative().nullable(),
+  currency: z.nativeEnum(Currency).default(Currency.INR),
+  fundingRequirementAmount: z.number().nonnegative().nullable(),
   pitchDeckUrl: z.string().url().nullable(),
   executiveSummaryUrl: z.string().url().nullable(),
   demoLinkUrl: z.string().url().nullable(),
@@ -36,7 +37,7 @@ const urlOrEmpty = z
 export const createConnectionInputSchema = z.object({
   recipientId: z.string().uuid(),
   introduction: z.string().min(1, "Add a short introduction").max(1000),
-  fundingRequirementUsd: z.coerce.number().nonnegative().optional(),
+  fundingRequirementAmount: z.coerce.number().nonnegative().optional(),
   pitchDeckUrl: urlOrEmpty,
   executiveSummaryUrl: urlOrEmpty,
   demoLinkUrl: urlOrEmpty,

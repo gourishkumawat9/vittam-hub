@@ -1,6 +1,12 @@
 "use client";
 
-import type { CreateFounderReviewInput, CreateMentorBookingInput, MentorSearchFilters, RespondToMentorBookingInput } from "@vittamhub/types";
+import type {
+  CreateFounderReviewInput,
+  CreateMentorBookingInput,
+  CreateMentorReviewInput,
+  MentorSearchFilters,
+  RespondToMentorBookingInput,
+} from "@vittamhub/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { mentorsApi } from "../endpoints/mentors";
@@ -43,5 +49,14 @@ export function useRespondToMentorBooking() {
 export function useReviewMentorBooking() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: CreateFounderReviewInput }) => mentorsApi.reviewBooking(id, input),
+  });
+}
+
+/** The other direction — founder reviews the mentor. Feeds MentorReputationService (spec §5). */
+export function useReviewMentor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: CreateMentorReviewInput }) => mentorsApi.reviewMentor(id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: mentorKeys.all }),
   });
 }

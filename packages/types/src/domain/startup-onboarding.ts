@@ -4,10 +4,14 @@ import { documentUploadInputSchema } from "./document";
 import {
   CompanyType,
   CustomerModel,
+  FundingStatus,
   FundingType,
   HiringStatus,
+  Industry,
   LookingForType,
+  ProductStatus,
   RegistrationStatus,
+  RevenueStatus,
   StartupStage,
   TeamMemberCategory,
 } from "./enums";
@@ -27,8 +31,11 @@ export const startupInfoStepSchema = z.object({
   description: z.string().min(1, "Give a short public description").max(5000),
   logoUrl: urlOrEmpty,
   website: urlOrEmpty,
-  stage: z.nativeEnum(StartupStage),
-  industry: z.string().min(1, "Industry is required").max(80),
+  stage: z.nativeEnum(StartupStage), // the founder's own pick — stored as `declaredStage`; the real `stage` is computed from the 3 axes below
+  productStatus: z.nativeEnum(ProductStatus, { errorMap: () => ({ message: "Product status is required" }) }),
+  revenueStatus: z.nativeEnum(RevenueStatus, { errorMap: () => ({ message: "Revenue status is required" }) }),
+  fundingStatus: z.nativeEnum(FundingStatus, { errorMap: () => ({ message: "Funding status is required" }) }),
+  industry: z.nativeEnum(Industry, { errorMap: () => ({ message: "Industry is required" }) }),
   subIndustry: optionalString(80),
   foundedYear: z.coerce.number().int().min(1990).max(new Date().getFullYear()),
   registrationStatus: z.nativeEnum(RegistrationStatus),
@@ -77,9 +84,9 @@ export const marketStepSchema = z.object({
   targetGeography: z.array(z.string().max(80)).max(50).default([]),
   primaryCustomer: optionalString(200),
   customerModel: z.array(z.nativeEnum(CustomerModel)).default([]),
-  tamUsd: z.coerce.number().nonnegative().optional(),
-  samUsd: z.coerce.number().nonnegative().optional(),
-  somUsd: z.coerce.number().nonnegative().optional(),
+  tamAmount: z.coerce.number().nonnegative().optional(),
+  samAmount: z.coerce.number().nonnegative().optional(),
+  somAmount: z.coerce.number().nonnegative().optional(),
   customerPersonas: z.array(customerPersonaSchema).max(10).default([]),
   competitors: z.array(competitorSchema).max(15).default([]),
   competitiveAdvantage: optionalString(1000),
@@ -109,9 +116,9 @@ export type TeamStepInput = z.infer<typeof teamStepSchema>;
 // ─── Step 6 — Traction ────────────────────────────────────────────────────
 
 export const tractionStepSchema = z.object({
-  monthlyRevenueUsd: z.coerce.number().nonnegative().optional(),
-  arrUsd: z.coerce.number().nonnegative().optional(),
-  mrrUsd: z.coerce.number().nonnegative().optional(),
+  monthlyRevenueAmount: z.coerce.number().nonnegative().optional(),
+  arrAmount: z.coerce.number().nonnegative().optional(),
+  mrrAmount: z.coerce.number().nonnegative().optional(),
   totalUsers: z.coerce.number().int().nonnegative().optional(),
   totalCustomers: z.coerce.number().int().nonnegative().optional(),
   downloads: z.coerce.number().int().nonnegative().optional(),
@@ -124,17 +131,21 @@ export const tractionStepSchema = z.object({
 });
 export type TractionStepInput = z.infer<typeof tractionStepSchema>;
 
+/** Post-publish "update your traction" input — every field optional so a founder can update just one metric. */
+export const updateTractionInputSchema = tractionStepSchema.partial();
+export type UpdateTractionInput = z.infer<typeof updateTractionInputSchema>;
+
 // ─── Step 7 — Funding ─────────────────────────────────────────────────────
 
 export const fundingStepSchema = z.object({
   fundingTypes: z.array(z.nativeEnum(FundingType)).default([]),
-  currentRaiseUsd: z.coerce.number().nonnegative().optional(),
-  fundingGoalUsd: z.coerce.number().nonnegative().optional(),
-  valuationUsd: z.coerce.number().nonnegative().optional(),
+  currentRaiseAmount: z.coerce.number().nonnegative().optional(),
+  fundingGoalAmount: z.coerce.number().nonnegative().optional(),
+  valuationAmount: z.coerce.number().nonnegative().optional(),
   previousInvestors: z.array(z.string().max(120)).max(50).default([]),
   useOfFunds: optionalString(1000),
   runwayMonths: z.coerce.number().int().nonnegative().optional(),
-  monthlyBurnRateUsd: z.coerce.number().nonnegative().optional(),
+  monthlyBurnRateAmount: z.coerce.number().nonnegative().optional(),
 });
 export type FundingStepInput = z.infer<typeof fundingStepSchema>;
 

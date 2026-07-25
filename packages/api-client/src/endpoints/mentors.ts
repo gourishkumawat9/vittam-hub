@@ -1,9 +1,12 @@
 import type {
   CreateFounderReviewInput,
   CreateMentorBookingInput,
+  CreateMentorReviewInput,
   FounderReview,
   MentorBookingRequestRecord,
   MentorProfileRecord,
+  MentorReputation,
+  MentorReview,
   MentorSearchFilters,
   PaginatedResult,
   RespondToMentorBookingInput,
@@ -11,9 +14,15 @@ import type {
 
 import { apiRequest } from "../http";
 
-/** `GET /v1/mentors` joins in the owner's public name/avatar for card display. */
+/** `GET /v1/mentors` joins in the owner's public name/avatar, plus reputation (avg rating + sessions) for card display. */
 export interface MentorWithOwner extends MentorProfileRecord {
   owner: { fullName: string; avatarUrl: string | null };
+  reputation: MentorReputation | null;
+}
+
+/** `GET /v1/mentors/:id` additionally includes reputation (avg rating + sessions) — spec §5's actual mentor-trust mechanism. */
+export interface MentorWithReputation extends MentorWithOwner {
+  reputation: MentorReputation;
 }
 
 /** `GET /v1/mentors/bookings` joins in both parties + the startup so the UI never has to do follow-up fetches per row. */
@@ -33,7 +42,7 @@ export const mentorsApi = {
     });
     return apiRequest<PaginatedResult<MentorWithOwner>>(`/v1/mentors?${params.toString()}`);
   },
-  getById: (id: string) => apiRequest<MentorWithOwner>(`/v1/mentors/${id}`),
+  getById: (id: string) => apiRequest<MentorWithReputation>(`/v1/mentors/${id}`),
   book: (id: string, input: CreateMentorBookingInput) =>
     apiRequest<MentorBookingRequestRecord>(`/v1/mentors/${id}/book`, { method: "POST", body: input }),
   listBookings: () => apiRequest<MentorBookingWithRelations[]>("/v1/mentors/bookings"),
@@ -41,4 +50,6 @@ export const mentorsApi = {
     apiRequest<MentorBookingRequestRecord>(`/v1/mentors/bookings/${id}/respond`, { method: "POST", body: input }),
   reviewBooking: (id: string, input: CreateFounderReviewInput) =>
     apiRequest<FounderReview>(`/v1/mentors/bookings/${id}/review`, { method: "POST", body: input }),
+  reviewMentor: (id: string, input: CreateMentorReviewInput) =>
+    apiRequest<MentorReview>(`/v1/mentors/bookings/${id}/review-mentor`, { method: "POST", body: input }),
 };

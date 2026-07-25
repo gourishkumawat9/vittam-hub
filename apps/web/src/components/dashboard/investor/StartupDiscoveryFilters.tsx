@@ -1,6 +1,6 @@
 "use client";
 
-import { CustomerModel, type StartupSearchFilters } from "@vittamhub/types";
+import { CustomerModel, Industry, type StartupSearchFilters } from "@vittamhub/types";
 import { Checkbox, Input, Select, TagsInput } from "@vittamhub/ui";
 import { useState } from "react";
 
@@ -14,21 +14,22 @@ function titleCase(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const QUICK_TAGS = [
-  "B2B",
-  "B2C",
-  "Marketplace",
-  "SaaS",
-  "DeepTech",
-  "HealthTech",
-  "FinTech",
-  "EdTech",
-  "AI",
-  "Climate",
-  "Hardware",
-  "Consumer",
-  "Social Impact",
-  "Government",
+// A curated, commonly-searched subset of the full Industry enum — the "Advanced
+// filters" business-model row below covers B2B/B2C/marketplace instead, since
+// Startup.industry is now a closed taxonomy rather than free-text tags.
+const QUICK_INDUSTRY_TAGS: Industry[] = [
+  Industry.SAAS,
+  Industry.FINTECH,
+  Industry.HEALTHTECH,
+  Industry.EDTECH,
+  Industry.ECOMMERCE,
+  Industry.AI_ML,
+  Industry.DEEPTECH,
+  Industry.CLEANTECH_CLIMATE,
+  Industry.LOGISTICS,
+  Industry.GAMING,
+  Industry.WEB3_BLOCKCHAIN,
+  Industry.SOCIAL_IMPACT,
 ];
 
 const BUSINESS_MODEL_OPTIONS = Object.values(CustomerModel);
@@ -41,7 +42,7 @@ interface StartupDiscoveryFiltersProps {
 export function StartupDiscoveryFilters({ filters, onChange }: StartupDiscoveryFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const toggleTag = (tag: string) => {
+  const toggleTag = (tag: Industry) => {
     const current = filters.industry ?? [];
     onChange({ ...filters, industry: current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag] });
   };
@@ -60,7 +61,7 @@ export function StartupDiscoveryFilters({ filters, onChange }: StartupDiscoveryF
       />
 
       <div className="flex flex-wrap gap-2">
-        {QUICK_TAGS.map((tag) => (
+        {QUICK_INDUSTRY_TAGS.map((tag) => (
           <button
             key={tag}
             type="button"
@@ -71,7 +72,7 @@ export function StartupDiscoveryFilters({ filters, onChange }: StartupDiscoveryF
                 : "border-border text-text-secondary hover:bg-background-secondary"
             }`}
           >
-            {tag}
+            {titleCase(tag)}
           </button>
         ))}
       </div>
@@ -90,10 +91,10 @@ export function StartupDiscoveryFilters({ filters, onChange }: StartupDiscoveryF
               onChange={(e) => onChange({ ...filters, location: e.target.value || undefined })}
             />
             <Input
-              label="Min funding requirement (USD)"
+              label="Min funding requirement (₹)"
               type="number"
-              value={filters.minFundingRequirementUsd ?? ""}
-              onChange={(e) => onChange({ ...filters, minFundingRequirementUsd: e.target.value ? Number(e.target.value) : undefined })}
+              value={filters.minFundingRequirementAmount ?? ""}
+              onChange={(e) => onChange({ ...filters, minFundingRequirementAmount: e.target.value ? Number(e.target.value) : undefined })}
             />
             <TagsInput
               label="Technology"

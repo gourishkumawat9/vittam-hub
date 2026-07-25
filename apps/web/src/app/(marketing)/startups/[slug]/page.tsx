@@ -2,7 +2,7 @@
 
 import { useCurrentUser, usePublicFounderActivity, useRecordProfileView, useStartup } from "@vittamhub/api-client";
 import { Badge, Card, EmptyState, Skeleton } from "@vittamhub/ui";
-import { formatCompactUsd, formatRelativeTime } from "@vittamhub/utils";
+import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Activity, Building2, FileText, Globe, History, MapPin, Sparkles, Users } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -11,6 +11,10 @@ import { FollowButton } from "@/components/dashboard/FollowButton";
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|webp|gif)$/i.test(url);
+}
+
+function titleCase(value: string) {
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 const STAGE_LABEL: Record<string, string> = {
@@ -106,7 +110,7 @@ export default function StartupProfilePage() {
 
       <div className="flex flex-wrap gap-4 text-sm text-text-secondary">
         <span className="flex items-center gap-1.5">
-          <Building2 className="h-4 w-4" /> {startup.industry}
+          <Building2 className="h-4 w-4" /> {titleCase(startup.industry)}
         </span>
         <span className="flex items-center gap-1.5">
           <MapPin className="h-4 w-4" /> {startup.headquarters ?? startup.location}
@@ -119,9 +123,9 @@ export default function StartupProfilePage() {
             <Globe className="h-4 w-4" /> Website
           </a>
         )}
-        {Number(startup.fundingRaisedUsd) > 0 && (
+        {Number(startup.fundingRaisedAmount) > 0 && (
           <span className="flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4" /> {formatCompactUsd(Number(startup.fundingRaisedUsd))} raised
+            <Sparkles className="h-4 w-4" /> {formatCompactMoney(Number(startup.fundingRaisedAmount), startup.currency)} raised
           </span>
         )}
       </div>

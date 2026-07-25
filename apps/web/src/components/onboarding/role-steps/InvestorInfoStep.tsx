@@ -115,8 +115,8 @@ export function InvestorInfoStep({ defaultValues, onBack }: InvestorInfoStepProp
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Check size min (USD)" type="number" error={errors.checkSizeMinUsd?.message} {...register("checkSizeMinUsd")} />
-        <Input label="Check size max (USD)" type="number" error={errors.checkSizeMaxUsd?.message} {...register("checkSizeMaxUsd")} />
+        <Input label="Check size min (₹)" type="number" error={errors.checkSizeMinAmount?.message} {...register("checkSizeMinAmount")} />
+        <Input label="Check size max (₹)" type="number" error={errors.checkSizeMaxAmount?.message} {...register("checkSizeMaxAmount")} />
       </div>
 
       <Controller

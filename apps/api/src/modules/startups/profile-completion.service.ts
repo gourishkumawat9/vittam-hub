@@ -63,7 +63,7 @@ export class ProfileCompletionService {
       hasDemo: !!startup.product?.demoVideoUrl,
       isVerified: startup.verificationStatus === "VERIFIED",
       hasWebsite: !!startup.website,
-      hasRevenueData: startup.traction?.monthlyRevenueUsd != null,
+      hasRevenueData: startup.traction?.monthlyRevenueAmount != null,
       hasRecentMilestone: !!recentMilestone,
     };
 

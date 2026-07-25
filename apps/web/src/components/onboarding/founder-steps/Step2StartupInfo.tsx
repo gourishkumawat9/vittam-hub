@@ -4,7 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadFile } from "@vittamhub/api-client";
 import {
   CompanyType,
+  FundingStatus,
+  Industry,
+  ProductStatus,
   RegistrationStatus,
+  RevenueStatus,
   StartupStage,
   startupInfoStepSchema,
   type StartupInfoStepInput,
@@ -20,6 +24,10 @@ import { WizardNav } from "../WizardNav";
 const STAGE_OPTIONS = Object.values(StartupStage).map((value) => ({ label: titleCase(value), value }));
 const REGISTRATION_OPTIONS = Object.values(RegistrationStatus).map((value) => ({ label: titleCase(value), value }));
 const COMPANY_TYPE_OPTIONS = Object.values(CompanyType).map((value) => ({ label: titleCase(value), value }));
+const INDUSTRY_OPTIONS = Object.values(Industry).map((value) => ({ label: titleCase(value), value }));
+const PRODUCT_STATUS_OPTIONS = Object.values(ProductStatus).map((value) => ({ label: titleCase(value), value }));
+const REVENUE_STATUS_OPTIONS = Object.values(RevenueStatus).map((value) => ({ label: titleCase(value), value }));
+const FUNDING_STATUS_OPTIONS = Object.values(FundingStatus).map((value) => ({ label: titleCase(value), value }));
 
 function titleCase(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -87,15 +95,83 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
         <Input label="Website" placeholder="https://…" error={errors.website?.message} {...register("website")} />
       </div>
 
+      <div>
+        <p className="text-sm font-medium text-text-primary">Your actual stage</p>
+        <p className="mt-1 text-xs text-text-secondary">
+          Your public stage label is computed from these three — it can&apos;t be inflated by just picking one.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Controller
+          control={control}
+          name="productStatus"
+          render={({ field }) => (
+            <Select
+              label="Product status"
+              options={PRODUCT_STATUS_OPTIONS}
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.productStatus?.message}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="revenueStatus"
+          render={({ field }) => (
+            <Select
+              label="Revenue status"
+              options={REVENUE_STATUS_OPTIONS}
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.revenueStatus?.message}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="fundingStatus"
+          render={({ field }) => (
+            <Select
+              label="Funding status"
+              options={FUNDING_STATUS_OPTIONS}
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.fundingStatus?.message}
+            />
+          )}
+        />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Controller
           control={control}
           name="stage"
           render={({ field }) => (
-            <Select label="Startup stage" options={STAGE_OPTIONS} value={field.value} onChange={field.onChange} error={errors.stage?.message} />
+            <Select
+              label="How would you describe your stage?"
+              hint="Your own take — shown alongside the computed stage, never instead of it"
+              options={STAGE_OPTIONS}
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.stage?.message}
+            />
           )}
         />
-        <Input label="Industry" error={errors.industry?.message} {...register("industry")} />
+        <Controller
+          control={control}
+          name="industry"
+          render={({ field }) => (
+            <Select
+              label="Industry"
+              options={INDUSTRY_OPTIONS}
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.industry?.message}
+            />
+          )}
+        />
         <Input label="Sub-industry" {...register("subIndustry")} />
       </div>
 

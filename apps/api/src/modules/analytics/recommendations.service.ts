@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { Industry } from "@vittamhub/types";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { InvestorMetricsService } from "../investors/investor-metrics.service";
@@ -30,7 +31,9 @@ export class RecommendationsService {
       this.prisma.startup.findMany({
         where: {
           ...baseWhere,
-          ...(investor?.preferredIndustries.length ? { industry: { in: investor.preferredIndustries } } : {}),
+          ...(investor?.preferredIndustries.length
+            ? { industry: { in: investor.preferredIndustries as Industry[] } }
+            : {}),
         },
         orderBy: { updatedAt: "desc" },
         take: 6,

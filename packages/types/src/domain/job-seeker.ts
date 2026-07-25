@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { AvailabilityType } from "./enums";
+import { AvailabilityType, Currency } from "./enums";
 
 export const workExperienceEntrySchema = z.object({
   company: z.string().min(1, "Company is required").max(160),
@@ -27,8 +27,9 @@ export const jobSeekerProfileSchema = z.object({
   resumeUrl: z.string().url().nullable(),
   skills: z.array(z.string()),
   preferredRoles: z.array(z.string()),
-  expectedSalaryMinUsd: z.number().nonnegative().nullable(),
-  expectedSalaryMaxUsd: z.number().nonnegative().nullable(),
+  currency: z.nativeEnum(Currency).default(Currency.INR),
+  expectedSalaryMinAmount: z.number().nonnegative().nullable(),
+  expectedSalaryMaxAmount: z.number().nonnegative().nullable(),
   availability: z.nativeEnum(AvailabilityType),
   isPublic: z.boolean(),
   createdAt: z.string().datetime(),
@@ -43,8 +44,8 @@ export const createJobSeekerInputSchema = z.object({
   experience: z.array(workExperienceEntrySchema).default([]),
   education: z.array(educationEntrySchema).default([]),
   preferredRoles: z.array(z.string().max(80)).min(1, "Add at least one preferred role"),
-  expectedSalaryMinUsd: z.coerce.number().nonnegative().optional(),
-  expectedSalaryMaxUsd: z.coerce.number().nonnegative().optional(),
+  expectedSalaryMinAmount: z.coerce.number().nonnegative().optional(),
+  expectedSalaryMaxAmount: z.coerce.number().nonnegative().optional(),
   availability: z.nativeEnum(AvailabilityType),
 });
 export type CreateJobSeekerInput = z.infer<typeof createJobSeekerInputSchema>;

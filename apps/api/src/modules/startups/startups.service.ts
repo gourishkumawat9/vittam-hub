@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import type { Prisma } from "@prisma/client";
-import type { CreateStartupInput, StartupSearchFilters } from "@vittamhub/types";
+import type { CreateStartupInput, Industry, StartupSearchFilters, UpdateStartupVisibilityInput } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset, slugify } from "@vittamhub/utils";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -27,7 +27,7 @@ export class StartupsService {
     if (filters.matchMyPreferences && callerId && (!industry?.length || !stage?.length)) {
       const investor = await this.prisma.investor.findUnique({ where: { ownerId: callerId } });
       if (investor) {
-        industry ??= investor.preferredIndustries;
+        industry ??= investor.preferredIndustries as Industry[];
         stage ??= investor.preferredStages;
       }
     }
@@ -38,12 +38,13 @@ export class StartupsService {
     const verificationStatus = filters.verificationStatus?.length ? { in: filters.verificationStatus } : ("VERIFIED" as const);
 
     const tractionWhere: Prisma.StartupTractionWhereInput = {
-      ...(filters.hasRevenue ? { monthlyRevenueUsd: { gt: 0 } } : {}),
+      ...(filters.hasRevenue ? { monthlyRevenueAmount: { gt: 0 } } : {}),
       ...(filters.growthRateMin !== undefined ? { growthRatePercent: { gte: filters.growthRateMin } } : {}),
     };
 
     const where: Prisma.StartupWhereInput = {
       isPublic: true,
+      visibility: { notIn: ["PRIVATE", "STEALTH"] }, // INVESTOR_ONLY still needs the per-viewer check in the controller (role isn't known to a shared query)
       verificationStatus,
       ...(industry?.length ? { industry: { in: industry } } : {}),
       ...(stage?.length ? { stage: { in: stage } } : {}),
@@ -57,8 +58,8 @@ export class StartupsService {
         : {}),
       ...(filters.businessModel?.length ? { market: { customerModel: { hasSome: filters.businessModel } } } : {}),
       ...(filters.technology?.length ? { product: { technologyStack: { hasSome: filters.technology } } } : {}),
-      ...(filters.minFundingRequirementUsd !== undefined
-        ? { funding: { fundingGoalUsd: { gte: filters.minFundingRequirementUsd } } }
+      ...(filters.minFundingRequirementAmount !== undefined
+        ? { funding: { fundingGoalAmount: { gte: filters.minFundingRequirementAmount } } }
         : {}),
       ...(Object.keys(tractionWhere).length ? { traction: tractionWhere } : {}),
       ...(filters.founderExperienceMin !== undefined
@@ -69,7 +70,6 @@ export class StartupsService {
             OR: [
               { name: { contains: filters.query, mode: "insensitive" } },
               { tagline: { contains: filters.query, mode: "insensitive" } },
-              { industry: { contains: filters.query, mode: "insensitive" } },
               { owner: { fullName: { contains: filters.query, mode: "insensitive" } } },
             ],
           }
@@ -94,7 +94,7 @@ export class StartupsService {
   async getBySlug(slug: string) {
     const startup = await this.prisma.startup.findUnique({
       where: { slug },
-      include: { teamMembers: true, product: true, milestones: { orderBy: { achievedAt: "asc" } } },
+      include: { teamMembers: true, product: true, milestones: { orderBy: { achievedAt: "asc" } }, traction: true, funding: true },
     });
     if (!startup) throw new NotFoundException("Startup not found");
     return startup;
@@ -107,6 +107,13 @@ export class StartupsService {
     });
     if (!startup) throw new NotFoundException("You haven't created a startup profile yet");
     return startup;
+  }
+
+  /** Bundle 30 — the founder's own "who can see this" and "how should my metrics show publicly" controls. */
+  async updateVisibility(ownerId: string, input: UpdateStartupVisibilityInput) {
+    const startup = await this.prisma.startup.findUnique({ where: { ownerId } });
+    if (!startup) throw new NotFoundException("You haven't created a startup profile yet");
+    return this.prisma.startup.update({ where: { ownerId }, data: input });
   }
 
   async create(ownerId: string, input: CreateStartupInput) {

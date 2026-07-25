@@ -16,6 +16,7 @@ import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { InvestorMetricsService } from "./investor-metrics.service";
+import { InvestorTrustService } from "./investor-trust.service";
 import { InvestorsService } from "./investors.service";
 
 @ApiTags("investors")
@@ -24,6 +25,7 @@ export class InvestorsController {
   constructor(
     private readonly investorsService: InvestorsService,
     private readonly investorMetricsService: InvestorMetricsService,
+    private readonly investorTrustService: InvestorTrustService,
   ) {}
 
   @Get()
@@ -31,8 +33,15 @@ export class InvestorsController {
   @ApiOperation({ summary: "Browse investor profiles, filterable by industry/country/stage/ticket size/type" })
   async list(@CurrentUser() user: AuthenticatedUser, @Query() filters: InvestorSearchFilters) {
     const result = await this.investorsService.list(filters, user.sub);
-    const metricsByOwner = await this.investorMetricsService.getManyFor(result.items.map((investor) => investor.ownerId));
-    const items = result.items.map((investor) => ({ ...investor, metrics: metricsByOwner.get(investor.ownerId) ?? null }));
+    const [metricsByOwner, trustById] = await Promise.all([
+      this.investorMetricsService.getManyFor(result.items.map((investor) => investor.ownerId)),
+      this.investorTrustService.latestMany(result.items.map((investor) => investor.id)),
+    ]);
+    const items = result.items.map((investor) => ({
+      ...investor,
+      metrics: metricsByOwner.get(investor.ownerId) ?? null,
+      trust: trustById.get(investor.id) ?? null,
+    }));
     return { ...result, items };
   }
 
@@ -42,7 +51,8 @@ export class InvestorsController {
   async getMine(@CurrentUser() user: AuthenticatedUser) {
     const investor = await this.investorsService.getMine(user.sub);
     const metrics = await this.investorMetricsService.getFor(user.sub);
-    return { ...investor, metrics };
+    const trust = await this.investorTrustService.computeAndPersist(user.sub);
+    return { ...investor, metrics, trust };
   }
 
   @Patch("me")
@@ -59,7 +69,10 @@ export class InvestorsController {
   async getById(@Param("id") id: string) {
     const investor = await this.investorsService.getById(id);
     const metrics = await this.investorMetricsService.getFor(investor.ownerId);
-    return { ...investor, metrics };
+    const trustResult = await this.investorTrustService.computeAndPersist(investor.ownerId);
+    // Never expose the factors breakdown externally — only score + band, same convention as StartupsController.
+    const trust = trustResult ? { score: trustResult.score, band: trustResult.band } : null;
+    return { ...investor, metrics, trust };
   }
 
   @Post()

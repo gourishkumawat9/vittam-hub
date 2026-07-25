@@ -3,8 +3,8 @@ import type { Investment, Startup } from "@vittamhub/types";
 import { apiRequest } from "../http";
 
 interface StartupTractionSummary {
-  monthlyRevenueUsd: number | null;
-  arrUsd: number | null;
+  monthlyRevenueAmount: number | null;
+  arrAmount: number | null;
   growthRatePercent: number | null;
 }
 

@@ -105,11 +105,11 @@ export function SendConnectRequestDialog({ investor, open, onOpenChange }: SendC
           />
 
           <Input
-            label="Funding requirement (USD)"
+            label="Funding requirement (₹)"
             type="number"
             hint="Optional — what you're currently raising."
-            error={errors.fundingRequirementUsd?.message}
-            {...register("fundingRequirementUsd")}
+            error={errors.fundingRequirementAmount?.message}
+            {...register("fundingRequirementAmount")}
           />
 
           <div className="grid gap-3 sm:grid-cols-2">

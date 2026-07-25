@@ -5,10 +5,16 @@ import {
   useCurrentUser,
   useMentorBookings,
   useRespondToMentorBooking,
+  useReviewMentor,
   useReviewMentorBooking,
   type MentorBookingWithRelations,
 } from "@vittamhub/api-client";
-import { createFounderReviewInputSchema, type CreateFounderReviewInput } from "@vittamhub/types";
+import {
+  createFounderReviewInputSchema,
+  createMentorReviewInputSchema,
+  type CreateFounderReviewInput,
+  type CreateMentorReviewInput,
+} from "@vittamhub/types";
 import { Badge, Button, Dialog, EmptyState, Textarea } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { CalendarClock, Star } from "lucide-react";
@@ -89,6 +95,73 @@ function LeaveReviewDialog({ bookingId, open, onOpenChange }: { bookingId: strin
   );
 }
 
+/** The other direction — spec §5's actual mentor-trust mechanism: "after each real, accepted mentoring session, the founder rates the mentor." */
+function LeaveMentorReviewDialog({ bookingId, open, onOpenChange }: { bookingId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const submitReview = useReviewMentor();
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const {
+    handleSubmit,
+    watch,
+    setValue,
+    register,
+    reset,
+  } = useForm<CreateMentorReviewInput>({ resolver: zodResolver(createMentorReviewInputSchema), defaultValues: { rating: 0 } });
+
+  const rating = watch("rating");
+
+  const onSubmit = handleSubmit(async (data) => {
+    setSubmitError(null);
+    try {
+      await submitReview.mutateAsync({ id: bookingId, input: data });
+      setSubmitted(true);
+      reset();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Couldn't submit that review.");
+    }
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        onOpenChange(next);
+        if (!next) setSubmitted(false);
+      }}
+      title="Review the mentor"
+      description="12 good ratings is how a mentor earns trust — your review helps other founders."
+      footer={
+        !submitted && (
+          <>
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={onSubmit} isLoading={submitReview.isPending} disabled={rating === 0}>
+              Submit review
+            </Button>
+          </>
+        )
+      }
+    >
+      {submitted ? (
+        <p className="text-sm text-text-secondary">Thanks — your review has been submitted.</p>
+      ) : (
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button key={value} type="button" onClick={() => setValue("rating", value)} aria-label={`${value} stars`}>
+                <Star className={`h-6 w-6 ${value <= rating ? "fill-warning-500 text-warning-500" : "text-border"}`} />
+              </button>
+            ))}
+          </div>
+          <Textarea label="Comment (optional)" rows={3} {...register("comment")} />
+          {submitError && <p className="text-sm text-danger-600">{submitError}</p>}
+        </form>
+      )}
+    </Dialog>
+  );
+}
+
 function BookingRow({ booking, isMentorView }: { booking: MentorBookingWithRelations; isMentorView: boolean }) {
   const respond = useRespondToMentorBooking();
   const [actioning, setActioning] = useState<"ACCEPT" | "DECLINE" | null>(null);
@@ -136,7 +209,18 @@ function BookingRow({ booking, isMentorView }: { booking: MentorBookingWithRelat
           </Button>
         </div>
       )}
-      <LeaveReviewDialog bookingId={booking.id} open={reviewOpen} onOpenChange={setReviewOpen} />
+      {!isMentorView && booking.status === "ACCEPTED" && (
+        <div className="flex justify-end border-t border-border pt-3">
+          <Button size="sm" variant="ghost" onClick={() => setReviewOpen(true)}>
+            <Star className="h-3.5 w-3.5" /> Review mentor
+          </Button>
+        </div>
+      )}
+      {isMentorView ? (
+        <LeaveReviewDialog bookingId={booking.id} open={reviewOpen} onOpenChange={setReviewOpen} />
+      ) : (
+        <LeaveMentorReviewDialog bookingId={booking.id} open={reviewOpen} onOpenChange={setReviewOpen} />
+      )}
     </div>
   );
 }

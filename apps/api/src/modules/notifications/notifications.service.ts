@@ -111,6 +111,49 @@ export class NotificationsService {
     });
   }
 
+  /** Emitted by RelationshipClaimsService — spec §9 two-sided confirmation. */
+  @OnEvent("relationship-claim.created")
+  handleRelationshipClaimCreated(payload: { targetOwnerId: string; claimantType: string; relationshipType: string }) {
+    return this.create({
+      userId: payload.targetOwnerId,
+      type: "RELATIONSHIP_CLAIM_RECEIVED",
+      title: "New relationship claim",
+      body: `A ${payload.claimantType.toLowerCase()} claimed a ${payload.relationshipType.toLowerCase().replace(/_/g, " ")} relationship with you — confirm or deny it.`,
+    });
+  }
+
+  @OnEvent("relationship-claim.confirmed")
+  handleRelationshipClaimConfirmed(payload: { claimantOwnerId: string; relationshipType: string }) {
+    return this.create({
+      userId: payload.claimantOwnerId,
+      type: "RELATIONSHIP_CLAIM_CONFIRMED",
+      title: "Relationship confirmed",
+      body: `Your ${payload.relationshipType.toLowerCase().replace(/_/g, " ")} claim was confirmed by the other party.`,
+    });
+  }
+
+  @OnEvent("relationship-claim.denied")
+  handleRelationshipClaimDenied(payload: { claimantOwnerId: string; relationshipType: string }) {
+    return this.create({
+      userId: payload.claimantOwnerId,
+      type: "RELATIONSHIP_CLAIM_DENIED",
+      title: "Relationship claim denied",
+      body: `Your ${payload.relationshipType.toLowerCase().replace(/_/g, " ")} claim was denied by the other party.`,
+    });
+  }
+
+  /** Emitted by DocumentAccessService — spec §21 permissioned data room. */
+  @OnEvent("document-grant.created")
+  async handleDocumentGrantCreated(payload: { recipientId: string; granterId: string; documentId: string }) {
+    const granter = await this.prisma.user.findUnique({ where: { id: payload.granterId }, select: { fullName: true } });
+    return this.create({
+      userId: payload.recipientId,
+      type: "SYSTEM",
+      title: "A document was shared with you",
+      body: `${granter?.fullName ?? "Someone"} gave you access to a document.`,
+    });
+  }
+
   @OnEvent("mentor.booking-requested")
   handleMentorBookingRequested(payload: { mentorId: string; founderName: string }) {
     return this.create({
@@ -184,6 +227,17 @@ export class NotificationsService {
       type: "FOUNDER_REVIEW_RECEIVED",
       title: "New review",
       body: `${payload.mentorName} left you a review after your session.`,
+    });
+  }
+
+  /** The reverse direction — spec §5, feeds MentorReputationService. */
+  @OnEvent("founder.mentor-review-submitted")
+  handleMentorReviewSubmitted(payload: { mentorId: string; founderName: string }) {
+    return this.create({
+      userId: payload.mentorId,
+      type: "SYSTEM",
+      title: "New review",
+      body: `${payload.founderName} left you a review after your session.`,
     });
   }
 

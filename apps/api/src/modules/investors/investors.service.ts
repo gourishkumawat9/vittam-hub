@@ -62,7 +62,9 @@ export class InvestorsService {
       ...(filters.country?.length ? { preferredGeography: { hasSome: filters.country } } : {}),
       ...(stage?.length ? { preferredStages: { hasSome: stage } } : {}),
       ...(filters.investorType?.length ? { investorType: { in: filters.investorType } } : {}),
-      ...(filters.minTicketSizeUsd !== undefined ? { checkSizeMaxUsd: { gte: filters.minTicketSizeUsd } } : {}),
+      ...(filters.minTicketSizeAmount !== undefined
+        ? { checkSizeMaxAmount: { gte: filters.minTicketSizeAmount } }
+        : {}),
       ...(filters.portfolioCompanies?.length ? { portfolioCompanies: { hasSome: filters.portfolioCompanies } } : {}),
       ...(filters.query
         ? {

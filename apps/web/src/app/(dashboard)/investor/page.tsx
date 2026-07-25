@@ -41,7 +41,7 @@ function computeProfileCompletion(investor: ReturnType<typeof useMyInvestorProfi
     !!investor.investmentThesis,
     investor.preferredIndustries.length > 0,
     investor.preferredStages.length > 0,
-    Number(investor.checkSizeMaxUsd) > 0,
+    Number(investor.checkSizeMaxAmount) > 0,
     investor.portfolioCompanies.length > 0,
     !!investor.website,
   ];

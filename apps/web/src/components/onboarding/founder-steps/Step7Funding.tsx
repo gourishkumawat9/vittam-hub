@@ -67,9 +67,9 @@ export function Step7Funding({ defaultValues, onNext, onBack }: StepProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="Current raise (USD)" type="number" {...register("currentRaiseUsd")} />
-        <Input label="Funding goal (USD)" type="number" {...register("fundingGoalUsd")} />
-        <Input label="Valuation (USD)" type="number" {...register("valuationUsd")} />
+        <Input label="Current raise (₹)" type="number" {...register("currentRaiseAmount")} />
+        <Input label="Funding goal (₹)" type="number" {...register("fundingGoalAmount")} />
+        <Input label="Valuation (₹)" type="number" {...register("valuationAmount")} />
       </div>
 
       <Controller
@@ -82,7 +82,7 @@ export function Step7Funding({ defaultValues, onNext, onBack }: StepProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Runway (months)" type="number" {...register("runwayMonths")} />
-        <Input label="Monthly burn rate (USD)" type="number" {...register("monthlyBurnRateUsd")} />
+        <Input label="Monthly burn rate (₹)" type="number" {...register("monthlyBurnRateAmount")} />
       </div>
 
       <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />

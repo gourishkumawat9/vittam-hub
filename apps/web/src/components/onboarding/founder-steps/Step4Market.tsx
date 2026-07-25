@@ -90,9 +90,9 @@ export function Step4Market({ defaultValues, onNext, onBack }: StepProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="TAM (USD)" type="number" {...register("tamUsd")} />
-        <Input label="SAM (USD)" type="number" {...register("samUsd")} />
-        <Input label="SOM (USD)" type="number" {...register("somUsd")} />
+        <Input label="TAM (₹)" type="number" {...register("tamAmount")} />
+        <Input label="SAM (₹)" type="number" {...register("samAmount")} />
+        <Input label="SOM (₹)" type="number" {...register("somAmount")} />
       </div>
 
       <div className="flex flex-col gap-3">

@@ -60,9 +60,9 @@ export class MatchScoreService {
   }
 
   private fundingMatches(investor: Investor, funding: StartupFunding | null): boolean {
-    if (!funding?.fundingGoalUsd) return false;
-    const goal = Number(funding.fundingGoalUsd);
-    return goal >= Number(investor.checkSizeMinUsd) && goal <= Number(investor.checkSizeMaxUsd);
+    if (!funding?.fundingGoalAmount) return false;
+    const goal = Number(funding.fundingGoalAmount);
+    return goal >= Number(investor.checkSizeMinAmount) && goal <= Number(investor.checkSizeMaxAmount);
   }
 
   async scoreForInvestor(investor: Investor, startup: StartupWithFunding) {

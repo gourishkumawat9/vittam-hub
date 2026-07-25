@@ -2,12 +2,16 @@
 
 import type { StartupSearchResultItem } from "@vittamhub/api-client";
 import { Badge, cn, Dialog, ProgressBar } from "@vittamhub/ui";
-import { formatCompactUsd } from "@vittamhub/utils";
+import { formatCompactMoney } from "@vittamhub/utils";
 
 interface CompareStartupsDialogProps {
   startups: StartupSearchResultItem[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+function titleCase(value: string) {
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 const STAGE_LABEL: Record<string, string> = {
@@ -32,7 +36,7 @@ interface Row {
 }
 
 const ROWS: Row[] = [
-  { label: "Industry", kind: "text", getValue: (s) => s.industry },
+  { label: "Industry", kind: "text", getValue: (s) => titleCase(s.industry) },
   { label: "Stage", kind: "badge", getValue: (s) => STAGE_LABEL[s.stage] ?? s.stage },
   { label: "Business model", kind: "text", getValue: (s) => s.businessModelSummary ?? "—" },
   { label: "Location", kind: "text", getValue: (s) => s.headquarters ?? s.location },
@@ -46,13 +50,14 @@ const ROWS: Row[] = [
   {
     label: "Funding requirement",
     kind: "text",
-    getValue: (s) => (s.funding?.fundingGoalUsd ? formatCompactUsd(s.funding.fundingGoalUsd) : "—"),
+    getValue: (s) => (s.funding?.fundingGoalAmount ? formatCompactMoney(s.funding.fundingGoalAmount, s.currency) : "—"),
   },
   {
     label: "Monthly revenue",
     kind: "text",
-    getValue: (s) => (s.traction?.monthlyRevenueUsd ? formatCompactUsd(s.traction.monthlyRevenueUsd) : "Pre-revenue"),
-    getNumericValue: (s) => s.traction?.monthlyRevenueUsd ?? null,
+    getValue: (s) =>
+      s.traction?.monthlyRevenueAmount ? formatCompactMoney(s.traction.monthlyRevenueAmount, s.currency) : "Pre-revenue",
+    getNumericValue: (s) => s.traction?.monthlyRevenueAmount ?? null,
   },
   {
     label: "Growth rate",

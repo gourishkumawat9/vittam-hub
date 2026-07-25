@@ -35,6 +35,7 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
   FOUNDER: [
     { href: "/founder", label: "Dashboard", icon: LayoutDashboard },
     { href: "/founder/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/founder/documents", label: "Documents", icon: FolderLock },
     { href: "/founder/hiring", label: "Hiring", icon: Briefcase },
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/mentors/bookings", label: "Session Requests", icon: CalendarClock },

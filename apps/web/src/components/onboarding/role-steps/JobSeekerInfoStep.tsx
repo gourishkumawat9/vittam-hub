@@ -154,8 +154,8 @@ export function JobSeekerInfoStep({ defaultValues, onBack }: JobSeekerInfoStepPr
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="Expected salary min (USD)" type="number" {...register("expectedSalaryMinUsd")} />
-        <Input label="Expected salary max (USD)" type="number" {...register("expectedSalaryMaxUsd")} />
+        <Input label="Expected salary min (₹)" type="number" {...register("expectedSalaryMinAmount")} />
+        <Input label="Expected salary max (₹)" type="number" {...register("expectedSalaryMaxAmount")} />
         <Controller
           control={control}
           name="availability"

@@ -143,9 +143,46 @@ export class VerificationEngineService {
       entityType,
       entityId,
     });
+    await this.recordVerification(entityType, entityId, nextStatus);
 
     if (nextStatus === "VERIFIED") {
       this.eventEmitter.emit("profile.verified", { userId: ownerId, entityType });
     }
+  }
+
+  /**
+   * Writes an audit-ledger row into the VerificationRecord table every time this
+   * engine's overall status changes. Today's signals are document-presence /
+   * profile-completeness checks, so the tier is V1 (not yet a registry-verified
+   * V3) — see CLAUDE.md §7/§8 for why real MCA/GSTIN/DPIIT integrations are a
+   * later, pluggable phase rather than blocking this ledger from existing now.
+   * Verification always expires (spec §2) — 180 days is a placeholder TTL until
+   * per-source expiry policy is defined.
+   */
+  private async recordVerification(entityType: string, entityId: string, status: VerificationStatus) {
+    if (status === "UNVERIFIED") return; // no verification attempt has actually happened yet
+    const recordStatus = status === "VERIFIED" ? "VERIFIED" : "PENDING";
+    const now = new Date();
+    await this.prisma.verificationRecord.create({
+      data: {
+        entityType,
+        entityId,
+        field: "overall",
+        tier: "V1",
+        method: "SIGNAL_PRESENCE_CHECK",
+        status: recordStatus,
+        verifiedAt: recordStatus === "VERIFIED" ? now : null,
+        expiresAt: recordStatus === "VERIFIED" ? new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000) : null,
+        verifiedBy: "system:verification-engine",
+      },
+    });
+  }
+
+  /** Read path for the verification ledger — e.g. the public profile's "verified since" badge, or an admin audit view. */
+  async getRecords(entityType: string, entityId: string) {
+    return this.prisma.verificationRecord.findMany({
+      where: { entityType, entityId },
+      orderBy: { createdAt: "desc" },
+    });
   }
 }

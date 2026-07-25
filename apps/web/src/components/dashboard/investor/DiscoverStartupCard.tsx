@@ -2,8 +2,12 @@
 
 import { useAddToPipeline, useFollowStartup, type StartupSearchResultItem } from "@vittamhub/api-client";
 import { Badge, Button, Card } from "@vittamhub/ui";
-import { formatCompactUsd, formatRelativeTime } from "@vittamhub/utils";
+import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Bookmark, Handshake, ShieldCheck, Sparkles } from "lucide-react";
+
+function titleCase(value: string) {
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 const STAGE_LABEL: Record<string, string> = {
   IDEA: "Idea",
@@ -52,7 +56,7 @@ export function DiscoverStartupCard({ startup, selectedForCompare, onToggleCompa
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        <Badge variant="brand">{startup.industry}</Badge>
+        <Badge variant="brand">{titleCase(startup.industry)}</Badge>
         <Badge variant="neutral">{STAGE_LABEL[startup.stage] ?? startup.stage}</Badge>
         <Badge variant="neutral">{startup.headquarters ?? startup.location}</Badge>
       </div>
@@ -71,8 +75,12 @@ export function DiscoverStartupCard({ startup, selectedForCompare, onToggleCompa
           </div>
         )}
         <div className="col-span-2 flex items-center justify-between text-text-secondary">
-          <span>{startup.funding?.fundingGoalUsd ? `Raising ${formatCompactUsd(startup.funding.fundingGoalUsd)}` : "Funding TBD"}</span>
-          <span>{startup.traction?.monthlyRevenueUsd ? "Revenue generating" : "Pre-revenue"}</span>
+          <span>
+            {startup.funding?.fundingGoalAmount
+              ? `Raising ${formatCompactMoney(startup.funding.fundingGoalAmount, startup.currency)}`
+              : "Funding TBD"}
+          </span>
+          <span>{startup.traction?.monthlyRevenueAmount ? "Revenue generating" : "Pre-revenue"}</span>
         </div>
       </div>
 

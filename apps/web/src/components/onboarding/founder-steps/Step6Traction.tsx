@@ -42,9 +42,9 @@ export function Step6Traction({ defaultValues, onNext, onBack }: StepProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="Monthly revenue (USD)" type="number" {...register("monthlyRevenueUsd")} />
-        <Input label="ARR (USD)" type="number" {...register("arrUsd")} />
-        <Input label="MRR (USD)" type="number" {...register("mrrUsd")} />
+        <Input label="Monthly revenue (₹)" type="number" {...register("monthlyRevenueAmount")} />
+        <Input label="ARR (₹)" type="number" {...register("arrAmount")} />
+        <Input label="MRR (₹)" type="number" {...register("mrrAmount")} />
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <Input label="Total users" type="number" {...register("totalUsers")} />

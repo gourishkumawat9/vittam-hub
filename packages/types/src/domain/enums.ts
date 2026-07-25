@@ -146,6 +146,15 @@ export const FundingType = {
 } as const;
 export type FundingType = (typeof FundingType)[keyof typeof FundingType];
 
+export const FundingInstrument = {
+  EQUITY: "EQUITY",
+  SAFE: "SAFE",
+  CCPS: "CCPS",
+  DEBT: "DEBT",
+  GRANT: "GRANT",
+} as const;
+export type FundingInstrument = (typeof FundingInstrument)[keyof typeof FundingInstrument];
+
 export const LookingForType = {
   INVESTORS: "INVESTORS",
   MENTORS: "MENTORS",
@@ -210,6 +219,7 @@ export type AvailabilityType = (typeof AvailabilityType)[keyof typeof Availabili
 export const OtpPurpose = {
   EMAIL_VERIFICATION: "EMAIL_VERIFICATION",
   LOGIN_MFA: "LOGIN_MFA",
+  PHONE_VERIFICATION: "PHONE_VERIFICATION",
 } as const;
 export type OtpPurpose = (typeof OtpPurpose)[keyof typeof OtpPurpose];
 
@@ -280,8 +290,52 @@ export const NotificationType = {
   POST_COMMENTED: "POST_COMMENTED",
   FOUNDER_REVIEW_RECEIVED: "FOUNDER_REVIEW_RECEIVED",
   NEW_FOLLOWER: "NEW_FOLLOWER",
+  RELATIONSHIP_CLAIM_RECEIVED: "RELATIONSHIP_CLAIM_RECEIVED",
+  RELATIONSHIP_CLAIM_CONFIRMED: "RELATIONSHIP_CLAIM_CONFIRMED",
+  RELATIONSHIP_CLAIM_DENIED: "RELATIONSHIP_CLAIM_DENIED",
 } as const;
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
+
+export const RelationshipType = {
+  PORTFOLIO_INVESTMENT: "PORTFOLIO_INVESTMENT",
+  LEAD_INVESTOR: "LEAD_INVESTOR",
+  BOARD_SEAT: "BOARD_SEAT",
+  INCUBATOR_ALUMNUS: "INCUBATOR_ALUMNUS",
+  UNIVERSITY_SPINOUT: "UNIVERSITY_SPINOUT",
+  STRATEGIC_PARTNER: "STRATEGIC_PARTNER",
+} as const;
+export type RelationshipType = (typeof RelationshipType)[keyof typeof RelationshipType];
+
+export const ProfileVisibility = {
+  PUBLIC: "PUBLIC",
+  INVESTOR_ONLY: "INVESTOR_ONLY",
+  PRIVATE: "PRIVATE",
+  STEALTH: "STEALTH",
+} as const;
+export type ProfileVisibility = (typeof ProfileVisibility)[keyof typeof ProfileVisibility];
+
+export const MetricVisibility = {
+  EXACT: "EXACT",
+  BAND: "BAND",
+  HIDDEN: "HIDDEN",
+} as const;
+export type MetricVisibility = (typeof MetricVisibility)[keyof typeof MetricVisibility];
+
+export const ClaimStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  DENIED: "DENIED",
+} as const;
+export type ClaimStatus = (typeof ClaimStatus)[keyof typeof ClaimStatus];
+
+/** Entity types a RelationshipClaim or VerificationRecord can point at — keep in sync with which Prisma models actually exist. */
+export const ClaimableEntityType = {
+  STARTUP: "Startup",
+  INVESTOR: "Investor",
+  INCUBATOR_PROFILE: "IncubatorProfile",
+  UNIVERSITY_PROFILE: "UniversityProfile",
+} as const;
+export type ClaimableEntityType = (typeof ClaimableEntityType)[keyof typeof ClaimableEntityType];
 
 export const SubscriptionPlan = {
   FREE: "FREE",
@@ -290,3 +344,76 @@ export const SubscriptionPlan = {
   ENTERPRISE: "ENTERPRISE",
 } as const;
 export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan];
+
+export const Currency = {
+  INR: "INR",
+  USD: "USD",
+} as const;
+export type Currency = (typeof Currency)[keyof typeof Currency];
+
+// Stage is normalized as three independent axes rather than one label — see
+// Startup.productStatus/revenueStatus/fundingStatus in schema.prisma.
+export const ProductStatus = {
+  CONCEPT: "CONCEPT",
+  PROTOTYPE: "PROTOTYPE",
+  BETA: "BETA",
+  LIVE: "LIVE",
+  SCALED: "SCALED",
+} as const;
+export type ProductStatus = (typeof ProductStatus)[keyof typeof ProductStatus];
+
+export const RevenueStatus = {
+  NONE: "NONE",
+  PILOT: "PILOT",
+  FIRST_REVENUE: "FIRST_REVENUE",
+  RECURRING: "RECURRING",
+  PROFITABLE: "PROFITABLE",
+} as const;
+export type RevenueStatus = (typeof RevenueStatus)[keyof typeof RevenueStatus];
+
+export const FundingStatus = {
+  BOOTSTRAPPED: "BOOTSTRAPPED",
+  ANGEL: "ANGEL",
+  PRE_SEED: "PRE_SEED",
+  SEED: "SEED",
+  SERIES_A: "SERIES_A",
+  SERIES_B: "SERIES_B",
+  SERIES_C_PLUS: "SERIES_C_PLUS",
+  PE: "PE",
+  PUBLIC: "PUBLIC",
+} as const;
+export type FundingStatus = (typeof FundingStatus)[keyof typeof FundingStatus];
+
+// Fixed taxonomy replacing free-text industry — discovery filters and stage
+// mandates depend on comparable categories, not typed strings.
+export const Industry = {
+  FINTECH: "FINTECH",
+  HEALTHTECH: "HEALTHTECH",
+  EDTECH: "EDTECH",
+  AGRITECH: "AGRITECH",
+  ECOMMERCE: "ECOMMERCE",
+  SAAS: "SAAS",
+  DEEPTECH: "DEEPTECH",
+  AI_ML: "AI_ML",
+  LOGISTICS: "LOGISTICS",
+  MOBILITY: "MOBILITY",
+  REAL_ESTATE: "REAL_ESTATE",
+  MEDIA_ENTERTAINMENT: "MEDIA_ENTERTAINMENT",
+  GAMING: "GAMING",
+  CLEANTECH_CLIMATE: "CLEANTECH_CLIMATE",
+  FOODTECH: "FOODTECH",
+  RETAIL_D2C: "RETAIL_D2C",
+  TRAVEL_HOSPITALITY: "TRAVEL_HOSPITALITY",
+  HR_TECH: "HR_TECH",
+  LEGAL_TECH: "LEGAL_TECH",
+  INSURTECH: "INSURTECH",
+  SPACE_TECH: "SPACE_TECH",
+  MANUFACTURING: "MANUFACTURING",
+  CONSTRUCTION_PROPTECH: "CONSTRUCTION_PROPTECH",
+  SOCIAL_IMPACT: "SOCIAL_IMPACT",
+  ADTECH: "ADTECH",
+  CYBERSECURITY: "CYBERSECURITY",
+  WEB3_BLOCKCHAIN: "WEB3_BLOCKCHAIN",
+  OTHER: "OTHER",
+} as const;
+export type Industry = (typeof Industry)[keyof typeof Industry];

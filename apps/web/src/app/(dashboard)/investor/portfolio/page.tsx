@@ -2,7 +2,7 @@
 
 import { usePortfolio } from "@vittamhub/api-client";
 import { Badge, Card, EmptyState } from "@vittamhub/ui";
-import { formatCompactUsd } from "@vittamhub/utils";
+import { formatCompactMoney } from "@vittamhub/utils";
 import { Briefcase } from "lucide-react";
 import Link from "next/link";
 
@@ -34,16 +34,20 @@ export default function PortfolioPage() {
                 <span className="text-right font-medium text-text-primary">{investment.startup.teamSize}</span>
                 <span className="text-text-secondary">Monthly revenue</span>
                 <span className="text-right font-medium text-text-primary">
-                  {investment.startup.traction?.monthlyRevenueUsd ? formatCompactUsd(investment.startup.traction.monthlyRevenueUsd) : "—"}
+                  {investment.startup.traction?.monthlyRevenueAmount
+                    ? formatCompactMoney(investment.startup.traction.monthlyRevenueAmount, investment.startup.currency)
+                    : "—"}
                 </span>
                 <span className="text-text-secondary">Growth rate</span>
                 <span className="text-right font-medium text-text-primary">
                   {investment.startup.traction?.growthRatePercent != null ? `${investment.startup.traction.growthRatePercent}%` : "—"}
                 </span>
-                {investment.amountUsd != null && (
+                {investment.amount != null && (
                   <>
                     <span className="text-text-secondary">Invested amount</span>
-                    <span className="text-right font-medium text-text-primary">{formatCompactUsd(investment.amountUsd)}</span>
+                    <span className="text-right font-medium text-text-primary">
+                      {formatCompactMoney(investment.amount, investment.currency)}
+                    </span>
                   </>
                 )}
               </div>

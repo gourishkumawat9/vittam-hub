@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { InvestorType, StartupStage, VerificationStatus } from "./enums";
+import { Currency, InvestorType, StartupStage, VerificationStatus } from "./enums";
 
 export const investorSchema = z.object({
   id: z.string().uuid(),
@@ -11,8 +11,9 @@ export const investorSchema = z.object({
   bio: z.string().max(3000),
   logoUrl: z.string().url().nullable(),
   website: z.string().url().nullable(),
-  checkSizeMinUsd: z.number().nonnegative(),
-  checkSizeMaxUsd: z.number().nonnegative(),
+  currency: z.nativeEnum(Currency).default(Currency.INR),
+  checkSizeMinAmount: z.number().nonnegative(),
+  checkSizeMaxAmount: z.number().nonnegative(),
   preferredStages: z.array(z.nativeEnum(StartupStage)),
   preferredIndustries: z.array(z.string()),
   preferredGeography: z.array(z.string()),
@@ -45,7 +46,7 @@ export const investorSearchFiltersSchema = z.object({
   industry: z.array(z.string()).optional(),
   country: z.array(z.string()).optional(),
   stage: z.array(z.nativeEnum(StartupStage)).optional(),
-  minTicketSizeUsd: z.coerce.number().nonnegative().optional(),
+  minTicketSizeAmount: z.coerce.number().nonnegative().optional(),
   investorType: z.array(z.nativeEnum(InvestorType)).optional(),
   portfolioCompanies: z.array(z.string()).optional(),
   matchMyStartup: z.coerce.boolean().optional(),
@@ -66,8 +67,8 @@ export const createInvestorInputSchema = z.object({
   bio: z.string().min(1, "Tell startups about yourself").max(3000),
   preferredIndustries: z.array(z.string().max(80)).min(1, "Select at least one industry"),
   preferredStages: z.array(z.nativeEnum(StartupStage)).min(1, "Select at least one stage"),
-  checkSizeMinUsd: z.coerce.number().nonnegative(),
-  checkSizeMaxUsd: z.coerce.number().nonnegative(),
+  checkSizeMinAmount: z.coerce.number().nonnegative(),
+  checkSizeMaxAmount: z.coerce.number().nonnegative(),
   preferredGeography: z.array(z.string().max(80)).default([]),
   location: z.string().min(1, "Location is required").max(120),
   portfolioCompanies: z.array(z.string().max(120)).default([]),

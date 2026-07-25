@@ -16,6 +16,8 @@ import {
 import { slugify } from "@vittamhub/utils";
 
 import { PrismaService } from "../../../database/prisma/prisma.service";
+import { recordTractionObservations } from "../../startups/metric-observations.util";
+import { deriveOverallStage } from "../../startups/stage.util";
 
 import { applyPersonalDetails } from "./apply-personal-details";
 
@@ -63,7 +65,11 @@ export class StartupPublisher {
         description: startupInfo.description,
         logoUrl: startupInfo.logoUrl,
         website: startupInfo.website,
-        stage: startupInfo.stage,
+        stage: deriveOverallStage(startupInfo.productStatus, startupInfo.revenueStatus, startupInfo.fundingStatus),
+        declaredStage: startupInfo.stage,
+        productStatus: startupInfo.productStatus,
+        revenueStatus: startupInfo.revenueStatus,
+        fundingStatus: startupInfo.fundingStatus,
         industry: startupInfo.industry,
         subIndustry: startupInfo.subIndustry,
         foundedYear: startupInfo.foundedYear,
@@ -118,6 +124,7 @@ export class StartupPublisher {
         create: { startupId: startup.id, ...traction },
         update: traction,
       });
+      await recordTractionObservations(tx, startup.id, traction, "INR", "self-declared:onboarding");
 
       await tx.startupFunding.upsert({
         where: { startupId: startup.id },

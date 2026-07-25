@@ -39,8 +39,8 @@ export default function InvestorProfilePage() {
         bio: investor.bio,
         preferredIndustries: investor.preferredIndustries,
         preferredStages: investor.preferredStages,
-        checkSizeMinUsd: investor.checkSizeMinUsd,
-        checkSizeMaxUsd: investor.checkSizeMaxUsd,
+        checkSizeMinAmount: investor.checkSizeMinAmount,
+        checkSizeMaxAmount: investor.checkSizeMaxAmount,
         preferredGeography: investor.preferredGeography,
         location: investor.location,
         portfolioCompanies: investor.portfolioCompanies,
@@ -133,8 +133,8 @@ export default function InvestorProfilePage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Check size min (USD)" type="number" {...register("checkSizeMinUsd")} />
-          <Input label="Check size max (USD)" type="number" {...register("checkSizeMaxUsd")} />
+          <Input label="Check size min (₹)" type="number" {...register("checkSizeMinAmount")} />
+          <Input label="Check size max (₹)" type="number" {...register("checkSizeMaxAmount")} />
         </div>
 
         <Controller

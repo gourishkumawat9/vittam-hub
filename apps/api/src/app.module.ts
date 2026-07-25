@@ -33,6 +33,7 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
 import { PipelineModule } from "./modules/pipeline/pipeline.module";
 import { PortfolioModule } from "./modules/portfolio/portfolio.module";
+import { RelationshipsModule } from "./modules/relationships/relationships.module";
 import { SearchModule } from "./modules/search/search.module";
 import { ServiceProvidersModule } from "./modules/service-providers/service-providers.module";
 import { StartupsModule } from "./modules/startups/startups.module";
@@ -73,6 +74,7 @@ import { WatchlistModule } from "./modules/watchlist/watchlist.module";
     WatchlistModule,
     PipelineModule,
     PortfolioModule,
+    RelationshipsModule,
     AnalyticsModule,
     DocumentsModule,
     VerificationModule,

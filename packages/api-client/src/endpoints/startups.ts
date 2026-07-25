@@ -11,9 +11,20 @@ import type {
   StartupSearchFilters,
   TeamMemberCategory,
   TrustScore,
+  TrustV2Preview,
+  UpdateStartupVisibilityInput,
 } from "@vittamhub/types";
 
 import { apiRequest } from "../http";
+
+/** GET /v1/startups/me/benchmark — `percentile` is null (with a `reason`) when there isn't enough peer data, never a fabricated number. */
+export interface GrowthBenchmark {
+  percentile: number | null;
+  sampleSize: number;
+  industry: string;
+  stage: string;
+  reason?: string;
+}
 
 interface StartupTeamMemberSummary {
   id: string;
@@ -54,8 +65,8 @@ export interface StartupSearchResultItem extends Startup {
   headquarters: string | null;
   businessModelSummary: string | null;
   owner: { fullName: string };
-  funding: { fundingGoalUsd: number | null } | null;
-  traction: { monthlyRevenueUsd: number | null; growthRatePercent: number | null; totalCustomers: number | null } | null;
+  funding: { fundingGoalAmount: number | null } | null;
+  traction: { monthlyRevenueAmount: number | null; growthRatePercent: number | null; totalCustomers: number | null } | null;
   trustScore: TrustScore;
   matchScore: MatchScore | null;
 }
@@ -88,6 +99,7 @@ export const startupsApi = {
   getBySlug: (slug: string) => apiRequest<StartupProfile>(`/v1/startups/${slug}`),
   getMine: () => apiRequest<StartupProfile>("/v1/startups/me"),
   getMyHealth: () => apiRequest<StartupHealth>("/v1/startups/me/health"),
+  getMyTrustPreview: () => apiRequest<TrustV2Preview>("/v1/startups/me/trust-preview"),
   listMilestones: (slug: string) => apiRequest<StartupMilestone[]>(`/v1/startups/${slug}/milestones`),
   addMilestone: (input: CreateMilestoneInput) =>
     apiRequest<StartupMilestone>("/v1/startups/me/milestones", { method: "POST", body: input }),
@@ -97,4 +109,7 @@ export const startupsApi = {
   getMyProfileViews: () => apiRequest<StartupProfileViewWithInvestor[]>("/v1/startups/me/views"),
   recordView: (slug: string) => apiRequest<StartupProfileView>(`/v1/startups/${slug}/view`, { method: "POST" }),
   getMyAnalytics: () => apiRequest<FounderAnalytics>("/v1/startups/me/analytics"),
+  getMyBenchmark: () => apiRequest<GrowthBenchmark>("/v1/startups/me/benchmark"),
+  updateMyVisibility: (input: UpdateStartupVisibilityInput) =>
+    apiRequest<StartupProfile>("/v1/startups/me/visibility", { method: "PATCH", body: input }),
 };

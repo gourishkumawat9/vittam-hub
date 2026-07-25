@@ -3,10 +3,12 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   createFounderReviewInputSchema,
   createMentorBookingInputSchema,
+  createMentorReviewInputSchema,
   mentorSearchFiltersSchema,
   respondToMentorBookingInputSchema,
   type CreateFounderReviewInput,
   type CreateMentorBookingInput,
+  type CreateMentorReviewInput,
   type MentorSearchFilters,
   type RespondToMentorBookingInput,
 } from "@vittamhub/types";
@@ -19,6 +21,8 @@ import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { FounderReviewsService } from "./founder-reviews.service";
 import { MentorBookingService } from "./mentor-booking.service";
+import { MentorReputationService } from "./mentor-reputation.service";
+import { MentorReviewsService } from "./mentor-reviews.service";
 import { MentorsService } from "./mentors.service";
 
 @ApiTags("mentors")
@@ -28,14 +32,19 @@ export class MentorsController {
     private readonly mentorsService: MentorsService,
     private readonly bookingService: MentorBookingService,
     private readonly founderReviewsService: FounderReviewsService,
+    private readonly mentorReviewsService: MentorReviewsService,
+    private readonly mentorReputationService: MentorReputationService,
   ) {}
 
   @Public()
   @Get()
   @UsePipes(new ZodValidationPipe(mentorSearchFiltersSchema))
   @ApiOperation({ summary: "Browse mentor profiles, filterable by expertise/industry/session type" })
-  list(@Query() filters: MentorSearchFilters) {
-    return this.mentorsService.list(filters);
+  async list(@Query() filters: MentorSearchFilters) {
+    const result = await this.mentorsService.list(filters);
+    const reputationById = await this.mentorReputationService.calculateMany(result.items.map((mentor) => mentor.ownerId));
+    const items = result.items.map((mentor) => ({ ...mentor, reputation: reputationById.get(mentor.ownerId) ?? null }));
+    return { ...result, items };
   }
 
   @Get("bookings")
@@ -46,9 +55,11 @@ export class MentorsController {
 
   @Public()
   @Get(":id")
-  @ApiOperation({ summary: "Get a public mentor profile" })
-  getById(@Param("id") id: string) {
-    return this.mentorsService.getById(id);
+  @ApiOperation({ summary: "Get a public mentor profile, including reputation (average rating + sessions completed)" })
+  async getById(@Param("id") id: string) {
+    const mentor = await this.mentorsService.getById(id);
+    const reputation = await this.mentorReputationService.calculate(mentor.ownerId);
+    return { ...mentor, reputation };
   }
 
   @Post(":id/book")
@@ -73,5 +84,13 @@ export class MentorsController {
   @ApiOperation({ summary: "Review the founder from an accepted booking — feeds their Founder Reputation score" })
   review(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: CreateFounderReviewInput) {
     return this.founderReviewsService.create(user.sub, id, input);
+  }
+
+  @Post("bookings/:id/review-mentor")
+  @Roles("FOUNDER")
+  @UsePipes(new ZodValidationPipe(createMentorReviewInputSchema))
+  @ApiOperation({ summary: "Review the mentor from an accepted booking — the only source of mentor trust (spec §5)" })
+  reviewMentor(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: CreateMentorReviewInput) {
+    return this.mentorReviewsService.create(user.sub, id, input);
   }
 }

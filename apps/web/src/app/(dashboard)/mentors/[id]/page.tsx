@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useBookMentor, useMentor } from "@vittamhub/api-client";
 import { createMentorBookingInputSchema, SessionType, type CreateMentorBookingInput } from "@vittamhub/types";
 import { Badge, Button, Card, Dialog, Select, Textarea, Input } from "@vittamhub/ui";
+import { Star } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -98,6 +99,20 @@ export default function MentorDetailPage() {
         <div>
           <h1 className="font-heading text-2xl font-semibold text-text-primary">{mentor.owner.fullName}</h1>
           <p className="text-sm text-text-secondary">{mentor.headline}</p>
+          <div className="mt-1 flex items-center gap-1.5 text-sm">
+            {mentor.reputation.averageRating != null ? (
+              <>
+                <Star className="h-3.5 w-3.5 fill-warning-500 text-warning-500" />
+                <span className="font-medium text-text-primary">{mentor.reputation.averageRating.toFixed(1)}</span>
+                <span className="text-text-secondary">
+                  ({mentor.reputation.reviewCount} review{mentor.reputation.reviewCount === 1 ? "" : "s"} ·{" "}
+                  {mentor.reputation.sessionsCompleted} session{mentor.reputation.sessionsCompleted === 1 ? "" : "s"} completed)
+                </span>
+              </>
+            ) : (
+              <span className="text-text-secondary">No reviews yet · {mentor.reputation.sessionsCompleted} sessions completed</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <FollowButton userId={mentor.ownerId} />

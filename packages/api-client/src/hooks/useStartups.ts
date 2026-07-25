@@ -1,6 +1,6 @@
 "use client";
 
-import type { StartupSearchFilters } from "@vittamhub/types";
+import type { StartupSearchFilters, UpdateStartupVisibilityInput } from "@vittamhub/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { startupsApi } from "../endpoints/startups";
@@ -11,11 +11,13 @@ export const startupKeys = {
   detail: (slug: string) => [...startupKeys.all, "detail", slug] as const,
   mine: ["startups", "me"] as const,
   myHealth: ["startups", "me", "health"] as const,
+  myTrustPreview: ["startups", "me", "trust-preview"] as const,
   milestones: (slug: string) => [...startupKeys.all, "detail", slug, "milestones"] as const,
   myActivity: ["startups", "me", "activity"] as const,
   publicActivity: (slug: string) => [...startupKeys.all, "detail", slug, "activity"] as const,
   myViews: ["startups", "me", "views"] as const,
   myAnalytics: ["startups", "me", "analytics"] as const,
+  myBenchmark: ["startups", "me", "benchmark"] as const,
 };
 
 export function useStartupSearch(filters: StartupSearchFilters) {
@@ -42,8 +44,26 @@ export function useMyStartupHealth() {
   return useQuery({ queryKey: startupKeys.myHealth, queryFn: startupsApi.getMyHealth, retry: false });
 }
 
+/** Trust Score v2 preview — founder-only, shadow mode. See docs/STATUS.md "Trust Score v2". */
+export function useMyTrustPreview() {
+  return useQuery({ queryKey: startupKeys.myTrustPreview, queryFn: startupsApi.getMyTrustPreview, retry: false });
+}
+
 export function useMyStartupAnalytics() {
   return useQuery({ queryKey: startupKeys.myAnalytics, queryFn: startupsApi.getMyAnalytics, retry: false });
+}
+
+/** "Your growth is top 22% of seed fintech" — null percentile (with a reason) when there isn't enough peer data yet. */
+export function useMyGrowthBenchmark() {
+  return useQuery({ queryKey: startupKeys.myBenchmark, queryFn: startupsApi.getMyBenchmark, retry: false });
+}
+
+export function useUpdateMyVisibility() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateStartupVisibilityInput) => startupsApi.updateMyVisibility(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: startupKeys.mine }),
+  });
 }
 
 export function useStartupMilestones(slug: string) {

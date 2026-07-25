@@ -51,10 +51,10 @@ export function InvestorFiltersBar({ filters, onChange }: InvestorFiltersBarProp
           placeholder="e.g. India…"
         />
         <Input
-          label="Min ticket size (USD)"
+          label="Min ticket size (₹)"
           type="number"
-          value={filters.minTicketSizeUsd ?? ""}
-          onChange={(e) => onChange({ ...filters, minTicketSizeUsd: e.target.value ? Number(e.target.value) : undefined })}
+          value={filters.minTicketSizeAmount ?? ""}
+          onChange={(e) => onChange({ ...filters, minTicketSizeAmount: e.target.value ? Number(e.target.value) : undefined })}
         />
       </div>
 

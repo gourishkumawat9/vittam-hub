@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-import { CustomerModel, StartupStage, VerificationStatus } from "./enums";
+import {
+  Currency,
+  CustomerModel,
+  FundingStatus,
+  Industry,
+  MetricVisibility,
+  ProductStatus,
+  ProfileVisibility,
+  RevenueStatus,
+  StartupStage,
+  VerificationStatus,
+} from "./enums";
 
 export const startupSchema = z.object({
   id: z.string().uuid(),
@@ -11,19 +22,35 @@ export const startupSchema = z.object({
   description: z.string().max(5000),
   logoUrl: z.string().url().nullable(),
   website: z.string().url().nullable(),
-  industry: z.string().max(80),
+  industry: z.nativeEnum(Industry),
   stage: z.nativeEnum(StartupStage),
+  // Self-reported vs. computed stage axes (CLAUDE.md — declared vs. verified). New/optional; no UI built for these yet.
+  declaredStage: z.nativeEnum(StartupStage).nullable().optional(),
+  productStatus: z.nativeEnum(ProductStatus).nullable().optional(),
+  revenueStatus: z.nativeEnum(RevenueStatus).nullable().optional(),
+  fundingStatus: z.nativeEnum(FundingStatus).nullable().optional(),
+  monthsInCurrentStage: z.number().int().nonnegative().nullable().optional(),
   foundedYear: z.number().int().min(1990).max(new Date().getFullYear()),
   teamSize: z.number().int().min(1),
   location: z.string().max(120),
-  fundingRaisedUsd: z.number().nonnegative().default(0),
+  currency: z.nativeEnum(Currency).default(Currency.INR),
+  fundingRaisedAmount: z.number().nonnegative().default(0),
   isFundraising: z.boolean().default(false),
   verificationStatus: z.nativeEnum(VerificationStatus),
   isPublic: z.boolean().default(true),
+  visibility: z.nativeEnum(ProfileVisibility).default(ProfileVisibility.PUBLIC),
+  metricsVisibility: z.nativeEnum(MetricVisibility).default(MetricVisibility.BAND),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 export type Startup = z.infer<typeof startupSchema>;
+
+/** Bundle 30 — the founder's own visibility controls. Separate from the main update flow since it's a distinct, low-frequency "who can see this" decision, not a profile-content edit. */
+export const updateStartupVisibilityInputSchema = z.object({
+  visibility: z.nativeEnum(ProfileVisibility),
+  metricsVisibility: z.nativeEnum(MetricVisibility),
+});
+export type UpdateStartupVisibilityInput = z.infer<typeof updateStartupVisibilityInputSchema>;
 
 export const createStartupInputSchema = startupSchema.pick({
   name: true,
@@ -40,20 +67,19 @@ export type CreateStartupInput = z.infer<typeof createStartupInputSchema>;
 
 /**
  * Discovery/search filters — shared between the investor search UI and the
- * API query layer. `industry` doubles as the "tags" filter (B2B/SaaS/FinTech/
- * etc. from the Discover Startups advanced filters) since Startup.industry is
- * free text rather than a closed enum — see StartupsService.search.
- * `query` (Smart Search) matches name, tagline, and the founder's name.
+ * API query layer. `industry` filters on the closed Industry enum — see
+ * StartupsService.search. `query` (Smart Search) matches name, tagline, and
+ * the founder's name.
  */
 export const startupSearchFiltersSchema = z.object({
   query: z.string().max(200).optional(),
-  industry: z.array(z.string()).optional(),
+  industry: z.array(z.nativeEnum(Industry)).optional(),
   stage: z.array(z.nativeEnum(StartupStage)).optional(),
   location: z.string().optional(),
   isFundraising: z.boolean().optional(),
   businessModel: z.array(z.nativeEnum(CustomerModel)).optional(),
   technology: z.array(z.string()).optional(),
-  minFundingRequirementUsd: z.coerce.number().nonnegative().optional(),
+  minFundingRequirementAmount: z.coerce.number().nonnegative().optional(),
   hasRevenue: z.coerce.boolean().optional(),
   foundedYearMin: z.coerce.number().int().min(1990).optional(),
   foundedYearMax: z.coerce.number().int().min(1990).optional(),

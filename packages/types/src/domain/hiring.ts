@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ApplicationStatus, EmploymentType, JobStatus } from "./enums";
+import { ApplicationStatus, Currency, EmploymentType, JobStatus } from "./enums";
 
 export const jobSchema = z.object({
   id: z.string().uuid(),
@@ -11,8 +11,9 @@ export const jobSchema = z.object({
   location: z.string().max(120),
   isRemote: z.boolean(),
   skills: z.array(z.string()),
-  minSalaryUsd: z.number().nonnegative().nullable(),
-  maxSalaryUsd: z.number().nonnegative().nullable(),
+  currency: z.nativeEnum(Currency).default(Currency.INR),
+  minSalaryAmount: z.number().nonnegative().nullable(),
+  maxSalaryAmount: z.number().nonnegative().nullable(),
   status: z.nativeEnum(JobStatus),
   closedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
@@ -27,8 +28,8 @@ export const createJobInputSchema = z.object({
   location: z.string().min(1, "Location is required").max(120),
   isRemote: z.boolean().default(false),
   skills: z.array(z.string().max(60)).default([]),
-  minSalaryUsd: z.coerce.number().nonnegative().optional(),
-  maxSalaryUsd: z.coerce.number().nonnegative().optional(),
+  minSalaryAmount: z.coerce.number().nonnegative().optional(),
+  maxSalaryAmount: z.coerce.number().nonnegative().optional(),
 });
 export type CreateJobInput = z.infer<typeof createJobInputSchema>;
 

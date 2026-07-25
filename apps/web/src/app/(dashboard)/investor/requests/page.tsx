@@ -9,7 +9,7 @@ import {
   type ConnectionWithRelations,
 } from "@vittamhub/api-client";
 import { Button, Card, Dialog, EmptyState, Input, Textarea } from "@vittamhub/ui";
-import { formatUsd, formatRelativeTime } from "@vittamhub/utils";
+import { formatMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Bookmark, Calendar, FileText, HelpCircle, Inbox, MessageCircle, PlayCircle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -88,8 +88,8 @@ function PendingRequestCard({ connection }: { connection: ConnectionWithRelation
       {connection.introduction && <p className="text-sm text-text-secondary">{connection.introduction}</p>}
 
       <div className="flex flex-wrap items-center gap-3 text-xs text-text-secondary">
-        {connection.fundingRequirementUsd != null && (
-          <span>Raising {formatUsd(connection.fundingRequirementUsd)}</span>
+        {connection.fundingRequirementAmount != null && (
+          <span>Raising {formatMoney(connection.fundingRequirementAmount, connection.currency)}</span>
         )}
         {connection.pitchDeckUrl && (
           <a href={connection.pitchDeckUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-primary hover:underline">

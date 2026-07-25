@@ -50,6 +50,7 @@ enum Gender {
 enum OtpPurpose {
   EMAIL_VERIFICATION
   LOGIN_MFA
+  PHONE_VERIFICATION
 }
 
 enum DocumentType {
@@ -240,6 +241,9 @@ enum NotificationType {
   POST_COMMENTED
   FOUNDER_REVIEW_RECEIVED
   NEW_FOLLOWER
+  RELATIONSHIP_CLAIM_RECEIVED
+  RELATIONSHIP_CLAIM_CONFIRMED
+  RELATIONSHIP_CLAIM_DENIED
 }
 
 enum BookingStatus {
@@ -283,6 +287,171 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
+// ─── Enums: foundation (Phase 1 — money, metrics, verification, trust) ──
+
+// All money fields are amount + currency (never a bare number) — CLAUDE.md §7:
+// everything defaults to INR; USD kept only for the rare cross-border case.
+enum Currency {
+  INR
+  USD
+}
+
+// V0=self-declared, V1=document+admin-reviewed, V2=auto-pulled from a real
+// source or two-sided confirmation, V3=verified against a government/official
+// registry. Trust Score rises only through V1-V3, never V0 — see trust-model.ts.
+enum VerificationTier {
+  V0
+  V1
+  V2
+  V3
+}
+
+enum VerificationRecordStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+  DISPUTED
+}
+
+// What a MetricObservation row is measuring — every metric that changes over
+// time is stored as history under one of these keys, never overwritten in place.
+enum MetricKey {
+  MONTHLY_REVENUE
+  ARR
+  MRR
+  TOTAL_USERS
+  TOTAL_CUSTOMERS
+  DOWNLOADS
+  TEAM_SIZE
+  VALUATION
+  FUNDING_RAISED
+  RETENTION_RATE_PERCENT
+  GROWTH_RATE_PERCENT
+  MONTHLY_BURN_RATE
+}
+
+// Stage is normalized as three independent axes rather than one label — a
+// bootstrapped company at real revenue and a pre-revenue company that raised a
+// big seed are not the same thing. See Startup.productStatus/revenueStatus/fundingStatus.
+enum ProductStatus {
+  CONCEPT
+  PROTOTYPE
+  BETA
+  LIVE
+  SCALED
+}
+
+enum RevenueStatus {
+  NONE
+  PILOT
+  FIRST_REVENUE
+  RECURRING
+  PROFITABLE
+}
+
+enum FundingStatus {
+  BOOTSTRAPPED
+  ANGEL
+  PRE_SEED
+  SEED
+  SERIES_A
+  SERIES_B
+  SERIES_C_PLUS
+  PE
+  PUBLIC
+}
+
+enum TrustBand {
+  STARTING
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+// ─── Enums: two-sided confirmation (Phase 2) ─────────────────────────────
+
+// What kind of relationship is being claimed — spec §9: any claim about a
+// relationship must be confirmed by the OTHER party, or it counts for zero trust.
+enum RelationshipType {
+  PORTFOLIO_INVESTMENT // Investor <-> Startup: "I invested in this startup"
+  LEAD_INVESTOR // Investor <-> Startup: claimed as the lead of a round
+  BOARD_SEAT // Investor <-> Startup
+  INCUBATOR_ALUMNUS // IncubatorProfile <-> Startup: "this startup went through our program"
+  UNIVERSITY_SPINOUT // UniversityProfile <-> Startup
+  STRATEGIC_PARTNER // Startup <-> Startup, or Startup <-> any org
+}
+
+enum ClaimStatus {
+  PENDING
+  CONFIRMED
+  DENIED
+}
+
+// ─── Enums: Phase 6 — permission/privacy ─────────────────────────────────
+
+// Bundle 30 — "founders share real data only if they control who sees it."
+// Additive to `isPublic` (which still gates search/discovery inclusion as it
+// always has); this is the finer-grained control layer on top.
+enum ProfileVisibility {
+  PUBLIC
+  INVESTOR_ONLY
+  PRIVATE
+  STEALTH
+}
+
+// Bundle 30/11 — "show revenue publicly only as a BAND... never exact
+// figures" is the default; a founder can loosen or tighten it per profile.
+enum MetricVisibility {
+  EXACT
+  BAND
+  HIDDEN
+}
+
+// ─── Enums: Phase 4 — funding rounds & document data room ───────────────
+
+enum FundingInstrument {
+  EQUITY
+  SAFE
+  CCPS
+  DEBT
+  GRANT
+}
+
+// Fixed taxonomy replacing free-text industry — discovery filters and stage
+// mandates depend on comparable categories, not typed strings.
+enum Industry {
+  FINTECH
+  HEALTHTECH
+  EDTECH
+  AGRITECH
+  ECOMMERCE
+  SAAS
+  DEEPTECH
+  AI_ML
+  LOGISTICS
+  MOBILITY
+  REAL_ESTATE
+  MEDIA_ENTERTAINMENT
+  GAMING
+  CLEANTECH_CLIMATE
+  FOODTECH
+  RETAIL_D2C
+  TRAVEL_HOSPITALITY
+  HR_TECH
+  LEGAL_TECH
+  INSURTECH
+  SPACE_TECH
+  MANUFACTURING
+  CONSTRUCTION_PROPTECH
+  SOCIAL_IMPACT
+  ADTECH
+  CYBERSECURITY
+  WEB3_BLOCKCHAIN
+  OTHER
+}
+
 // ─── Identity & auth ────────────────────────────────────────────────────
 
 model User {
@@ -294,6 +463,7 @@ model User {
   role               UserRole
   verificationStatus VerificationStatus  @default(UNVERIFIED)
   emailVerifiedAt    DateTime?
+  phoneVerifiedAt    DateTime? // set once by PhoneVerificationService after a real OTP confirm — never by typing a number, see UserProfile.mobileNumber
   twoFactorEnabled   Boolean             @default(false)
   twoFactorSecret    String? // encrypted at rest by the app layer, never returned by any endpoint
   createdAt          DateTime            @default(now())
@@ -337,6 +507,12 @@ model User {
   receivedFollows        Follow[] @relation("Following")
   founderReviewsGiven    FounderReview[] @relation("FounderReviewMentor")
   founderReviewsReceived FounderReview[] @relation("FounderReviewFounder")
+  mentorReviewsGiven     MentorReview[] @relation("MentorReviewFounder")
+  mentorReviewsReceived  MentorReview[] @relation("MentorReviewMentor")
+  documentGrantsReceived DocumentGrant[] @relation("DocumentGrantRecipient")
+  documentGrantsIssued   DocumentGrant[] @relation("DocumentGrantIssuer")
+  documentViews          DocumentView[]
+  investmentMandates     InvestmentMandate[]
 
   @@index([role])
   @@map("users")
@@ -472,9 +648,51 @@ model Document {
   verifiedAt     DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grants DocumentGrant[]
+  views  DocumentView[]
 
   @@index([userId])
   @@map("documents")
+}
+
+// Per-viewer permission on a gated document — Bundle 21's "permissioned data
+// room": expiry (default 14 days), optional NDA gate, and this is what the
+// view log (DocumentView) is keyed against. Granting is founder-initiated
+// only; there's no public/investor-initiated request flow yet.
+model DocumentGrant {
+  id             String    @id @default(uuid()) @db.Uuid
+  documentId     String    @db.Uuid
+  grantedToId    String    @db.Uuid
+  grantedById    String    @db.Uuid
+  expiresAt      DateTime
+  requireNda     Boolean   @default(false)
+  ndaAcceptedAt  DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  document  Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  grantedTo User     @relation("DocumentGrantRecipient", fields: [grantedToId], references: [id], onDelete: Cascade)
+  grantedBy User     @relation("DocumentGrantIssuer", fields: [grantedById], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, grantedToId])
+  @@index([grantedToId])
+  @@map("document_grants")
+}
+
+// "Blume opened your deck twice" — the view log a founder can see per
+// gated document. One row per view (not deduped) so a founder can see
+// genuine repeat-interest, not just first-open.
+model DocumentView {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @db.Uuid
+  viewerId   String   @db.Uuid
+  viewedAt   DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  viewer   User      @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, viewedAt])
+  @@map("document_views")
 }
 
 // ─── Startup domain ─────────────────────────────────────────────────────
@@ -488,9 +706,14 @@ model Startup {
   description           String
   logoUrl               String?
   website               String?
-  industry              String
-  subIndustry           String?
-  stage                 StartupStage        @default(IDEA)
+  industry              Industry
+  subIndustry           String? // free-text within the chosen Industry; a full sub-industry crosswalk is future work
+  stage                 StartupStage        @default(IDEA) // computed/verified overall label — see productStatus/revenueStatus/fundingStatus below
+  declaredStage         StartupStage? // founder's own self-reported label, kept separately per CLAUDE.md §10 (declared vs verified)
+  productStatus         ProductStatus?
+  revenueStatus         RevenueStatus?
+  fundingStatus         FundingStatus?
+  monthsInCurrentStage  Int?
   foundedYear            Int
   registrationStatus    RegistrationStatus  @default(NOT_REGISTERED)
   companyType           CompanyType?
@@ -505,11 +728,14 @@ model Startup {
   hiringStatus          HiringStatus        @default(NOT_HIRING)
   openRoles             String[]
   location              String
-  fundingRaisedUsd      Decimal             @default(0) @db.Decimal(14, 2)
+  currency              Currency            @default(INR)
+  fundingRaisedAmount   Decimal             @default(0) @db.Decimal(14, 2)
   isFundraising         Boolean             @default(false)
   verificationStatus    VerificationStatus  @default(UNVERIFIED)
   verifiedAt            DateTime? // set by VerificationEngineService when verificationStatus automatically reaches VERIFIED — see modules/verification
   isPublic              Boolean             @default(true)
+  visibility            ProfileVisibility   @default(PUBLIC) // finer-grained than isPublic — see StartupPublicProjectionService
+  metricsVisibility     MetricVisibility    @default(BAND)
   termsAcceptedAt       DateTime? // Step 10 "Accept Terms" — e-signature is the typed founder name + this timestamp
   publishedAt           DateTime?
   createdAt             DateTime            @default(now())
@@ -532,6 +758,8 @@ model Startup {
   mentorBookingRequests MentorBookingRequest[]
   jobs        Job[]
   posts       Post[]
+  metricObservations MetricObservation[]
+  fundingRounds      FundingRound[]
 
   @@index([industry])
   @@index([stage])
@@ -604,9 +832,10 @@ model StartupMarket {
   targetGeography       String[]
   primaryCustomer       String?
   customerModel         CustomerModel[]
-  tamUsd                Decimal?        @db.Decimal(16, 2)
-  samUsd                Decimal?        @db.Decimal(16, 2)
-  somUsd                Decimal?        @db.Decimal(16, 2)
+  currency              Currency        @default(INR)
+  tamAmount             Decimal?        @db.Decimal(16, 2)
+  samAmount             Decimal?        @db.Decimal(16, 2)
+  somAmount             Decimal?        @db.Decimal(16, 2)
   customerPersonas      Json?
   competitors           Json?
   competitiveAdvantage  String?
@@ -622,9 +851,10 @@ model StartupMarket {
 model StartupTraction {
   id                    String   @id @default(uuid()) @db.Uuid
   startupId             String   @unique @db.Uuid
-  monthlyRevenueUsd     Decimal? @db.Decimal(14, 2)
-  arrUsd                Decimal? @db.Decimal(14, 2)
-  mrrUsd                Decimal? @db.Decimal(14, 2)
+  currency              Currency @default(INR)
+  monthlyRevenueAmount  Decimal? @db.Decimal(14, 2)
+  arrAmount             Decimal? @db.Decimal(14, 2)
+  mrrAmount             Decimal? @db.Decimal(14, 2)
   totalUsers            Int?
   totalCustomers        Int?
   downloads             Int?
@@ -646,18 +876,44 @@ model StartupFunding {
   id                  String        @id @default(uuid()) @db.Uuid
   startupId           String        @unique @db.Uuid
   fundingTypes        FundingType[]
-  currentRaiseUsd     Decimal?      @db.Decimal(14, 2)
-  fundingGoalUsd      Decimal?      @db.Decimal(14, 2)
-  valuationUsd        Decimal?      @db.Decimal(16, 2)
+  currency            Currency      @default(INR)
+  currentRaiseAmount  Decimal?      @db.Decimal(14, 2)
+  fundingGoalAmount   Decimal?      @db.Decimal(14, 2)
+  valuationAmount     Decimal?      @db.Decimal(16, 2)
   previousInvestors   String[]
   useOfFunds          String?
   runwayMonths        Int?
-  monthlyBurnRateUsd  Decimal?      @db.Decimal(14, 2)
+  monthlyBurnRateAmount Decimal?    @db.Decimal(14, 2)
   updatedAt           DateTime      @updatedAt
 
   startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
 
   @@map("startup_fundings")
+}
+
+// Bundle 12 — one row per historical round (not overwritten), so total
+// raised and dilution history can be computed rather than typed once.
+// `closedAt` and other fields are founder-declared (V1) today; dates become
+// V3-MCA-verified once the MCA provider (Phase 2 registry) is wired for real.
+model FundingRound {
+  id                  String             @id @default(uuid()) @db.Uuid
+  startupId           String             @db.Uuid
+  roundType           FundingType
+  instrument          FundingInstrument
+  currency            Currency           @default(INR)
+  amount              Decimal            @db.Decimal(16, 2)
+  preMoneyValuation   Decimal?           @db.Decimal(16, 2)
+  postMoneyValuation  Decimal?           @db.Decimal(16, 2)
+  leadInvestorName    String?
+  dilutionPercent     Decimal?           @db.Decimal(5, 2)
+  closedAt            DateTime           @db.Date
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@index([startupId, closedAt])
+  @@map("funding_rounds")
 }
 
 // Step 9 — Preferences ("Looking For").
@@ -683,8 +939,9 @@ model Job {
   location       String
   isRemote       Boolean        @default(false)
   skills         String[]
-  minSalaryUsd   Decimal?       @db.Decimal(12, 2)
-  maxSalaryUsd   Decimal?       @db.Decimal(12, 2)
+  currency       Currency       @default(INR)
+  minSalaryAmount Decimal?      @db.Decimal(12, 2)
+  maxSalaryAmount Decimal?      @db.Decimal(12, 2)
   status         JobStatus      @default(OPEN)
   closedAt       DateTime?
   createdAt      DateTime       @default(now())
@@ -729,8 +986,9 @@ model Investor {
   bio                 String
   logoUrl             String?
   website             String?
-  checkSizeMinUsd     Decimal        @default(0) @db.Decimal(14, 2)
-  checkSizeMaxUsd     Decimal        @default(0) @db.Decimal(14, 2)
+  currency            Currency       @default(INR)
+  checkSizeMinAmount  Decimal        @default(0) @db.Decimal(14, 2)
+  checkSizeMaxAmount  Decimal        @default(0) @db.Decimal(14, 2)
   preferredStages     StartupStage[]
   preferredIndustries String[]
   preferredGeography  String[]
@@ -750,6 +1008,37 @@ model Investor {
   @@index([investorType])
   @@index([isPublic, verificationStatus])
   @@map("investors")
+}
+
+// ─── Investor Workspace ─────────────────────────────────────────────────
+
+// A named, reusable thesis — an investor can run several at once (e.g.
+// "Seed SaaS India" and "Fintech Series A"), each producing its own match
+// stream. Deliberately separate from Investor.preferred* (a single default
+// thesis, used as the fallback for plain discovery/matchMyPreferences) —
+// mandates are the multi-thesis layer on top.
+model InvestmentMandate {
+  id               String          @id @default(uuid()) @db.Uuid
+  investorId       String          @db.Uuid
+  name             String
+  industries       Industry[]
+  stages           StartupStage[]
+  currency         Currency        @default(INR)
+  chequeMinAmount  Decimal?        @db.Decimal(14, 2)
+  chequeMaxAmount  Decimal?        @db.Decimal(14, 2)
+  geography        String[]
+  revenueStatuses  RevenueStatus[]
+  minTrustBand     TrustBand?
+  raisingOnly      Boolean         @default(false)
+  requireVerified  Boolean         @default(false)
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  investor User @relation(fields: [investorId], references: [id], onDelete: Cascade)
+
+  @@index([investorId, isActive])
+  @@map("investment_mandates")
 }
 
 model MentorProfile {
@@ -837,6 +1126,7 @@ model MentorBookingRequest {
   mentor  User     @relation("MentorBookingMentor", fields: [mentorId], references: [id], onDelete: Cascade)
   startup Startup? @relation(fields: [startupId], references: [id], onDelete: SetNull)
   review  FounderReview?
+  mentorReview MentorReview?
 
   @@index([mentorId, status])
   @@index([founderId])
@@ -863,6 +1153,30 @@ model FounderReview {
 
   @@index([founderId])
   @@map("founder_reviews")
+}
+
+// The other direction — spec §5: "after each real, accepted mentoring
+// session, the founder rates the mentor (1-5 + comment)... the rating can
+// only be left after a genuine booking, so it can't be faked." This is what
+// MentorReputationService reads to compute a mentor's average rating and
+// session count; deliberately a separate table from FounderReview (which
+// feeds the opposite axis, Founder Reputation) — same booking can carry
+// both, one review per direction.
+model MentorReview {
+  id               String   @id @default(uuid()) @db.Uuid
+  mentorId         String   @db.Uuid
+  founderId        String   @db.Uuid
+  bookingRequestId String   @unique @db.Uuid
+  rating           Int
+  comment          String?
+  createdAt        DateTime @default(now())
+
+  mentor         User                 @relation("MentorReviewMentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  founder        User                 @relation("MentorReviewFounder", fields: [founderId], references: [id], onDelete: Cascade)
+  bookingRequest MentorBookingRequest @relation(fields: [bookingRequestId], references: [id], onDelete: Cascade)
+
+  @@index([mentorId])
+  @@map("mentor_reviews")
 }
 
 model UniversityProfile {
@@ -915,8 +1229,9 @@ model JobSeekerProfile {
   resumeUrl             String?
   skills                String[]
   preferredRoles        String[]
-  expectedSalaryMinUsd  Decimal?          @db.Decimal(12, 2)
-  expectedSalaryMaxUsd  Decimal?          @db.Decimal(12, 2)
+  currency              Currency          @default(INR)
+  expectedSalaryMinAmount Decimal?        @db.Decimal(12, 2)
+  expectedSalaryMaxAmount Decimal?        @db.Decimal(12, 2)
   availability          AvailabilityType  @default(FLEXIBLE)
   isPublic              Boolean           @default(true)
   createdAt             DateTime          @default(now())
@@ -972,7 +1287,8 @@ model Connection {
   startupId            String?          @db.Uuid
   status               ConnectionStatus @default(PENDING)
   introduction         String? // short intro + startup summary, written by the requester
-  fundingRequirementUsd Int?
+  currency             Currency         @default(INR)
+  fundingRequirementAmount Int?
   pitchDeckUrl         String?
   executiveSummaryUrl  String?
   demoLinkUrl          String?
@@ -1094,7 +1410,8 @@ model Investment {
   investorId String    @db.Uuid
   startupId  String    @db.Uuid
   investedAt DateTime  @default(now())
-  amountUsd  Decimal?  @db.Decimal(14, 2)
+  currency   Currency  @default(INR)
+  amount     Decimal?  @db.Decimal(14, 2)
   notes      String?
   createdAt  DateTime  @default(now())
 
@@ -1294,6 +1611,102 @@ model Subscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
+}
+
+// ─── Foundation: metrics, verification, trust (Phase 1) ─────────────────
+
+// Every metric that changes over time (revenue, users, headcount, valuation)
+// is stored as dated history here, never overwritten in place — CLAUDE.md §
+// "every metric... is stored as dated history". `source` records where the
+// value came from ("self-declared" | "razorpay" | "google-analytics" | ...)
+// and `verificationTier` records how much to trust it (V0 = just typed).
+model MetricObservation {
+  id               String           @id @default(uuid()) @db.Uuid
+  startupId        String           @db.Uuid
+  metricKey        MetricKey
+  value            Decimal          @db.Decimal(18, 2)
+  currency         Currency? // set only for money-denominated metrics (revenue, ARR, valuation, funding raised)
+  periodStart      DateTime         @db.Date
+  periodEnd        DateTime?        @db.Date
+  source           String
+  verificationTier VerificationTier @default(V0)
+  recordedAt       DateTime         @default(now())
+
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@index([startupId, metricKey, periodStart])
+  @@map("metric_observations")
+}
+
+// The record of what's been proven, by whom, when, and until when — applies
+// to every fact about every user type (startup, investor, mentor, incubator,
+// university, service provider), so it's polymorphic (entityType/entityId)
+// rather than FK-tied to one table, same pattern as AuditLog below.
+// `rawResponse` retains the raw registry/provider response permanently for
+// audit, per spec. A failed verification is a row with status=FAILED, never
+// a silently missing row — see CLAUDE.md §6/§7 ("not disclosed", not hidden).
+model VerificationRecord {
+  id          String                   @id @default(uuid()) @db.Uuid
+  entityType  String // "Startup" | "Investor" | "MentorProfile" | "IncubatorProfile" | "UniversityProfile" | "ServiceProviderProfile" | "User"
+  entityId    String                   @db.Uuid
+  field       String // e.g. "legalName", "gstin", "dpiitNumber", "identity", "portfolioCompany:<startupId>"
+  tier        VerificationTier
+  method      String // e.g. "MCA_API", "GSTIN_API", "SEBI_API", "DOMAIN_EMAIL", "OTP_PHONE", "TWO_SIDED_CONFIRMATION"
+  status      VerificationRecordStatus @default(PENDING)
+  verifiedAt  DateTime?
+  expiresAt   DateTime? // verification always expires — re-checked, never assumed permanent
+  verifiedBy  String? // verifier service name ("system:mca-verifier") or admin user id
+  confidence  Decimal?                 @db.Decimal(3, 2)
+  rawResponse Json? // permanent audit copy of the raw registry/provider response
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  @@index([entityType, entityId, field])
+  @@index([status, expiresAt])
+  @@map("verification_records")
+}
+
+// A claim about a relationship between two entities, confirmed or denied by
+// the OTHER party — spec §9 (two-sided confirmation), the free/unfakeable
+// mechanism that grows the network as a by-product. An unconfirmed claim
+// counts for zero trust; only CONFIRMED claims feed a VerificationRecord (V2,
+// method TWO_SIDED_CONFIRMATION) for both sides — see RelationshipClaimsService.
+// Polymorphic on both ends (same pattern as VerificationRecord/AuditLog) since
+// a claim can run Investor<->Startup, IncubatorProfile<->Startup, etc.
+model RelationshipClaim {
+  id               String           @id @default(uuid()) @db.Uuid
+  claimantType     String // "Investor" | "IncubatorProfile" | "UniversityProfile" | "Startup"
+  claimantId       String           @db.Uuid
+  targetType       String
+  targetId         String           @db.Uuid
+  relationshipType RelationshipType
+  status           ClaimStatus      @default(PENDING)
+  note             String? // optional context from the claimant (e.g. round name, program batch)
+  evidenceUrl      String?
+  respondedBy      String?          @db.Uuid // userId of whoever on the target side confirmed/denied
+  createdAt        DateTime         @default(now())
+  respondedAt      DateTime?
+
+  @@index([claimantType, claimantId])
+  @@index([targetType, targetId, status])
+  @@map("relationship_claims")
+}
+
+// Persisted, historical Trust Score — every user type gets one (spec: even
+// investors are scored, on response rate / verification). Polymorphic for
+// the same reason as VerificationRecord. `breakdown` mirrors the component
+// shape produced by trust-model.ts so the UI can render "why this score."
+model TrustScoreSnapshot {
+  id         String    @id @default(uuid()) @db.Uuid
+  entityType String // "Startup" | "Investor" | "MentorProfile" | "IncubatorProfile" | "UniversityProfile" | "ServiceProviderProfile"
+  entityId   String    @db.Uuid
+  score      Int
+  band       TrustBand
+  breakdown  Json
+  computedAt DateTime  @default(now())
+
+  @@index([entityType, entityId, computedAt])
+  @@map("trust_score_snapshots")
 }
 
 // ─── Compliance ─────────────────────────────────────────────────────────

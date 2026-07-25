@@ -6,12 +6,14 @@ import {
   useFounderRecommendations,
   useInvestors,
   useMyStartup,
+  useMyGrowthBenchmark,
   useMyStartupHealth,
+  useMyTrustPreview,
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
 import type { InvestorSearchFilters } from "@vittamhub/types";
 import { Badge, Button, Card, EmptyState } from "@vittamhub/ui";
-import { formatCompactUsd, formatRelativeTime } from "@vittamhub/utils";
+import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Handshake, Inbox, MessageCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -22,6 +24,7 @@ import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 import { FounderActivityCard } from "@/components/dashboard/founder/FounderActivityCard";
 import { FounderReputationCard } from "@/components/dashboard/founder/FounderReputationCard";
+import { GrowthBenchmarkCard } from "@/components/dashboard/founder/GrowthBenchmarkCard";
 import { InvestorFiltersBar } from "@/components/dashboard/founder/InvestorFiltersBar";
 import { ProfileCompletionCard } from "@/components/dashboard/founder/ProfileCompletionCard";
 import { QuickActionsCard } from "@/components/dashboard/founder/QuickActionsCard";
@@ -29,6 +32,8 @@ import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentPro
 import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
 import { StartupHealthCard } from "@/components/dashboard/founder/StartupHealthCard";
 import { TrustScoreCard } from "@/components/dashboard/founder/TrustScoreCard";
+import { TrustScoreV2PreviewCard } from "@/components/dashboard/founder/TrustScoreV2PreviewCard";
+import { VisibilitySettingsCard } from "@/components/dashboard/founder/VisibilitySettingsCard";
 
 function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; onConnect: (investor: InvestorWithOwner) => void }) {
   return (
@@ -38,9 +43,12 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
           <h3 className="font-heading text-sm font-semibold text-text-primary">{investor.owner.fullName}</h3>
           <p className="text-xs text-text-secondary">{investor.firmName ?? "Independent investor"}</p>
         </div>
-        <Badge variant={investor.openForPitches ? "success" : "neutral"}>
-          {investor.openForPitches ? "Open for pitches" : "Not reviewing"}
-        </Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={investor.openForPitches ? "success" : "neutral"}>
+            {investor.openForPitches ? "Open for pitches" : "Not reviewing"}
+          </Badge>
+          {investor.trust && investor.trust.band !== "STARTING" && <Badge variant="neutral">{investor.trust.band} trust</Badge>}
+        </div>
       </div>
 
       <p className="text-sm text-text-secondary">{investor.bio}</p>
@@ -65,7 +73,8 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
 
       <div className="flex items-center justify-between border-t border-border pt-4 text-xs text-text-secondary">
         <span>
-          {formatCompactUsd(Number(investor.checkSizeMinUsd))} – {formatCompactUsd(Number(investor.checkSizeMaxUsd))}
+          {formatCompactMoney(Number(investor.checkSizeMinAmount), investor.currency)} –{" "}
+          {formatCompactMoney(Number(investor.checkSizeMaxAmount), investor.currency)}
         </span>
         <Button size="sm" onClick={() => onConnect(investor)} disabled={!investor.openForPitches}>
           Connect
@@ -78,6 +87,8 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
 export default function FounderDashboardPage() {
   const { data: startup, isLoading: startupLoading, isError: startupError } = useMyStartup();
   const { data: health } = useMyStartupHealth();
+  const { data: trustPreview } = useMyTrustPreview();
+  const { data: benchmark } = useMyGrowthBenchmark();
   const [investorFilters, setInvestorFilters] = useState<InvestorSearchFilters>({ matchMyStartup: true, page: 1, pageSize: 20 });
   const { data: investorResults, isLoading: investorsLoading } = useInvestors(investorFilters);
   const investors = investorResults?.items ?? [];
@@ -125,6 +136,9 @@ export default function FounderDashboardPage() {
           <StartupHealthCard startup={startup} />
           {health && <TrustScoreCard trustScore={health.trustScore} />}
           {health && <ProfileCompletionCard completion={health.profileCompletion} />}
+          {trustPreview && <TrustScoreV2PreviewCard preview={trustPreview} />}
+          {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
+          {startup && <VisibilitySettingsCard startup={startup} />}
         </div>
       )}
 

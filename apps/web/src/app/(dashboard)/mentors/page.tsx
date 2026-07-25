@@ -3,7 +3,7 @@
 import { useMentors } from "@vittamhub/api-client";
 import type { MentorSearchFilters } from "@vittamhub/types";
 import { Badge, Card, EmptyState, TagsInput } from "@vittamhub/ui";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Star } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -40,6 +40,17 @@ export default function MentorsDirectoryPage() {
                 <div>
                   <h3 className="font-heading text-sm font-semibold text-text-primary">{mentor.owner.fullName}</h3>
                   <p className="text-xs text-text-secondary">{mentor.headline ?? "Mentor"}</p>
+                  {mentor.reputation?.averageRating != null ? (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-text-secondary">
+                      <Star className="h-3 w-3 fill-warning-500 text-warning-500" />
+                      <span className="font-medium text-text-primary">{mentor.reputation.averageRating.toFixed(1)}</span>
+                      <span>({mentor.reputation.reviewCount})</span>
+                    </div>
+                  ) : (
+                    mentor.reputation?.sessionsCompleted ? (
+                      <p className="mt-1 text-xs text-text-secondary">{mentor.reputation.sessionsCompleted} sessions completed</p>
+                    ) : null
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {mentor.expertise.slice(0, 4).map((skill) => (
