@@ -38,7 +38,7 @@ export function Footer() {
         <div className="sm:col-span-2 lg:col-span-2">
           <Logo />
           <p className="mt-4 max-w-xs text-sm text-text-secondary">
-            Visibility for tomorrow&apos;s unicorns — one verified digital identity, one discovery platform.
+            Visibility for tomorrow&apos;s unicorns: one verified digital identity, one discovery platform.
           </p>
           <div className="mt-5 flex items-center gap-2">
             {SOCIAL_LINKS.map((social) => (

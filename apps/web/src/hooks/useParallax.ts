@@ -16,6 +16,7 @@ export function useParallax() {
 
   useEffect(() => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const handleMove = (event: PointerEvent) => {
       x.set(event.clientX / window.innerWidth - 0.5);

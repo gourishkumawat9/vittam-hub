@@ -6,7 +6,7 @@ import { CheckCircle2, MailCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function VerifyEmailPage() {
 
   if (confirmMutation.data?.verified) {
     return (
-      <AuthCard>
+      <AuthShell>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-success-50">
             <CheckCircle2 className="h-6 w-6 text-success-600" />
@@ -38,12 +38,12 @@ export default function VerifyEmailPage() {
           <h1 className="font-heading text-xl font-semibold text-text-primary">Email verified</h1>
           <p className="text-sm text-text-secondary">Taking you to onboarding…</p>
         </div>
-      </AuthCard>
+      </AuthShell>
     );
   }
 
   return (
-    <AuthCard>
+    <AuthShell>
       <div className="flex flex-col items-center gap-6 text-center">
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100">
           <MailCheck className="h-6 w-6 text-brand-700" />
@@ -59,7 +59,7 @@ export default function VerifyEmailPage() {
           value={code}
           onChange={setCode}
           onComplete={handleComplete}
-          error={confirmMutation.data && !confirmMutation.data.verified ? "Incorrect code — try again" : undefined}
+          error={confirmMutation.data && !confirmMutation.data.verified ? "Incorrect code. Try again" : undefined}
           disabled={confirmMutation.isPending}
         />
 
@@ -76,6 +76,6 @@ export default function VerifyEmailPage() {
           Skip for now
         </Button>
       </div>
-    </AuthCard>
+    </AuthShell>
   );
 }

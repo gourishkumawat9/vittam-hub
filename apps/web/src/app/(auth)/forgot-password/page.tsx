@@ -8,7 +8,7 @@ import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 
-import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 export default function ForgotPasswordPage() {
   const mutation = useForgotPassword();
@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
 
   if (mutation.isSuccess) {
     return (
-      <AuthCard>
+      <AuthShell>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-success-50">
             <CheckCircle2 className="h-6 w-6 text-success-600" />
@@ -33,12 +33,12 @@ export default function ForgotPasswordPage() {
             Back to login
           </Link>
         </div>
-      </AuthCard>
+      </AuthShell>
     );
   }
 
   return (
-    <AuthCard>
+    <AuthShell>
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="font-heading text-xl font-semibold text-text-primary">Reset your password</h1>
@@ -56,6 +56,6 @@ export default function ForgotPasswordPage() {
           Back to login
         </Link>
       </div>
-    </AuthCard>
+    </AuthShell>
   );
 }

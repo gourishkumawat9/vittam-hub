@@ -98,7 +98,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
       <div>
         <p className="text-sm font-medium text-text-primary">Your actual stage</p>
         <p className="mt-1 text-xs text-text-secondary">
-          Your public stage label is computed from these three — it can&apos;t be inflated by just picking one.
+          Your public stage label is computed from these three. It can&apos;t be inflated by just picking one.
         </p>
       </div>
 
@@ -151,7 +151,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
           render={({ field }) => (
             <Select
               label="How would you describe your stage?"
-              hint="Your own take — shown alongside the computed stage, never instead of it"
+              hint="Your own take, shown alongside the computed stage, never instead of it"
               options={STAGE_OPTIONS}
               value={field.value}
               onChange={field.onChange}

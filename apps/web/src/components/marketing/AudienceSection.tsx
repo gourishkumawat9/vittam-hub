@@ -9,7 +9,7 @@ const AUDIENCES = [
     id: "founders",
     eyebrow: "For founders",
     title: "Build a profile investors actually find",
-    description: "One verified profile that showcases your journey — no more cold emails and scattered decks.",
+    description: "One verified profile that showcases your journey. No more cold emails and scattered decks.",
     points: [
       "Verified startup profile with your full story",
       "Get discovered by investors matched to your stage and industry",
@@ -21,7 +21,7 @@ const AUDIENCES = [
     id: "investors-audience",
     eyebrow: "For investors",
     title: "Discover deal flow through transparency",
-    description: "Browse verified startups filtered by stage, industry, and traction — not cold inbound.",
+    description: "Browse verified startups filtered by stage, industry, and traction, not cold inbound.",
     points: [
       "Curated discovery feed matched to your thesis",
       "Verified founders and startup data you can trust",

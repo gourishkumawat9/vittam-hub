@@ -1,8 +1,10 @@
 "use client";
 
 import { useMyStartupAnalytics } from "@vittamhub/api-client";
-import { Card, EmptyState } from "@vittamhub/ui";
+import { Card, EmptyState, ErrorState } from "@vittamhub/ui";
 import { BarChart3 } from "lucide-react";
+
+import { StatTilesSkeleton } from "@/components/dashboard/StatTilesSkeleton";
 
 function WeeklyViewsChart({ buckets }: { buckets: { label: string; count: number }[] }) {
   const max = Math.max(1, ...buckets.map((b) => b.count));
@@ -29,9 +31,17 @@ function WeeklyViewsChart({ buckets }: { buckets: { label: string; count: number
 }
 
 export default function FounderAnalyticsPage() {
-  const { data, isLoading } = useMyStartupAnalytics();
+  const { data, isLoading, isError } = useMyStartupAnalytics();
 
-  if (isLoading) return <p className="text-sm text-text-secondary">Loading…</p>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="font-heading text-2xl font-semibold text-text-primary">Analytics</h1>
+        <StatTilesSkeleton />
+      </div>
+    );
+  }
+  if (isError) return <ErrorState />;
   if (!data) {
     return (
       <EmptyState

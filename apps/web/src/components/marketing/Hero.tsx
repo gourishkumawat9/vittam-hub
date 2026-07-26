@@ -1,19 +1,16 @@
 "use client";
 
 import { motion, useTransform } from "framer-motion";
-import { ArrowRight, Compass, PlayCircle } from "lucide-react";
+import { ArrowRight, PlayCircle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-import { CursorGlow } from "@/components/CursorGlow";
 import { useParallax } from "@/hooks/useParallax";
 
 import { ConnectionLines } from "./hero/ConnectionLines";
 import { DashboardMockup } from "./hero/DashboardMockup";
 import { DemoModal } from "./hero/DemoModal";
-import { FloatingCards } from "./hero/FloatingCards";
 import { GradientOrbs } from "./hero/GradientOrbs";
-import { ParticleField } from "./hero/ParticleField";
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -30,7 +27,6 @@ export function Hero() {
     <section className="relative overflow-hidden">
       <GradientOrbs />
       <div aria-hidden="true" className="bg-grid-pattern pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black,transparent)]" />
-      <ParticleField />
 
       <div className="mx-auto grid max-w-content items-center gap-16 px-6 pb-24 pt-16 lg:grid-cols-2 lg:pb-32 lg:pt-24">
         {/* Left column — copy + CTAs */}
@@ -59,8 +55,7 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.16 }}
             className="max-w-lg text-lg text-text-secondary"
           >
-            Build trust, showcase your journey, and connect with investors, mentors, incubators, and strategic
-            partners — all from one verified platform.
+            Build trust, showcase your journey, and connect with investors, mentors, and incubators on one verified platform.
           </motion.p>
 
           <motion.div
@@ -69,26 +64,17 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.24 }}
             className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start"
           >
-            <CursorGlow className="rounded-button">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-button bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Get started
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </CursorGlow>
             <Link
-              href="#discover-startups"
-              className="inline-flex items-center justify-center gap-2 rounded-button border border-border bg-surface px-6 py-3.5 text-sm font-semibold text-text-primary transition-colors hover:bg-background-secondary"
+              href="/register"
+              className="inline-flex items-center justify-center gap-2 rounded-button bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Compass className="h-4 w-4" />
-              Explore startups
+              Get started
+              <ArrowRight className="h-4 w-4" />
             </Link>
             <button
               type="button"
               onClick={() => setDemoOpen(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-button px-6 py-3.5 text-sm font-semibold text-text-primary transition-colors hover:bg-background-secondary"
+              className="inline-flex items-center justify-center gap-2 rounded-button border border-border bg-surface px-6 py-3.5 text-sm font-semibold text-text-primary transition-colors hover:bg-background-secondary"
             >
               <PlayCircle className="h-4 w-4" />
               Watch demo
@@ -106,7 +92,6 @@ export function Hero() {
         >
           <ConnectionLines />
           <DashboardMockup />
-          <FloatingCards />
         </motion.div>
       </div>
 

@@ -1,16 +1,18 @@
 "use client";
 
 import { useGlobalSearch } from "@vittamhub/api-client";
-import { Badge, Card, EmptyState } from "@vittamhub/ui";
+import { Badge, Card, EmptyState, ErrorState } from "@vittamhub/ui";
 import { Building2, Compass, GraduationCap, Search, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
+import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("query") ?? "";
-  const { data, isLoading } = useGlobalSearch({ query }, query.trim().length > 0);
+  const { data, isLoading, isError } = useGlobalSearch({ query }, query.trim().length > 0);
 
   const hasResults =
     !!data && (data.startups.length > 0 || data.investors.length > 0 || data.mentors.length > 0 || data.incubators.length > 0 || data.jobs.length > 0);
@@ -23,7 +25,9 @@ function SearchContent() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-text-secondary">Searching…</p>
+        <CardGridSkeleton />
+      ) : isError ? (
+        <ErrorState />
       ) : !hasResults ? (
         <EmptyState icon={Search} title="No results found" description="Try a different name, industry, or keyword." />
       ) : (
@@ -120,7 +124,7 @@ function SearchSection({ icon: Icon, title, children }: { icon: typeof Search; t
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-text-secondary">Loading…</p>}>
+    <Suspense fallback={<CardGridSkeleton />}>
       <SearchContent />
     </Suspense>
   );

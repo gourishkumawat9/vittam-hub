@@ -4,6 +4,7 @@ import { useCurrentUser } from "@vittamhub/api-client";
 import { FUTURE_MODULES } from "@vittamhub/types";
 import {
   BarChart3,
+  Bell,
   Bookmark,
   BookOpen,
   Briefcase,
@@ -18,9 +19,12 @@ import {
   Kanban,
   LayoutDashboard,
   MessageCircle,
+  Network,
+  Search,
   Settings,
   Shield,
   Sparkles,
+  Target,
   UserCircle,
   Users,
 } from "lucide-react";
@@ -60,9 +64,13 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/investor/requests", label: "Connection Requests", icon: Inbox },
     { href: "/investor/watchlist?tab=saved", label: "Saved Startups", icon: Bookmark },
     { href: "/investor/watchlist?tab=watchlist", label: "Watchlist", icon: Sparkles },
+    { href: "/investor/watchlist?tab=triggers", label: "Watchlist Alerts", icon: Bell },
     { href: "/investor/meetings", label: "Meetings", icon: Calendar },
     { href: "/investor/messages", label: "Messages", icon: MessageCircle },
     { href: "/investor/pipeline", label: "Investment Pipeline", icon: Kanban },
+    { href: "/investor/mandates", label: "Mandates", icon: Target },
+    { href: "/investor/saved-searches", label: "Saved Searches", icon: Search },
+    { href: "/investor/co-investors", label: "Co-Investor Graph", icon: Network },
     { href: "/investor/recommendations", label: "AI Recommendations", icon: Sparkles },
     { href: "/investor/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/investor/documents", label: "Documents", icon: FolderLock },
@@ -94,7 +102,12 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
   ],
 };
 
-export function Sidebar() {
+/**
+ * Nav content shared by the persistent desktop `<aside>` and the mobile
+ * `Drawer` (see Topbar) — one implementation, one place to add a nav item.
+ * `onNavigate` is only passed by the mobile drawer, to close it on click.
+ */
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { data: user } = useCurrentUser();
   const pathname = usePathname();
   const [showFuture, setShowFuture] = useState(false);
@@ -109,6 +122,7 @@ export function Sidebar() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
               "flex items-center gap-2.5 rounded-button px-3 py-2 text-sm font-medium transition-colors",
               isActive ? "bg-brand-100 text-brand-700" : "text-text-secondary hover:bg-background-secondary hover:text-text-primary",
@@ -136,6 +150,7 @@ export function Sidebar() {
               <Link
                 key={module.slug}
                 href={`/modules/${module.slug}`}
+                onClick={onNavigate}
                 className="flex items-center gap-2.5 rounded-button px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-background-secondary hover:text-text-primary"
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -147,4 +162,8 @@ export function Sidebar() {
       )}
     </nav>
   );
+}
+
+export function Sidebar() {
+  return <SidebarNav />;
 }

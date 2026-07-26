@@ -14,7 +14,7 @@ export function LearningHub() {
         <SectionHeading
           eyebrow="Learning Hub"
           title="Everything you need to build, taught by builders"
-          description="Illustrative example tracks — content is coming soon, so lesson counts and progress aren't live yet."
+          description="Illustrative example tracks. Content is coming soon, so lesson counts and progress aren't live yet."
           action={<Badge variant="neutral">Coming soon</Badge>}
         />
 

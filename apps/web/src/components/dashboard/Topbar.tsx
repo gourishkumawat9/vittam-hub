@@ -1,9 +1,9 @@
 "use client";
 
 import { useCurrentUser, useLogout } from "@vittamhub/api-client";
-import { Avatar } from "@vittamhub/ui";
-import { LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Avatar, Drawer } from "@vittamhub/ui";
+import { LogOut, Menu } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Logo } from "@/components/Logo";
@@ -11,12 +11,15 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
+import { SidebarNav } from "./Sidebar";
 
 export function Topbar() {
   const { data: user } = useCurrentUser();
   const logout = useLogout();
   const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,6 +30,10 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     await logout.mutateAsync();
     router.push("/login");
@@ -34,7 +41,21 @@ export function Topbar() {
 
   return (
     <div className="flex h-full items-center justify-between gap-4 px-6">
-      <Logo height={28} />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setNavOpen(true)}
+          aria-label="Open navigation"
+          className="-ml-2 rounded-button p-2 text-text-secondary hover:bg-background-secondary lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <Logo height={28} />
+      </div>
+
+      <Drawer open={navOpen} onOpenChange={setNavOpen} title="Menu">
+        <SidebarNav onNavigate={() => setNavOpen(false)} />
+      </Drawer>
 
       <div className="hidden flex-1 justify-center sm:flex">
         <GlobalSearch />

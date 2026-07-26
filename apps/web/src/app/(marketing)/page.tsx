@@ -35,7 +35,7 @@ const OfficeMarketplace = dynamic(() => import("@/components/marketing/OfficeMar
 export const metadata: Metadata = {
   title: "Visibility for Tomorrow's Unicorns",
   description:
-    "VittamHub is the digital identity platform for startups — build trust, showcase your journey, and connect with investors, mentors, incubators, and strategic partners in one ecosystem.",
+    "VittamHub is the digital identity platform for startups. Build trust, showcase your journey, and connect with investors, mentors, incubators, and strategic partners in one ecosystem.",
 };
 
 export default function HomePage() {

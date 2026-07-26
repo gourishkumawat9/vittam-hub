@@ -16,7 +16,7 @@ export function StartupJourney() {
         <SectionHeading
           eyebrow="The journey"
           title="One platform, every stage"
-          description="VittamHub grows with your startup — from first idea to the unicorn milestone. Select a stage to see how."
+          description="VittamHub grows with your startup, from first idea to the unicorn milestone. Select a stage to see how."
         />
 
         <div className="relative mx-auto mt-16 max-w-2xl">

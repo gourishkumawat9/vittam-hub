@@ -1,12 +1,14 @@
 "use client";
 
 import { useMyStartupProfileViews } from "@vittamhub/api-client";
-import { Card, CardHeader, CardTitle, EmptyState } from "@vittamhub/ui";
+import { Card, CardHeader, CardTitle, EmptyState, ErrorState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { Eye } from "lucide-react";
 
+import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+
 export function RecentProfileViewsCard() {
-  const { data: views, isLoading } = useMyStartupProfileViews();
+  const { data: views, isLoading, isError } = useMyStartupProfileViews();
 
   return (
     <Card className="flex flex-col gap-4">
@@ -17,7 +19,9 @@ export function RecentProfileViewsCard() {
       </CardHeader>
 
       {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
+        <ListRowsSkeleton />
+      ) : isError ? (
+        <ErrorState className="py-8" />
       ) : views && views.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {views.map((view) => (

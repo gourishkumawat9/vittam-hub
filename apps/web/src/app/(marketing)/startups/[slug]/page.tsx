@@ -1,11 +1,12 @@
 "use client";
 
 import { useCurrentUser, usePublicFounderActivity, useRecordProfileView, useStartup } from "@vittamhub/api-client";
-import { Badge, Card, EmptyState, Skeleton } from "@vittamhub/ui";
+import { Badge, Card, EmptyState, Skeleton, Tabs } from "@vittamhub/ui";
 import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Activity, Building2, FileText, Globe, History, MapPin, Sparkles, Users } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 
 import { FollowButton } from "@/components/dashboard/FollowButton";
 
@@ -130,47 +131,70 @@ export default function StartupProfilePage() {
         )}
       </div>
 
-      <Section title="Overview">
-        <p className="whitespace-pre-line text-sm text-text-secondary">{startup.description}</p>
-      </Section>
+      <Tabs items={buildProfileTabs(startup, activity)} />
+    </div>
+  );
+}
 
-      {(startup.mission || startup.vision) && (
-        <div className="grid gap-6 sm:grid-cols-2">
-          {startup.mission && (
-            <Section title="Mission">
-              <p className="text-sm text-text-secondary">{startup.mission}</p>
-            </Section>
+function buildProfileTabs(
+  startup: NonNullable<ReturnType<typeof useStartup>["data"]>,
+  activity: ReturnType<typeof usePublicFounderActivity>["data"],
+): { value: string; label: string; content: ReactNode }[] {
+  const tabs: { value: string; label: string; content: ReactNode }[] = [
+    {
+      value: "overview",
+      label: "Overview",
+      content: (
+        <div className="flex flex-col gap-6">
+          <Section title="Overview">
+            <p className="whitespace-pre-line text-sm text-text-secondary">{startup.description}</p>
+          </Section>
+
+          {(startup.mission || startup.vision) && (
+            <div className="grid gap-6 sm:grid-cols-2">
+              {startup.mission && (
+                <Section title="Mission">
+                  <p className="text-sm text-text-secondary">{startup.mission}</p>
+                </Section>
+              )}
+              {startup.vision && (
+                <Section title="Vision">
+                  <p className="text-sm text-text-secondary">{startup.vision}</p>
+                </Section>
+              )}
+            </div>
           )}
-          {startup.vision && (
-            <Section title="Vision">
-              <p className="text-sm text-text-secondary">{startup.vision}</p>
+
+          {(startup.problemStatement || startup.solution) && (
+            <div className="grid gap-6 sm:grid-cols-2">
+              {startup.problemStatement && (
+                <Section title="Problem">
+                  <p className="text-sm text-text-secondary">{startup.problemStatement}</p>
+                </Section>
+              )}
+              {startup.solution && (
+                <Section title="Solution">
+                  <p className="text-sm text-text-secondary">{startup.solution}</p>
+                </Section>
+              )}
+            </div>
+          )}
+
+          {startup.businessModelSummary && (
+            <Section title="Business Model">
+              <p className="text-sm text-text-secondary">{startup.businessModelSummary}</p>
             </Section>
           )}
         </div>
-      )}
+      ),
+    },
+  ];
 
-      {(startup.problemStatement || startup.solution) && (
-        <div className="grid gap-6 sm:grid-cols-2">
-          {startup.problemStatement && (
-            <Section title="Problem">
-              <p className="text-sm text-text-secondary">{startup.problemStatement}</p>
-            </Section>
-          )}
-          {startup.solution && (
-            <Section title="Solution">
-              <p className="text-sm text-text-secondary">{startup.solution}</p>
-            </Section>
-          )}
-        </div>
-      )}
-
-      {startup.businessModelSummary && (
-        <Section title="Business Model">
-          <p className="text-sm text-text-secondary">{startup.businessModelSummary}</p>
-        </Section>
-      )}
-
-      {startup.teamMembers.length > 0 && (
+  if (startup.teamMembers.length > 0) {
+    tabs.push({
+      value: "team",
+      label: "Team",
+      content: (
         <Section title="Founders & Team">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {startup.teamMembers.map((member) => (
@@ -186,9 +210,15 @@ export default function StartupProfilePage() {
             ))}
           </div>
         </Section>
-      )}
+      ),
+    });
+  }
 
-      {startup.milestones.length > 0 && (
+  tabs.push({
+    value: "timeline",
+    label: "Timeline",
+    content:
+      startup.milestones.length > 0 ? (
         <Section title="Timeline">
           <div className="flex flex-col gap-4 border-l-2 border-border pl-4">
             {startup.milestones.map((milestone) => (
@@ -228,13 +258,16 @@ export default function StartupProfilePage() {
             ))}
           </div>
         </Section>
-      )}
-
-      {startup.milestones.length === 0 && (
+      ) : (
         <EmptyState icon={History} title="No timeline yet" description="This startup hasn't added any milestones." />
-      )}
+      ),
+  });
 
-      {activity && activity.length > 0 && (
+  if (activity && activity.length > 0) {
+    tabs.push({
+      value: "activity",
+      label: "Activity",
+      content: (
         <Section title="Recent Activity">
           <ul className="flex flex-col gap-3">
             {activity.map((entry) => (
@@ -251,7 +284,9 @@ export default function StartupProfilePage() {
             ))}
           </ul>
         </Section>
-      )}
-    </div>
-  );
+      ),
+    });
+  }
+
+  return tabs;
 }

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useBookMentor, useMentor } from "@vittamhub/api-client";
 import { createMentorBookingInputSchema, SessionType, type CreateMentorBookingInput } from "@vittamhub/types";
-import { Badge, Button, Card, Dialog, Select, Textarea, Input } from "@vittamhub/ui";
+import { Badge, Button, Card, Dialog, ErrorState, Select, Skeleton, Textarea, Input } from "@vittamhub/ui";
 import { Star } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -87,10 +87,24 @@ function RequestSessionDialog({ mentorId, open, onOpenChange }: { mentorId: stri
 
 export default function MentorDetailPage() {
   const params = useParams<{ id: string }>();
-  const { data: mentor, isLoading } = useMentor(params.id);
+  const { data: mentor, isLoading, isError } = useMentor(params.id);
   const [requestOpen, setRequestOpen] = useState(false);
 
-  if (isLoading) return <p className="text-sm text-text-secondary">Loading…</p>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-14 w-14 rounded-full" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-48 w-full rounded-card" />
+      </div>
+    );
+  }
+  if (isError) return <ErrorState />;
   if (!mentor) return <p className="text-sm text-text-secondary">Mentor not found.</p>;
 
   return (

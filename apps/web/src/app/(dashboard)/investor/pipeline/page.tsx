@@ -7,13 +7,13 @@ import { Kanban } from "lucide-react";
 import { useState } from "react";
 
 const STAGE_LABEL: Record<PipelineStage, string> = {
-  TARGET: "Target",
-  INTERESTED: "Interested",
-  MEETING: "Meeting",
+  SOURCED: "Sourced",
+  SCREENING: "Screening",
   DUE_DILIGENCE: "Due Diligence",
-  NEGOTIATION: "Negotiation",
-  INVESTED: "Invested",
+  INVESTMENT_COMMITTEE: "Investment Committee",
+  TERM_SHEET: "Term Sheet",
   CLOSED: "Closed",
+  PASSED: "Passed",
 };
 
 const STAGES = Object.values(PipelineStage);
@@ -86,7 +86,7 @@ export default function PipelinePage() {
         })}
       </div>
 
-      <Card className="text-xs text-text-secondary">Drag a card to a new stage to update it. Moving to Invested adds it to your Portfolio.</Card>
+      <Card className="text-xs text-text-secondary">Drag a card to a new stage to update it. Moving to Closed adds it to your Portfolio.</Card>
     </div>
   );
 }

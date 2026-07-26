@@ -23,7 +23,7 @@ export function AvatarUpload({ value, onChange, label = "Profile picture" }: Ava
       const url = await uploadFile(file, "avatars");
       onChange(url);
     } catch {
-      setError("Upload failed — please try again");
+      setError("Upload failed. Please try again");
     } finally {
       setIsUploading(false);
     }

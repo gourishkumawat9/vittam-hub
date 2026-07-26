@@ -52,7 +52,7 @@ export function Step1PersonalDetails({
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <div>
         <h2 className="font-heading text-xl font-semibold text-text-primary">Founder information</h2>
-        <p className="mt-1 text-sm text-text-secondary">Tell us about yourself — this appears on your public profile.</p>
+        <p className="mt-1 text-sm text-text-secondary">Tell us about yourself. This appears on your public profile.</p>
       </div>
 
       <Controller

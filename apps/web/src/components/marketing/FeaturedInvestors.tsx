@@ -14,7 +14,7 @@ export function FeaturedInvestors() {
         <SectionHeading
           eyebrow="How discovery works"
           title="Find investors by ticket size, industry, and stage"
-          description="Illustrative example profiles — VittamHub is in early access and these are not real investors or firms."
+          description="Illustrative example profiles. VittamHub is in early access, and these are not real investors or firms."
           action={<Badge variant="neutral">Example profiles</Badge>}
         />
 

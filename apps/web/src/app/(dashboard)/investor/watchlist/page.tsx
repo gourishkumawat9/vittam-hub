@@ -1,15 +1,108 @@
 "use client";
 
-import { useUnfollowStartup, useUpdateWatchlistEntry, useWatchlist, type StartupFollowWithStartup } from "@vittamhub/api-client";
-import { Badge, Button, Card, EmptyState, Input, Textarea } from "@vittamhub/ui";
-import { Bookmark, Sparkles } from "lucide-react";
+import {
+  useCreateWatchlistTrigger,
+  useRemoveWatchlistTrigger,
+  useUnfollowStartup,
+  useUpdateWatchlistEntry,
+  useWatchlist,
+  useWatchlistTriggers,
+  type StartupFollowWithStartup,
+} from "@vittamhub/api-client";
+import { WatchlistTriggerType, type CreateWatchlistTriggerInput } from "@vittamhub/types";
+import { Badge, Button, Card, EmptyState, ErrorState, Input, Select, Textarea } from "@vittamhub/ui";
+import { formatRelativeTime } from "@vittamhub/utils";
+import { Bell, Bookmark, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
+import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 
 const UNGROUPED_LABEL = "Unsorted";
+
+function titleCase(value: string) {
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const TRIGGER_TYPE_OPTIONS = Object.values(WatchlistTriggerType).map((value) => ({ label: titleCase(value), value }));
+const TRUST_BAND_OPTIONS = ["BRONZE", "SILVER", "GOLD", "PLATINUM"].map((value) => ({ label: titleCase(value), value }));
+const AMOUNT_TRIGGER_TYPES = new Set<string>(["REVENUE_ABOVE"]);
+const BAND_TRIGGER_TYPES = new Set<string>(["TRUST_BAND_REACHES"]);
+
+function WatchlistTriggersTab({ follows }: { follows: StartupFollowWithStartup[] }) {
+  const { data: triggers, isLoading, isError } = useWatchlistTriggers();
+  const createTrigger = useCreateWatchlistTrigger();
+  const removeTrigger = useRemoveWatchlistTrigger();
+  const [startupId, setStartupId] = useState("");
+  const [type, setType] = useState<CreateWatchlistTriggerInput["type"]>(WatchlistTriggerType.FUNDING_ROUND_OPENED);
+  const [thresholdAmount, setThresholdAmount] = useState("");
+  const [thresholdBand, setThresholdBand] = useState("GOLD");
+
+  const startupOptions = follows.map((f) => ({ label: f.startup.name, value: f.startup.id }));
+
+  const handleCreate = () => {
+    if (!startupId) return;
+    createTrigger.mutate({
+      startupId,
+      type,
+      thresholdAmount: AMOUNT_TRIGGER_TYPES.has(type) ? Number(thresholdAmount) : undefined,
+      thresholdBand: BAND_TRIGGER_TYPES.has(type) ? (thresholdBand as CreateWatchlistTriggerInput["thresholdBand"]) : undefined,
+    });
+    setStartupId("");
+    setThresholdAmount("");
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-text-primary">Create a trigger</h2>
+        <p className="text-xs text-text-secondary">Evaluated hourly. Fires a real alert once its condition is met, never a fabricated notification.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Select label="Startup" placeholder="Choose a saved/watched startup…" options={startupOptions} value={startupId} onChange={setStartupId} />
+          <Select label="Trigger" options={TRIGGER_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as CreateWatchlistTriggerInput["type"])} />
+          {AMOUNT_TRIGGER_TYPES.has(type) && (
+            <Input label="Threshold (₹)" type="number" value={thresholdAmount} onChange={(e) => setThresholdAmount(e.target.value)} />
+          )}
+          {BAND_TRIGGER_TYPES.has(type) && <Select label="Minimum band" options={TRUST_BAND_OPTIONS} value={thresholdBand} onChange={setThresholdBand} />}
+        </div>
+        <Button size="sm" className="w-fit" onClick={handleCreate} isLoading={createTrigger.isPending} disabled={!startupId}>
+          Create trigger
+        </Button>
+      </Card>
+
+      {isLoading ? (
+        <ListRowsSkeleton />
+      ) : isError ? (
+        <ErrorState />
+      ) : triggers && triggers.length > 0 ? (
+        <div className="flex flex-col divide-y divide-border rounded-card border border-border">
+          {triggers.map((trigger) => (
+            <div key={trigger.id} className="flex items-center justify-between gap-3 p-4">
+              <div>
+                <p className="text-sm font-medium text-text-primary">{trigger.startup.name}</p>
+                <p className="text-xs text-text-secondary">{titleCase(trigger.type)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {trigger.firedAt ? (
+                  <Badge variant="success">Fired {formatRelativeTime(trigger.firedAt)}</Badge>
+                ) : (
+                  <Badge variant="neutral">Watching</Badge>
+                )}
+                <button type="button" onClick={() => removeTrigger.mutate(trigger.id)} className="text-text-secondary hover:text-danger-600" aria-label="Delete trigger">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState icon={Bell} title="No triggers yet" description="Create one above to get notified automatically." className="py-6" />
+      )}
+    </div>
+  );
+}
 
 function WatchlistCard({ follow }: { follow: StartupFollowWithStartup }) {
   const unfollow = useUnfollowStartup();
@@ -59,8 +152,9 @@ function WatchlistCard({ follow }: { follow: StartupFollowWithStartup }) {
 
 function WatchlistContent() {
   const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") === "watchlist" ? "watchlist" : "saved";
-  const { data: follows, isLoading } = useWatchlist();
+  const tabParam = searchParams.get("tab");
+  const tab = tabParam === "watchlist" ? "watchlist" : tabParam === "triggers" ? "triggers" : "saved";
+  const { data: follows, isLoading, isError } = useWatchlist();
 
   const filtered = (follows ?? []).filter((f) => (tab === "watchlist" ? f.notifyOnUpdate : !f.notifyOnUpdate));
 
@@ -75,7 +169,9 @@ function WatchlistContent() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">{tab === "watchlist" ? "Watchlist" : "Saved Startups"}</h1>
+        <h1 className="font-heading text-2xl font-semibold text-text-primary">
+          {tab === "watchlist" ? "Watchlist" : tab === "triggers" ? "Watchlist Alerts" : "Saved Startups"}
+        </h1>
       </div>
       <div className="flex gap-2">
         <Button asChild variant={tab === "saved" ? "primary" : "secondary"} size="sm">
@@ -84,10 +180,17 @@ function WatchlistContent() {
         <Button asChild variant={tab === "watchlist" ? "primary" : "secondary"} size="sm">
           <Link href="/investor/watchlist?tab=watchlist">Watchlist</Link>
         </Button>
+        <Button asChild variant={tab === "triggers" ? "primary" : "secondary"} size="sm">
+          <Link href="/investor/watchlist?tab=triggers">Alerts</Link>
+        </Button>
       </div>
 
-      {isLoading ? (
+      {tab === "triggers" ? (
+        <WatchlistTriggersTab follows={follows ?? []} />
+      ) : isLoading ? (
         <CardGridSkeleton />
+      ) : isError ? (
+        <ErrorState />
       ) : filtered.length > 0 ? (
         <div className="flex flex-col gap-6">
           {orderedGroupNames.map((groupName) => (
@@ -116,7 +219,7 @@ function WatchlistContent() {
 
 export default function WatchlistPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-text-secondary">Loading…</p>}>
+    <Suspense fallback={<CardGridSkeleton />}>
       <WatchlistContent />
     </Suspense>
   );

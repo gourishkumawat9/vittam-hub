@@ -13,7 +13,7 @@ export function WhyVittamHub() {
       <SectionHeading
         eyebrow="Why VittamHub"
         title="Everything visibility requires"
-        description="One ecosystem for identity, discovery, growth, and community — built for founders and investors who want transparency, not cold outreach."
+        description="One ecosystem for identity, discovery, growth, and community, built for founders and investors who want transparency, not cold outreach."
       />
 
       <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

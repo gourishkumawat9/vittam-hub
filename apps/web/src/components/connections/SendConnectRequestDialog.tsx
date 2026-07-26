@@ -92,7 +92,7 @@ export function SendConnectRequestDialog({ investor, open, onOpenChange }: SendC
     >
       {sent ? (
         <p className="text-sm text-text-secondary">
-          You&apos;ll be notified here if {investor.owner.fullName} responds — direct messaging unlocks once they accept.
+          You&apos;ll be notified here if {investor.owner.fullName} responds. Direct messaging unlocks once they accept.
         </p>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -107,7 +107,7 @@ export function SendConnectRequestDialog({ investor, open, onOpenChange }: SendC
           <Input
             label="Funding requirement (₹)"
             type="number"
-            hint="Optional — what you're currently raising."
+            hint="Optional: what you're currently raising."
             error={errors.fundingRequirementAmount?.message}
             {...register("fundingRequirementAmount")}
           />

@@ -11,9 +11,12 @@ import {
   useVerificationOverview,
 } from "@vittamhub/api-client";
 import { UserRole, type AdminUserListFilters, type PlanLimit, type VerificationOverview } from "@vittamhub/types";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, EmptyState, Input, ProgressBar, Select } from "@vittamhub/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, EmptyState, Input, ProgressBar, Select, Skeleton } from "@vittamhub/ui";
 import { Users2 } from "lucide-react";
 import { useState } from "react";
+
+import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { StatTilesSkeleton } from "@/components/dashboard/StatTilesSkeleton";
 
 const ENTITY_LABEL: Record<keyof VerificationOverview["counts"], string> = {
   startup: "Startups",
@@ -38,11 +41,11 @@ function VerificationOverviewSection() {
         <h2 className="font-heading text-lg font-semibold text-text-primary">Verification overview</h2>
         <p className="text-sm text-text-secondary">
           Read-only. Every profile&apos;s verification status is computed automatically from submitted documents and
-          profile completeness — there is no manual approve/reject step here.
+          profile completeness. There is no manual approve/reject step here.
         </p>
       </div>
       {isLoading || !data ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
+        <StatTilesSkeleton count={4} />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {(Object.keys(ENTITY_LABEL) as (keyof VerificationOverview["counts"])[]).map((entity) => (
@@ -56,7 +59,7 @@ function VerificationOverviewSection() {
                 ) : (
                   data.counts[entity].map((entry) => (
                     <Badge key={entry.status} variant={STATUS_BADGE_VARIANT[entry.status] ?? "neutral"}>
-                      {entry.status} · {entry.count}
+                      {entry.status} · <span className="font-numeric">{entry.count}</span>
                     </Badge>
                   ))
                 )}
@@ -89,14 +92,14 @@ function PlanLimitRow({ planLimit }: { planLimit: PlanLimit }) {
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3">
+    <div className="flex items-center justify-between gap-4 px-4 py-2.5">
       <div>
         <p className="text-sm font-medium text-text-primary">{PLAN_LABEL[planLimit.plan] ?? planLimit.plan}</p>
-        <p className="text-xs text-text-secondary">Monthly connect requests — blank means unlimited</p>
+        <p className="text-xs text-text-secondary">Monthly connect requests. Blank means unlimited.</p>
       </div>
       <div className="flex items-center gap-2">
         <div className="w-28">
-          <Input type="number" min={0} placeholder="Unlimited" value={value} onChange={(e) => setValue(e.target.value)} />
+          <Input type="number" min={0} placeholder="Unlimited" className="font-numeric" value={value} onChange={(e) => setValue(e.target.value)} />
         </div>
         <Button size="sm" onClick={save} isLoading={updatePlanLimit.isPending}>
           Save
@@ -109,7 +112,7 @@ function PlanLimitRow({ planLimit }: { planLimit: PlanLimit }) {
 function PlatformTotalsSection() {
   const { data: totals, isLoading } = usePlatformTotals();
 
-  if (isLoading || !totals) return <p className="text-sm text-text-secondary">Loading…</p>;
+  if (isLoading || !totals) return <StatTilesSkeleton count={4} />;
 
   const tiles: { label: string; value: number }[] = [
     { label: "Users", value: totals.users },
@@ -121,7 +124,7 @@ function PlatformTotalsSection() {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {tiles.map((tile) => (
-        <Card key={tile.label}>
+        <Card key={tile.label} className="py-4">
           <p className="text-xs text-text-secondary">{tile.label}</p>
           <p className="font-numeric text-2xl font-bold text-text-primary">{tile.value}</p>
         </Card>
@@ -138,7 +141,7 @@ function SignupsSection() {
     <Card className="flex flex-col gap-3">
       <h2 className="font-heading text-sm font-semibold text-text-primary">Signups per week</h2>
       {isLoading ? (
-        <p className="text-xs text-text-secondary">Loading…</p>
+        <Skeleton className="h-32 w-full" />
       ) : buckets && buckets.length > 0 ? (
         <div className="flex flex-col gap-2">
           {buckets.map((bucket) => (
@@ -167,7 +170,7 @@ function ConnectionAcceptanceSection() {
     <Card className="flex flex-col gap-3">
       <h2 className="font-heading text-sm font-semibold text-text-primary">Connect request acceptance rate</h2>
       {isLoading || !data ? (
-        <p className="text-xs text-text-secondary">Loading…</p>
+        <Skeleton className="h-8 w-full" />
       ) : data.rate != null ? (
         <>
           <ProgressBar value={Math.round(data.rate * 100)} />
@@ -196,12 +199,16 @@ function VerificationFunnelSection() {
     <Card className="flex flex-col gap-3">
       <h2 className="font-heading text-sm font-semibold text-text-primary">Startup verification funnel</h2>
       {isLoading || !funnel ? (
-        <p className="text-xs text-text-secondary">Loading…</p>
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           {funnel.map((stage) => (
             <Badge key={stage.stage} variant={FUNNEL_BADGE_VARIANT[stage.stage] ?? "neutral"}>
-              {stage.stage} · {stage.count}
+              {stage.stage} · <span className="font-numeric">{stage.count}</span>
             </Badge>
           ))}
         </div>
@@ -221,7 +228,7 @@ function AdminUsersSection() {
     <section className="flex flex-col gap-4">
       <div>
         <h2 className="font-heading text-lg font-semibold text-text-primary">Users</h2>
-        <p className="text-sm text-text-secondary">Read-only list/search — no ban, edit, or role-change actions here.</p>
+        <p className="text-sm text-text-secondary">Read-only list/search. No ban, edit, or role-change actions here.</p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -243,12 +250,12 @@ function AdminUsersSection() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
+        <ListRowsSkeleton count={5} />
       ) : items.length > 0 ? (
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {items.map((u) => (
-              <div key={u.id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+              <div key={u.id} className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm">
                 <div>
                   <p className="font-medium text-text-primary">{u.fullName}</p>
                   <p className="text-xs text-text-secondary">{u.email}</p>
@@ -278,7 +285,7 @@ export default function AdminDashboardPage() {
       <section className="flex flex-col gap-4">
         <div>
           <h2 className="font-heading text-lg font-semibold text-text-primary">Platform overview</h2>
-          <p className="text-sm text-text-secondary">Real, read-only counts — no manual moderation actions anywhere in this panel.</p>
+          <p className="text-sm text-text-secondary">Real, read-only counts. No manual moderation actions anywhere in this panel.</p>
         </div>
         <PlatformTotalsSection />
         <div className="grid gap-4 sm:grid-cols-2">
@@ -296,7 +303,7 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         {isLoading ? (
-          <p className="text-sm text-text-secondary">Loading…</p>
+          <ListRowsSkeleton count={4} />
         ) : (
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">

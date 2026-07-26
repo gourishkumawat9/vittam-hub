@@ -25,7 +25,7 @@ export function CtaSection() {
           Ready to build tomorrow&apos;s unicorn?
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-slate-300">
-          Join VittamHub and build the verified digital identity your startup — or your next investment — deserves.
+          Join VittamHub and build the verified digital identity your startup, or your next investment, deserves.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link

@@ -58,7 +58,7 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
       <div>
         <h2 className="font-heading text-xl font-semibold text-text-primary">Product details</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          Optional if you&apos;re still pre-product — fill in what applies today.
+          Optional if you&apos;re still pre-product. Fill in what applies today.
         </p>
       </div>
 

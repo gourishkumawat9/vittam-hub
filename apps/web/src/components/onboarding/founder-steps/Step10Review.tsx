@@ -30,7 +30,7 @@ function summarize(section: Record<string, unknown>): SummaryRow[] {
 function formatValue(value: unknown): string {
   if (Array.isArray(value)) {
     return value
-      .map((item) => (typeof item === "object" && item !== null ? Object.values(item).filter(Boolean).join(" — ") : String(item)))
+      .map((item) => (typeof item === "object" && item !== null ? Object.values(item).filter(Boolean).join(", ") : String(item)))
       .join(", ");
   }
   if (typeof value === "boolean") return value ? "Yes" : "No";

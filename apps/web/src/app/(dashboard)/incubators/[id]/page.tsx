@@ -1,7 +1,7 @@
 "use client";
 
 import { useIncubator } from "@vittamhub/api-client";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@vittamhub/ui";
+import { Badge, Card, CardContent, CardHeader, CardTitle, ErrorState, Skeleton } from "@vittamhub/ui";
 import { useParams } from "next/navigation";
 
 import { FollowButton } from "@/components/dashboard/FollowButton";
@@ -13,9 +13,23 @@ function formatDate(iso: string | null) {
 
 export default function IncubatorDetailPage() {
   const params = useParams<{ id: string }>();
-  const { data: incubator, isLoading } = useIncubator(params.id);
+  const { data: incubator, isLoading, isError } = useIncubator(params.id);
 
-  if (isLoading) return <p className="text-sm text-text-secondary">Loading…</p>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-14 w-14 rounded-card" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-48 w-full rounded-card" />
+      </div>
+    );
+  }
+  if (isError) return <ErrorState />;
   if (!incubator) return <p className="text-sm text-text-secondary">Incubator not found.</p>;
 
   return (

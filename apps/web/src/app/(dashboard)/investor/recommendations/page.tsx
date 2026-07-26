@@ -2,9 +2,11 @@
 
 import { useInvestorRecommendations } from "@vittamhub/api-client";
 import type { Startup } from "@vittamhub/types";
-import { Badge, Card, EmptyState } from "@vittamhub/ui";
+import { Badge, Card, EmptyState, ErrorState } from "@vittamhub/ui";
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
+
+import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 
 function StartupRow({ startup }: { startup: Startup }) {
   return (
@@ -22,9 +24,19 @@ function StartupRow({ startup }: { startup: Startup }) {
 }
 
 export default function RecommendationsPage() {
-  const { data, isLoading } = useInvestorRecommendations();
+  const { data, isLoading, isError } = useInvestorRecommendations();
 
-  if (isLoading) return <p className="text-sm text-text-secondary">Loading…</p>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold text-text-primary">AI Recommendations</h1>
+        </div>
+        <ListRowsSkeleton />
+      </div>
+    );
+  }
+  if (isError) return <ErrorState />;
   if (!data) return <EmptyState icon={Sparkles} title="No recommendations yet" description="Check back once more startups have joined." />;
 
   return (
@@ -32,7 +44,7 @@ export default function RecommendationsPage() {
       <div>
         <h1 className="font-heading text-2xl font-semibold text-text-primary">AI Recommendations</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Rule-based suggestions from real platform activity — not a machine-learning model yet.
+          Rule-based suggestions from real platform activity. Not a machine-learning model yet.
         </p>
       </div>
 

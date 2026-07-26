@@ -69,7 +69,7 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
       <div>
         <h2 className="font-heading text-xl font-semibold text-text-primary">Verification documents</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          Upload what you have — verification unlocks discovery visibility. All optional at this stage.
+          Upload what you have. Verification unlocks discovery visibility. All optional at this stage.
         </p>
       </div>
 

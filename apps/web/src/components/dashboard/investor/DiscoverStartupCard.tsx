@@ -101,7 +101,7 @@ export function DiscoverStartupCard({ startup, selectedForCompare, onToggleCompa
           </Button>
           <Button
             size="sm"
-            onClick={() => addToPipeline.mutate({ startupId: startup.id, stage: "INTERESTED" })}
+            onClick={() => addToPipeline.mutate({ startupId: startup.id, stage: "SCREENING" })}
             isLoading={addToPipeline.isPending}
           >
             <Handshake className="h-3.5 w-3.5" /> Connect

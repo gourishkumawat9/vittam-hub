@@ -40,7 +40,7 @@ export function EvidenceUpload({ value, onChange }: EvidenceUploadProps) {
       const url = await uploadFile(file, "documents");
       addUrl(url);
     } catch {
-      setError("Upload failed — please try again");
+      setError("Upload failed. Please try again");
     } finally {
       setIsUploading(false);
       if (inputRef.current) inputRef.current.value = "";

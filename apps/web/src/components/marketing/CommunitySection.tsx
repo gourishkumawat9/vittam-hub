@@ -15,7 +15,7 @@ export function CommunitySection() {
       <SectionHeading
         eyebrow="Community"
         title="What a founder update looks like"
-        description="Illustrative example posts — VittamHub is in early access, so this isn't a live feed yet."
+        description="Illustrative example posts. VittamHub is in early access, so this isn't a live feed yet."
         action={<Badge variant="neutral">Example posts</Badge>}
       />
       <div className="mt-4 flex justify-center lg:justify-start">

@@ -59,7 +59,7 @@ export default function DocumentVaultPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold text-text-primary">Document Vault</h1>
-        <p className="mt-1 text-sm text-text-secondary">Private storage — only you can see these documents.</p>
+        <p className="mt-1 text-sm text-text-secondary">Private storage. Only you can see these documents.</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4">

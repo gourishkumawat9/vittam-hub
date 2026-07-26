@@ -66,7 +66,7 @@ export function DiscoverStartups() {
         <SectionHeading
           eyebrow="Discover"
           title="Startups across every stage, in one place"
-          description="Illustrative example profiles — VittamHub is in early access and these are not real companies."
+          description="Illustrative example profiles. VittamHub is in early access, and these are not real companies."
           action={<Badge variant="neutral">Example profiles</Badge>}
         />
       </div>

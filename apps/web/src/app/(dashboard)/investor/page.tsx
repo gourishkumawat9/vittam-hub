@@ -8,6 +8,7 @@ import {
   usePortfolio,
   useUnreadNotificationCount,
   useWatchlist,
+  useWorkspaceHome,
 } from "@vittamhub/api-client";
 import { Badge, Card, CardHeader, CardTitle, EmptyState, Input, ProgressBar } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
@@ -19,11 +20,14 @@ import {
   CalendarClock,
   Compass,
   Handshake,
+  ListChecks,
   MessageCircle,
+  Network,
   Plus,
   Search,
   ShieldCheck,
   Sparkles,
+  Target,
   TrendingUp,
   UserCheck,
 } from "lucide-react";
@@ -85,6 +89,7 @@ export default function InvestorDashboardPage() {
   const { data: unread } = useUnreadNotificationCount();
   const { data: recommendations } = useInvestorRecommendations();
   const { data: investorProfile } = useMyInvestorProfile();
+  const { data: home } = useWorkspaceHome();
 
   const pendingRequests = pendingConnectionsResult?.items ?? [];
   const savedCount = (watchlist ?? []).filter((f) => !f.notifyOnUpdate).length;
@@ -126,6 +131,68 @@ export default function InvestorDashboardPage() {
           </button>
         </div>
       </div>
+
+      {home && (
+        <Card className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div>
+            <p className="text-xs text-text-secondary">Trust Score</p>
+            <p className="flex items-center gap-2">
+              <span className="font-numeric text-xl font-bold text-text-primary">{home.header.trustScore ?? "—"}</span>
+              {home.header.trustBand && <Badge variant="neutral">{home.header.trustBand}</Badge>}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary">Response rate</p>
+            <p className="font-numeric text-xl font-bold text-text-primary">
+              {home.header.responseRate != null ? `${Math.round(home.header.responseRate * 100)}%` : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary">Avg response time</p>
+            <p className="font-numeric text-xl font-bold text-text-primary">
+              {home.header.avgResponseTimeHours != null ? `${Math.round(home.header.avgResponseTimeHours)}h` : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary">Deploying capital</p>
+            <Badge variant={home.header.currentlyDeployingCapital ? "success" : "neutral"}>
+              {home.header.currentlyDeployingCapital ? "Yes" : "Not now"}
+            </Badge>
+          </div>
+          <Link href="/investor/mandates" className="text-xs">
+            <p className="text-text-secondary">Open mandates</p>
+            <p className="font-numeric text-xl font-bold text-brand-primary">{home.header.openMandatesCount}</p>
+          </Link>
+          <Link href="/investor/messages" className="text-xs">
+            <p className="text-text-secondary">Unread alerts</p>
+            <p className="font-numeric text-xl font-bold text-brand-primary">{home.header.unreadNotifications}</p>
+          </Link>
+        </Card>
+      )}
+
+      {home && home.bestMatchesToday.length > 0 && (
+        <Card className="flex flex-col gap-3">
+          <CardHeader className="flex-row items-center gap-2 pb-0">
+            <Target className="h-4 w-4 text-brand-primary" />
+            <CardTitle className="text-base">Best matches today</CardTitle>
+          </CardHeader>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {home.bestMatchesToday.map((match) => (
+              <Link
+                key={match.startupId}
+                href={`/startups/${match.startup.slug}`}
+                className="flex flex-col gap-1 rounded-card border border-border p-3 hover:bg-background-secondary"
+              >
+                <span className="text-sm font-medium text-text-primary">{match.startup.name}</span>
+                <span className="text-xs text-text-secondary">{match.startup.industry}</span>
+                <Badge variant="brand" className="w-fit">
+                  {match.score}% match
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardCard icon={Handshake} title="New connection requests" value={pendingConnectionsResult?.totalItems ?? 0} href="/investor/requests" />
@@ -280,6 +347,15 @@ export default function InvestorDashboardPage() {
           </Link>
           <Link href="/investor/analytics" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
             <BarChart3 className="h-4 w-4 text-brand-primary" /> Analytics
+          </Link>
+          <Link href="/investor/mandates" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
+            <Target className="h-4 w-4 text-brand-primary" /> Mandates
+          </Link>
+          <Link href="/investor/watchlist?tab=triggers" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
+            <ListChecks className="h-4 w-4 text-brand-primary" /> Watchlist alerts
+          </Link>
+          <Link href="/investor/co-investors" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
+            <Network className="h-4 w-4 text-brand-primary" /> Co-investors
           </Link>
         </div>
       </Card>

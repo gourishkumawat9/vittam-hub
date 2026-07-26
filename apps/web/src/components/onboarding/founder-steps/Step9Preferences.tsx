@@ -72,7 +72,7 @@ export function Step9Preferences({ defaultValues, onNext, onBack }: StepProps) {
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <div>
         <h2 className="font-heading text-xl font-semibold text-text-primary">What are you looking for?</h2>
-        <p className="mt-1 text-sm text-text-secondary">Select everything relevant — this drives your discovery matches.</p>
+        <p className="mt-1 text-sm text-text-secondary">Select everything relevant. This drives your discovery matches.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

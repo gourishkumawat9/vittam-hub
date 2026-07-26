@@ -38,7 +38,7 @@ export function FounderReputationCard({ founderReputation }: { founderReputation
 
       <div className="flex items-center gap-4">
         <span className={`font-numeric text-4xl font-bold ${scoreColor(founderReputation.score)}`}>{founderReputation.score}</span>
-        <span className="text-sm text-text-secondary">out of 100 — professional credibility, not a social score</span>
+        <span className="text-sm text-text-secondary">out of 100: professional credibility, not a social score</span>
       </div>
 
       <button type="button" onClick={() => setExpanded((v) => !v)} className="text-left text-xs font-medium text-brand-primary hover:underline">

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMyInvestorProfile, useUpdateMyInvestorProfile } from "@vittamhub/api-client";
 import { InvestorType, StartupStage, updateInvestorInputSchema, type UpdateInvestorInput } from "@vittamhub/types";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Select, TagsInput, Textarea } from "@vittamhub/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, ErrorState, Input, Select, Skeleton, TagsInput, Textarea } from "@vittamhub/ui";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -15,7 +15,7 @@ const INVESTOR_TYPE_OPTIONS = Object.values(InvestorType).map((value) => ({ labe
 const STAGE_OPTIONS = Object.values(StartupStage);
 
 export default function InvestorProfilePage() {
-  const { data: investor, isLoading } = useMyInvestorProfile();
+  const { data: investor, isLoading, isError } = useMyInvestorProfile();
   const updateProfile = useUpdateMyInvestorProfile();
   const [saved, setSaved] = useState(false);
 
@@ -63,7 +63,21 @@ export default function InvestorProfilePage() {
     setValue("preferredStages", current.includes(stage) ? current.filter((s) => s !== stage) : [...current, stage]);
   };
 
-  if (isLoading) return <p className="text-sm text-text-secondary">Loading…</p>;
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <h1 className="font-heading text-2xl font-semibold text-text-primary">Investor Profile</h1>
+        <Skeleton className="h-24 w-full rounded-card" />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+    );
+  }
+  if (isError) return <ErrorState className="mx-auto max-w-2xl" />;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">

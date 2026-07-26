@@ -37,7 +37,7 @@ export function Step6Traction({ defaultValues, onNext, onBack }: StepProps) {
       <div>
         <h2 className="font-heading text-xl font-semibold text-text-primary">Traction</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          Optional if you&apos;re pre-revenue — investors filter by stage, so this only helps once it applies.
+          Optional if you&apos;re pre-revenue. Investors filter by stage, so this only helps once it applies.
         </p>
       </div>
 

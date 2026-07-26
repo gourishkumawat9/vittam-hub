@@ -2,10 +2,12 @@
 
 import { useMyFounderActivity } from "@vittamhub/api-client";
 import type { FounderActivityEntryType } from "@vittamhub/types";
-import { Card, CardHeader, CardTitle, EmptyState } from "@vittamhub/ui";
+import { Card, CardHeader, CardTitle, EmptyState, ErrorState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { Activity, Briefcase, FileText, Flag, Inbox, LineChart, Rss, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
+import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 
 const ENTRY_ICON: Record<FounderActivityEntryType, LucideIcon> = {
   MILESTONE: Flag,
@@ -19,7 +21,7 @@ const ENTRY_ICON: Record<FounderActivityEntryType, LucideIcon> = {
 
 /** Broader than the curated milestone timeline — a real-time computed feed across milestones, updates, jobs, traction, connect requests, and pitch-deck uploads. Visually distinct (icon-per-row list) from RecentUpdatesCard's curated timeline. */
 export function FounderActivityCard() {
-  const { data: activity, isLoading } = useMyFounderActivity();
+  const { data: activity, isLoading, isError } = useMyFounderActivity();
 
   return (
     <Card className="flex flex-col gap-4">
@@ -30,7 +32,9 @@ export function FounderActivityCard() {
       </CardHeader>
 
       {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
+        <ListRowsSkeleton />
+      ) : isError ? (
+        <ErrorState className="py-8" />
       ) : activity && activity.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {activity.slice(0, 8).map((entry) => {

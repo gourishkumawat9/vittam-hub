@@ -15,7 +15,7 @@ const SITE_DESCRIPTION =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "VittamHub — Visibility for Tomorrow's Unicorns",
+    default: "VittamHub: Visibility for Tomorrow's Unicorns",
     template: "%s · VittamHub",
   },
   description: SITE_DESCRIPTION,
@@ -36,14 +36,14 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: "VittamHub — Visibility for Tomorrow's Unicorns",
+    title: "VittamHub: Visibility for Tomorrow's Unicorns",
     description: SITE_DESCRIPTION,
     locale: "en_US",
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VittamHub — Visibility for Tomorrow's Unicorns",
+    title: "VittamHub: Visibility for Tomorrow's Unicorns",
     description: SITE_DESCRIPTION,
     images: ["/twitter-image"],
   },

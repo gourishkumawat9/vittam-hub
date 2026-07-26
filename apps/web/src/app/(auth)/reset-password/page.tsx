@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
 
   if (mutation.isSuccess) {
     return (
-      <AuthCard>
+      <AuthShell>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-success-50">
             <CheckCircle2 className="h-6 w-6 text-success-600" />
@@ -41,13 +41,13 @@ export default function ResetPasswordPage() {
             Go to login
           </Link>
         </div>
-      </AuthCard>
+      </AuthShell>
     );
   }
 
   if (!token) {
     return (
-      <AuthCard>
+      <AuthShell>
         <div className="flex flex-col items-center gap-3 text-center">
           <h1 className="font-heading text-xl font-semibold text-text-primary">Invalid reset link</h1>
           <p className="text-sm text-text-secondary">This password reset link is missing or malformed.</p>
@@ -55,12 +55,12 @@ export default function ResetPasswordPage() {
             Request a new link
           </Link>
         </div>
-      </AuthCard>
+      </AuthShell>
     );
   }
 
   return (
-    <AuthCard>
+    <AuthShell>
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="font-heading text-xl font-semibold text-text-primary">Choose a new password</h1>
@@ -86,6 +86,6 @@ export default function ResetPasswordPage() {
           </Button>
         </form>
       </div>
-    </AuthCard>
+    </AuthShell>
   );
 }

@@ -171,7 +171,7 @@ export default function FounderDashboardPage() {
           <div>
             <h2 className="font-heading text-lg font-semibold text-text-primary">Recommended investors</h2>
             <p className="text-sm text-text-secondary">
-              Ranked by industry, stage, funding fit, geography, and pitch availability — not machine-learned.
+              Ranked by industry, stage, funding fit, geography, and pitch availability. Not machine-learned.
             </p>
           </div>
           {recommendationsLoading ? (

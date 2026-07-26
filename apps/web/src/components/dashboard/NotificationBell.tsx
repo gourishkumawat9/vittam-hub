@@ -7,6 +7,7 @@ import {
 } from "@vittamhub/api-client";
 import { EmptyState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import { Bell, CheckCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -46,53 +47,61 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-11 z-dropdown w-80 rounded-card border border-border bg-surface shadow-lg">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="text-sm font-semibold text-text-primary">Notifications</span>
-            {count > 0 && (
-              <button
-                type="button"
-                onClick={() => markAllRead.mutate()}
-                className="flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
-              >
-                <CheckCheck className="h-3.5 w-3.5" /> Mark all read
-              </button>
-            )}
-          </div>
-          <div className="flex max-h-96 flex-col divide-y divide-border overflow-y-auto">
-            {notifications && notifications.length > 0 ? (
-              notifications.map((notification) => {
-                const content = (
-                  <div className={`px-4 py-3 ${notification.readAt ? "" : "bg-brand-50"}`}>
-                    <p className="text-sm font-medium text-text-primary">{notification.title}</p>
-                    <p className="mt-0.5 text-xs text-text-secondary">{notification.body}</p>
-                    <p className="mt-1 text-[11px] text-text-secondary">{formatRelativeTime(notification.createdAt)}</p>
-                  </div>
-                );
-                return notification.linkUrl ? (
-                  <Link key={notification.id} href={notification.linkUrl} onClick={() => setOpen(false)}>
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={notification.id}>{content}</div>
-                );
-              })
-            ) : (
-              <EmptyState icon={Bell} title="You're all caught up" description="New notifications will show up here." className="py-8" />
-            )}
-            {notificationsResult && notificationsResult.totalItems > pageSize && (
-              <button
-                type="button"
-                onClick={() => setPageSize((size) => size + PAGE_SIZE_STEP)}
-                className="px-4 py-3 text-center text-xs font-medium text-brand-primary hover:underline"
-              >
-                Load more
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            className="absolute right-0 top-11 z-dropdown w-80 rounded-card border border-border bg-surface shadow-lg"
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <span className="text-sm font-semibold text-text-primary">Notifications</span>
+              {count > 0 && (
+                <button
+                  type="button"
+                  onClick={() => markAllRead.mutate()}
+                  className="flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+                >
+                  <CheckCheck className="h-3.5 w-3.5" /> Mark all read
+                </button>
+              )}
+            </div>
+            <div className="flex max-h-96 flex-col divide-y divide-border overflow-y-auto">
+              {notifications && notifications.length > 0 ? (
+                notifications.map((notification) => {
+                  const content = (
+                    <div className={`px-4 py-3 transition-colors hover:bg-background-secondary ${notification.readAt ? "" : "bg-brand-50"}`}>
+                      <p className="text-sm font-medium text-text-primary">{notification.title}</p>
+                      <p className="mt-0.5 text-xs text-text-secondary">{notification.body}</p>
+                      <p className="mt-1 text-[11px] text-text-secondary">{formatRelativeTime(notification.createdAt)}</p>
+                    </div>
+                  );
+                  return notification.linkUrl ? (
+                    <Link key={notification.id} href={notification.linkUrl} onClick={() => setOpen(false)}>
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={notification.id}>{content}</div>
+                  );
+                })
+              ) : (
+                <EmptyState icon={Bell} title="You're all caught up" description="New notifications will show up here." className="py-8" />
+              )}
+              {notificationsResult && notificationsResult.totalItems > pageSize && (
+                <button
+                  type="button"
+                  onClick={() => setPageSize((size) => size + PAGE_SIZE_STEP)}
+                  className="px-4 py-3 text-center text-xs font-medium text-brand-primary hover:underline"
+                >
+                  Load more
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

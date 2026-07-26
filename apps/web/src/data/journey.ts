@@ -34,13 +34,13 @@ export const JOURNEY_STAGES: JourneyStage[] = [
     id: "customers",
     label: "Customers",
     description: "Landing your first paying or active users.",
-    howVittamHelps: "Showcase real traction on your public profile — visible to investors watching your stage.",
+    howVittamHelps: "Showcase real traction on your public profile, visible to investors watching your stage.",
   },
   {
     id: "revenue",
     label: "Revenue",
     description: "Turning traction into a repeatable, growing revenue engine.",
-    howVittamHelps: "Unlock investor discovery — get matched to funds actively deploying at your revenue stage.",
+    howVittamHelps: "Unlock investor discovery. Get matched to funds actively deploying at your revenue stage.",
   },
   {
     id: "funding",
@@ -58,6 +58,6 @@ export const JOURNEY_STAGES: JourneyStage[] = [
     id: "unicorn",
     label: "Unicorn",
     description: "Reaching category-defining scale and valuation.",
-    howVittamHelps: "Your full journey — from idea to unicorn — stays documented as the definitive record.",
+    howVittamHelps: "Your full journey, from idea to unicorn, stays documented as the definitive record.",
   },
 ];

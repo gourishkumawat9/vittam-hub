@@ -53,7 +53,7 @@ export function QuickViewDialog({ startup, onOpenChange }: QuickViewDialogProps)
         </div>
 
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Trust Score — {startup.trustScore.score}</h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Trust Score: {startup.trustScore.score}</h4>
           <ul className="mt-2 flex flex-col gap-1">
             {startup.trustScore.factors.map((factor) => (
               <li key={factor.key} className="flex items-center justify-between text-xs text-text-secondary">
@@ -66,7 +66,7 @@ export function QuickViewDialog({ startup, onOpenChange }: QuickViewDialogProps)
 
         {startup.matchScore && (
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Match Score — {startup.matchScore.score}%</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Match Score: {startup.matchScore.score}%</h4>
             <ul className="mt-2 flex flex-col gap-1">
               {startup.matchScore.reasons.map((reason) => (
                 <li key={reason.key} className="flex items-center justify-between text-xs text-text-secondary">

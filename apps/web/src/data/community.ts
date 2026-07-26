@@ -26,7 +26,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     authorName: "VittamHub Team",
     authorRole: "Announcement",
     initials: "VH",
-    content: "Applications for the Q3 Incubator Spotlight cohort are now open — verified startups get priority review.",
+    content: "Applications for the Q3 Incubator Spotlight cohort are now open. Verified startups get priority review.",
     likes: 96,
     comments: 11,
     timeAgo: "5h ago",

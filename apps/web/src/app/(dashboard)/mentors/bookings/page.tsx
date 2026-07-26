@@ -62,7 +62,7 @@ function LeaveReviewDialog({ bookingId, open, onOpenChange }: { bookingId: strin
         if (!next) setSubmitted(false);
       }}
       title="Review the founder"
-      description="Feeds their Founder Reputation score — never shown publicly."
+      description="Feeds their Founder Reputation score, never shown publicly."
       footer={
         !submitted && (
           <>
@@ -77,7 +77,7 @@ function LeaveReviewDialog({ bookingId, open, onOpenChange }: { bookingId: strin
       }
     >
       {submitted ? (
-        <p className="text-sm text-text-secondary">Thanks — your review has been submitted.</p>
+        <p className="text-sm text-text-secondary">Thanks. Your review has been submitted.</p>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex gap-1">
@@ -129,7 +129,7 @@ function LeaveMentorReviewDialog({ bookingId, open, onOpenChange }: { bookingId:
         if (!next) setSubmitted(false);
       }}
       title="Review the mentor"
-      description="12 good ratings is how a mentor earns trust — your review helps other founders."
+      description="12 good ratings is how a mentor earns trust. Your review helps other founders."
       footer={
         !submitted && (
           <>
@@ -144,7 +144,7 @@ function LeaveMentorReviewDialog({ bookingId, open, onOpenChange }: { bookingId:
       }
     >
       {submitted ? (
-        <p className="text-sm text-text-secondary">Thanks — your review has been submitted.</p>
+        <p className="text-sm text-text-secondary">Thanks. Your review has been submitted.</p>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex gap-1">
