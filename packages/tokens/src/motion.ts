@@ -47,6 +47,16 @@ export const motionVariants = {
   staggerContainer: {
     animate: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
   },
+  drawerSlide: {
+    initial: { x: "-100%" },
+    animate: { x: 0, transition: { duration: duration.slow, ease: easing.decelerate } },
+    exit: { x: "-100%", transition: { duration: duration.base, ease: easing.accelerate } },
+  },
+  drawerOverlay: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: duration.base, ease: easing.standard } },
+    exit: { opacity: 0, transition: { duration: duration.fast, ease: easing.accelerate } },
+  },
 } as const;
 
 /** Respect `prefers-reduced-motion`: components should check this and fall back to fadeIn/opacity-only. */

@@ -56,6 +56,17 @@ const preset: Partial<Config> = {
         decelerate: "cubic-bezier(0, 0, 0.2, 1)",
         accelerate: "cubic-bezier(0.4, 0, 1, 1)",
       },
+      // Radix Accordion sets --radix-accordion-content-height on its Content
+      // element, so these animate to/from its real measured height rather
+      // than a guessed fixed value.
+      keyframes: {
+        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
+        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        "accordion-up": "accordion-up 0.16s cubic-bezier(0.4, 0, 1, 1)",
+      },
     },
   },
   plugins: [],
