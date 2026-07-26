@@ -135,14 +135,32 @@ enum MilestoneType {
   OTHER
 }
 
+// Investor Workspace Kanban stages. CLOSED = closed-won (creates the
+// Investment/portfolio row, same trigger point the old INVESTED value used
+// to be); PASSED is a real terminal stage now, not a deleted row — see
+// PassReason below and PipelineService.pass().
 enum PipelineStage {
-  TARGET
-  INTERESTED
-  MEETING
+  SOURCED
+  SCREENING
   DUE_DILIGENCE
-  NEGOTIATION
-  INVESTED
+  INVESTMENT_COMMITTEE
+  TERM_SHEET
   CLOSED
+  PASSED
+}
+
+// "NEVER simply record Passed — require a structured reason" (Investor Workspace §7).
+enum PassReason {
+  TOO_EARLY
+  NO_TRACTION
+  OUTSIDE_THESIS
+  WEAK_TEAM
+  VALUATION_TOO_HIGH
+  COMPETITIVE_CONFLICT
+  REGULATORY_RISK
+  NO_PMF
+  TIMING
+  OTHER
 }
 
 enum FundingType {
@@ -244,6 +262,7 @@ enum NotificationType {
   RELATIONSHIP_CLAIM_RECEIVED
   RELATIONSHIP_CLAIM_CONFIRMED
   RELATIONSHIP_CLAIM_DENIED
+  WATCHLIST_TRIGGER_FIRED
 }
 
 enum BookingStatus {
@@ -513,6 +532,8 @@ model User {
   documentGrantsIssued   DocumentGrant[] @relation("DocumentGrantIssuer")
   documentViews          DocumentView[]
   investmentMandates     InvestmentMandate[]
+  watchlistTriggers      WatchlistTrigger[]
+  savedSearches          SavedSearch[]
 
   @@index([role])
   @@map("users")
@@ -760,6 +781,7 @@ model Startup {
   posts       Post[]
   metricObservations MetricObservation[]
   fundingRounds      FundingRound[]
+  watchlistTriggers  WatchlistTrigger[]
 
   @@index([industry])
   @@index([stage])
@@ -1035,7 +1057,8 @@ model InvestmentMandate {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  investor User @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  investor User            @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  pipelineEntries PipelineEntry[]
 
   @@index([investorId, isActive])
   @@map("investment_mandates")
@@ -1344,6 +1367,70 @@ model StartupFollow {
   @@map("startup_follows")
 }
 
+// The Watchlist's retention-engine half — "notify me when X happens to this
+// startup." Evaluated by a recurring BullMQ job (WatchlistTriggersProcessor),
+// which fires each trigger at most once (`firedAt` set) and creates a real
+// Notification through the existing NotificationsService — no separate
+// alert-delivery mechanism. `baselineValue` snapshots a starting number
+// (team size, patent count) at creation time for "doubled"/"increased" types.
+enum WatchlistTriggerType {
+  REVENUE_ABOVE
+  TRUST_BAND_REACHES
+  GST_VERIFIED
+  MCA_VERIFIED
+  FUNDING_ROUND_OPENED
+  HEADCOUNT_DOUBLED
+  NEW_FOUNDER_ADDED
+  VERIFICATION_COMPLETED
+  NEW_METRICS_UPLOADED
+  NEW_CAP_TABLE_INVESTOR
+  PRODUCT_LAUNCHED
+  PATENT_GRANTED
+  MILESTONE_POSTED
+}
+
+model WatchlistTrigger {
+  id              String               @id @default(uuid()) @db.Uuid
+  investorId      String               @db.Uuid
+  startupId       String               @db.Uuid
+  type            WatchlistTriggerType
+  thresholdAmount Decimal?             @db.Decimal(16, 2)
+  thresholdBand   TrustBand?
+  baselineValue   Int?
+  isActive        Boolean              @default(true)
+  firedAt         DateTime?
+  createdAt       DateTime             @default(now())
+
+  investor User    @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  startup  Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@index([investorId])
+  @@index([startupId, isActive, firedAt])
+  @@map("watchlist_triggers")
+}
+
+// A saved discovery filter set — "Seed SaaS India", "Fintech Raising" (spec
+// §5). `filters` stores the exact same shape as StartupSearchFilters (JSON,
+// since it's an arbitrary combination of optional fields); re-running a
+// saved search means feeding that JSON straight back into
+// StartupsService.search — no separate query builder. `lastViewedAt` is what
+// "N new startups matching" is computed against.
+model SavedSearch {
+  id           String   @id @default(uuid()) @db.Uuid
+  investorId   String   @db.Uuid
+  name         String
+  filters      Json
+  notify       Boolean  @default(false)
+  lastViewedAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  investor User @relation(fields: [investorId], references: [id], onDelete: Cascade)
+
+  @@index([investorId])
+  @@map("saved_searches")
+}
+
 // Generic user-to-user follow (follow a founder, an investor, a mentor…) —
 // deliberately separate from StartupFollow, which is investor→startup with
 // its own notifyOnUpdate/watchlist semantics. This is the plain "follow a
@@ -1387,18 +1474,24 @@ model StartupProfileView {
 // the Kanban board is just this table grouped by `stage`. Reaching INVESTED
 // auto-creates the matching Investment row (see PipelineService.moveStage).
 model PipelineEntry {
-  id         String        @id @default(uuid()) @db.Uuid
-  investorId String        @db.Uuid
-  startupId  String        @db.Uuid
-  stage      PipelineStage @default(TARGET)
-  notes      String?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id           String        @id @default(uuid()) @db.Uuid
+  investorId   String        @db.Uuid
+  startupId    String        @db.Uuid
+  mandateId    String?       @db.Uuid // which thesis sourced this — null for entries added outside any mandate
+  stage        PipelineStage @default(SOURCED)
+  notes        String?
+  passReason   PassReason?
+  passNote     String?
+  passedAt     DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt // doubles as "last activity" — every stage/notes change touches this
 
-  investor User    @relation(fields: [investorId], references: [id], onDelete: Cascade)
-  startup  Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  investor User               @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  startup  Startup            @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  mandate  InvestmentMandate? @relation(fields: [mandateId], references: [id], onDelete: SetNull)
 
   @@unique([investorId, startupId])
+  @@index([investorId, stage])
   @@map("pipeline_entries")
 }
 
@@ -1409,11 +1502,18 @@ model Investment {
   id         String    @id @default(uuid()) @db.Uuid
   investorId String    @db.Uuid
   startupId  String    @db.Uuid
-  investedAt DateTime  @default(now())
-  currency   Currency  @default(INR)
-  amount     Decimal?  @db.Decimal(14, 2)
-  notes      String?
-  createdAt  DateTime  @default(now())
+  investedAt      DateTime  @default(now())
+  currency        Currency  @default(INR)
+  amount          Decimal?  @db.Decimal(14, 2)
+  notes           String?
+  // Exit tracking (Investor Workspace §9 — Active/Exited, Realised/Unrealised).
+  // Null exitedAt = still active. Deliberately minimal — full Exit Readiness
+  // (Bundle 27: acquirers, comparable exits, liquidation stack) is out of
+  // scope here; this is just enough structure to record a real exit.
+  exitedAt        DateTime?
+  exitValueAmount Decimal?  @db.Decimal(16, 2)
+  nextFollowUpAt  DateTime?
+  createdAt       DateTime  @default(now())
 
   investor User    @relation(fields: [investorId], references: [id], onDelete: Cascade)
   startup  Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)

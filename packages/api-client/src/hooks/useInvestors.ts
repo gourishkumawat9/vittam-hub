@@ -31,3 +31,8 @@ export function useUpdateMyInvestorProfile() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: investorKeys.mine }),
   });
 }
+
+/** Co-investor graph — most frequent co-investors, shared investments, mutual confirmations, potential syndicate partners. Real data, no AI. */
+export function useMyCoInvestorGraph() {
+  return useQuery({ queryKey: [...investorKeys.mine, "co-investors"], queryFn: investorsApi.getMyCoInvestorGraph, retry: false });
+}

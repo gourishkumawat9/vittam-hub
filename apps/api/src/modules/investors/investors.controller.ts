@@ -15,6 +15,7 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
+import { CoInvestorGraphService } from "./co-investor-graph.service";
 import { InvestorMetricsService } from "./investor-metrics.service";
 import { InvestorTrustService } from "./investor-trust.service";
 import { InvestorsService } from "./investors.service";
@@ -26,6 +27,7 @@ export class InvestorsController {
     private readonly investorsService: InvestorsService,
     private readonly investorMetricsService: InvestorMetricsService,
     private readonly investorTrustService: InvestorTrustService,
+    private readonly coInvestorGraphService: CoInvestorGraphService,
   ) {}
 
   @Get()
@@ -61,6 +63,13 @@ export class InvestorsController {
   @ApiOperation({ summary: "Update the caller's own investor profile" })
   updateMine(@CurrentUser() user: AuthenticatedUser, @Body() input: UpdateInvestorInput) {
     return this.investorsService.update(user.sub, input);
+  }
+
+  @Get("me/co-investors")
+  @Roles("INVESTOR")
+  @ApiOperation({ summary: "Co-investor graph — most frequent co-investors, shared investments, mutual confirmations, potential syndicate partners (Investor Workspace §8, no AI)" })
+  getMyCoInvestorGraph(@CurrentUser() user: AuthenticatedUser) {
+    return this.coInvestorGraphService.getGraph(user.sub);
   }
 
   @Public()

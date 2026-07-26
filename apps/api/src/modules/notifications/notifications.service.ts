@@ -241,6 +241,17 @@ export class NotificationsService {
     });
   }
 
+  /** Emitted by WatchlistTriggerEvaluatorService — Investor Workspace §4/§10 (the Alert Center). */
+  @OnEvent("watchlist-trigger.fired")
+  handleWatchlistTriggerFired(payload: { investorId: string; startupName: string; type: string }) {
+    return this.create({
+      userId: payload.investorId,
+      type: "WATCHLIST_TRIGGER_FIRED",
+      title: "Watchlist alert",
+      body: `${payload.startupName}: ${payload.type.replace(/_/g, " ").toLowerCase()}.`,
+    });
+  }
+
   @OnEvent("user.followed")
   handleNewFollower(payload: { followingId: string; followerName: string }) {
     return this.create({

@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { InvestorsModule } from "../investors/investors.module";
+import { PortfolioModule } from "../portfolio/portfolio.module";
 import { StartupsModule } from "../startups/startups.module";
 
 import { AnalyticsController } from "./analytics.controller";
@@ -8,7 +9,7 @@ import { AnalyticsService } from "./analytics.service";
 import { RecommendationsService } from "./recommendations.service";
 
 @Module({
-  imports: [InvestorsModule, StartupsModule],
+  imports: [InvestorsModule, StartupsModule, PortfolioModule],
   controllers: [AnalyticsController],
   providers: [AnalyticsService, RecommendationsService],
 })

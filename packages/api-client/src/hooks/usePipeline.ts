@@ -1,6 +1,6 @@
 "use client";
 
-import type { AddToPipelineInput, UpdatePipelineEntryInput } from "@vittamhub/types";
+import type { AddToPipelineInput, PassStartupInput, UpdatePipelineEntryInput } from "@vittamhub/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { pipelineApi } from "../endpoints/pipeline";
@@ -23,6 +23,14 @@ export function useUpdatePipelineEntry() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdatePipelineEntryInput }) => pipelineApi.update(id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: pipelineKeys.all }),
+  });
+}
+
+export function usePassOnPipelineEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: PassStartupInput }) => pipelineApi.pass(id, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: pipelineKeys.all }),
   });
 }

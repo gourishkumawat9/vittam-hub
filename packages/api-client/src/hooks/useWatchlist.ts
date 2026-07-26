@@ -1,11 +1,11 @@
 "use client";
 
-import type { FollowStartupInput, UpdateWatchlistEntryInput } from "@vittamhub/types";
+import type { CreateWatchlistTriggerInput, FollowStartupInput, UpdateWatchlistEntryInput } from "@vittamhub/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { watchlistApi } from "../endpoints/watchlist";
 
-const watchlistKeys = { all: ["watchlist"] as const };
+const watchlistKeys = { all: ["watchlist"] as const, triggers: ["watchlist", "triggers"] as const };
 
 export function useWatchlist() {
   return useQuery({ queryKey: watchlistKeys.all, queryFn: watchlistApi.list });
@@ -33,5 +33,26 @@ export function useUpdateWatchlistEntry() {
     mutationFn: ({ startupId, input }: { startupId: string; input: UpdateWatchlistEntryInput }) =>
       watchlistApi.update(startupId, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: watchlistKeys.all }),
+  });
+}
+
+/** "Notify when revenue > target / trust score reaches Gold / ..." — evaluated hourly, fires a real Notification. */
+export function useWatchlistTriggers() {
+  return useQuery({ queryKey: watchlistKeys.triggers, queryFn: watchlistApi.listTriggers });
+}
+
+export function useCreateWatchlistTrigger() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateWatchlistTriggerInput) => watchlistApi.createTrigger(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: watchlistKeys.triggers }),
+  });
+}
+
+export function useRemoveWatchlistTrigger() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => watchlistApi.removeTrigger(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: watchlistKeys.triggers }),
   });
 }

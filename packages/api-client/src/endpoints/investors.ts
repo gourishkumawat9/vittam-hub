@@ -20,6 +20,20 @@ export interface InvestorWithMetrics extends Investor {
   trust: InvestorTrustSummary | null;
 }
 
+/** GET /v1/investors/me/co-investors — real shared-investment/confirmed-relationship data, no AI (Investor Workspace §8). */
+export interface CoInvestorGraph {
+  coInvestors: { investorId: string; fullName: string; avatarUrl: string | null; sharedStartups: { id: string; name: string; logoUrl: string | null }[] }[];
+  mutualConfirmations: number;
+  syndicatePartners: {
+    ownerId: string;
+    firmName: string | null;
+    investorType: string;
+    preferredIndustries: string[];
+    preferredStages: string[];
+    owner: { fullName: string };
+  }[];
+}
+
 export const investorsApi = {
   list: (filters: InvestorSearchFilters) => {
     const params = new URLSearchParams();
@@ -34,4 +48,5 @@ export const investorsApi = {
   getById: (id: string) => apiRequest<InvestorWithMetrics>(`/v1/investors/${id}`),
   getMine: () => apiRequest<InvestorWithMetrics>("/v1/investors/me"),
   updateMine: (input: UpdateInvestorInput) => apiRequest<Investor>("/v1/investors/me", { method: "PATCH", body: input }),
+  getMyCoInvestorGraph: () => apiRequest<CoInvestorGraph>("/v1/investors/me/co-investors"),
 };

@@ -15,10 +15,24 @@ export interface InvestorAnalytics {
   geography: AnalyticsBucket[];
   stage: AnalyticsBucket[];
   pipeline: AnalyticsBucket[];
+  pipelineByIndustry: AnalyticsBucket[];
   meetingConversion: { meetings: number; acceptedConnections: number };
   totalInvestments: number;
   totalPipelineEntries: number;
   connectionsReceived: number;
+  averageDealSize: number | null;
+  dealsClosed: number;
+  pipelineConversion: number | null;
+  passReasons: { byReason: AnalyticsBucket[]; byIndustry: AnalyticsBucket[]; averageEvaluationDays: number | null; total: number };
+  watchlistConversion: { watchlistSize: number; investedFromWatchlist: number; rate: number | null };
+  responseRate: number | null;
+  avgResponseTimeHours: number | null;
+  portfolioHealth: {
+    averageTrustScore: number | null;
+    averageGrowthRatePercent: number | null;
+    activeInvestments: number;
+    exitedInvestments: number;
+  };
 }
 
 export interface InvestorRecommendations {

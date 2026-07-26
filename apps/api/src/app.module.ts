@@ -27,6 +27,7 @@ import { FutureModulesModule } from "./modules/future-modules/future-modules.mod
 import { HiringModule } from "./modules/hiring/hiring.module";
 import { IncubatorsModule } from "./modules/incubators/incubators.module";
 import { InvestorsModule } from "./modules/investors/investors.module";
+import { SavedSearchesModule } from "./modules/investors/saved-searches.module";
 import { MediaModule } from "./modules/media/media.module";
 import { MentorsModule } from "./modules/mentors/mentors.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
@@ -41,6 +42,7 @@ import { UniversitiesModule } from "./modules/universities/universities.module";
 import { UsersModule } from "./modules/users/users.module";
 import { VerificationModule } from "./modules/verification/verification.module";
 import { WatchlistModule } from "./modules/watchlist/watchlist.module";
+import { WorkspaceModule } from "./modules/workspace/workspace.module";
 
 @Module({
   imports: [
@@ -75,6 +77,8 @@ import { WatchlistModule } from "./modules/watchlist/watchlist.module";
     PipelineModule,
     PortfolioModule,
     RelationshipsModule,
+    SavedSearchesModule,
+    WorkspaceModule,
     AnalyticsModule,
     DocumentsModule,
     VerificationModule,

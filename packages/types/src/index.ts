@@ -41,4 +41,5 @@ export * from "./domain/trust-v2";
 export * from "./domain/funding-round";
 export * from "./domain/document-access";
 export * from "./domain/investment-mandate";
+export * from "./domain/saved-search";
 export * from "./domain/mentor-review";
