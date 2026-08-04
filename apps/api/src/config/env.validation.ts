@@ -34,6 +34,10 @@ export const envSchema = z.object({
   SENTRY_DSN: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
+  // BullMQ cron schedulers (trust-recompute, watchlist-trigger evaluation) are
+  // noisy/unnecessary while developing locally — on by default in production,
+  // off everywhere else unless explicitly opted into.
+  ENABLE_JOB_SCHEDULERS: z.coerce.boolean().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { OtpPurpose, UserRole, type LoginInput, type RegisterInput } from "@vittamhub/types";
@@ -34,6 +34,8 @@ const MFA_CHALLENGE_PURPOSE = "mfa_challenge";
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -223,7 +225,9 @@ export class AuthService {
    * queued (BullMQ, see modules/jobs) rather than sent inline, so a slow or
    * down email provider never delays the login response — and unlike a bare
    * fire-and-forget promise, a failed send gets retried instead of silently
-   * dropped.
+   * dropped. Queueing itself is best-effort: if Redis is unavailable, login
+   * must still succeed — a missed login-alert email is a degraded feature,
+   * not a reason to lock a user out of their own account.
    */
   private async recordLogin(userId: string, email: string, meta: RequestMeta): Promise<void> {
     await this.prisma.auditLog.create({
@@ -231,11 +235,17 @@ export class AuthService {
     });
 
     const deviceLabel = this.sessionService.parseDeviceLabel(meta.userAgent);
-    await this.emailQueueService.enqueueLoginAlert({
-      email,
-      deviceLabel,
-      ipAddress: meta.ipAddress ?? "unknown",
-      timestamp: new Date().toUTCString(),
-    });
+    try {
+      await this.emailQueueService.enqueueLoginAlert({
+        email,
+        deviceLabel,
+        ipAddress: meta.ipAddress ?? "unknown",
+        timestamp: new Date().toUTCString(),
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Could not queue login-alert email for user ${userId} — Redis appears to be unavailable or over quota. Login succeeded regardless. Cause: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 }

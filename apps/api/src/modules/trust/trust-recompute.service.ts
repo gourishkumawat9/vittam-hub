@@ -1,5 +1,6 @@
 import { InjectQueue } from "@nestjs/bullmq";
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import type { Queue } from "bullmq";
 
 import { TRUST_RECOMPUTE_JOB, TRUST_RECOMPUTE_QUEUE_NAME } from "./trust-recompute.constants";
@@ -16,14 +17,34 @@ const DAILY_SCHEDULER_ID = "trust-recompute-daily";
  */
 @Injectable()
 export class TrustRecomputeService implements OnModuleInit {
-  constructor(@InjectQueue(TRUST_RECOMPUTE_QUEUE_NAME) private readonly queue: Queue) {}
+  private readonly logger = new Logger(TrustRecomputeService.name);
+
+  constructor(
+    @InjectQueue(TRUST_RECOMPUTE_QUEUE_NAME) private readonly queue: Queue,
+    private readonly configService: ConfigService,
+  ) {}
 
   async onModuleInit() {
-    await this.queue.upsertJobScheduler(
-      DAILY_SCHEDULER_ID,
-      { pattern: "0 3 * * *" }, // 03:00 UTC daily
-      { name: TRUST_RECOMPUTE_JOB.RECOMPUTE_ALL_STARTUPS, data: {} },
-    );
+    const enabled = this.configService.get<boolean>("ENABLE_JOB_SCHEDULERS") ?? this.configService.get("NODE_ENV") === "production";
+    if (!enabled) {
+      this.logger.log("Trust-recompute scheduler disabled (set ENABLE_JOB_SCHEDULERS=true to enable outside production).");
+      return;
+    }
+
+    // Redis being unreachable/over-quota must never block the HTTP server
+    // from starting — trust-score auto-recompute degrades to "not scheduled"
+    // instead of taking the whole API down.
+    try {
+      await this.queue.upsertJobScheduler(
+        DAILY_SCHEDULER_ID,
+        { pattern: "0 3 * * *" }, // 03:00 UTC daily
+        { name: TRUST_RECOMPUTE_JOB.RECOMPUTE_ALL_STARTUPS, data: {} },
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Could not register the trust-recompute scheduler — Redis appears to be unavailable or over quota. Daily trust-score recompute will not run until this is resolved and the service restarts. Cause: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   /** Manual trigger — e.g. an admin "recompute now" action. */
