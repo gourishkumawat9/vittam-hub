@@ -3,6 +3,7 @@ import { ApiExcludeEndpoint } from "@nestjs/swagger";
 import { Request } from "express";
 
 import { Public } from "../../common/decorators/public.decorator";
+import { SkipCsrf } from "../../common/decorators/skip-csrf.decorator";
 
 import { BillingService } from "./billing.service";
 
@@ -13,9 +14,13 @@ export class BillingController {
   /**
    * Stripe requires the exact raw request bytes to verify the webhook
    * signature — main.ts registers `express.raw()` for this one path only
-   * (JSON body parsing would corrupt Stripe's signature check).
+   * (JSON body parsing would corrupt Stripe's signature check). Server-to-
+   * server, never called by a browser, so it carries no CSRF cookie/header —
+   * @SkipCsrf() is safe here specifically because the signature check below
+   * is the real protection.
    */
   @Public()
+  @SkipCsrf()
   @Post("webhook")
   @ApiExcludeEndpoint()
   async webhook(@Req() req: Request, @Headers("stripe-signature") signature: string) {

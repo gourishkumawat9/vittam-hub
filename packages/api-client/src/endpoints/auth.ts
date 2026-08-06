@@ -55,4 +55,7 @@ export const authApi = {
   revokeOtherSessions: () => apiRequest<{ revoked: boolean }>("/v1/auth/sessions", { method: "DELETE" }),
 
   captchaSiteKey: () => apiRequest<{ siteKey: string | null }>("/v1/auth/captcha-site-key"),
+
+  /** Fired once on app load so the csrf_token cookie exists before any mutating request — see docs/09-authentication-security.md §CSRF. */
+  csrfBootstrap: () => apiRequest<{ ok: boolean }>("/v1/auth/csrf"),
 };

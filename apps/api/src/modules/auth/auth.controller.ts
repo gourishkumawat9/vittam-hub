@@ -259,6 +259,22 @@ export class AuthController {
     return { siteKey: this.configService.get("CAPTCHA_SITE_KEY") ?? null };
   }
 
+  // ─── CSRF bootstrap ─────────────────────────────────────────────────────
+
+  /**
+   * A GET request the app fires once on initial load, purely so
+   * csrfCookieMiddleware has a chance to set the csrf_token cookie before
+   * the user can possibly submit a mutating request (login/register
+   * included — a totally fresh browser session has no cookie yet, and
+   * CsrfGuard would otherwise reject that very first POST).
+   */
+  @Public()
+  @Get("csrf")
+  @ApiExcludeEndpoint()
+  csrfBootstrap() {
+    return { ok: true };
+  }
+
   // ─── OAuth ─────────────────────────────────────────────────────────────
 
   @Public()

@@ -10,14 +10,17 @@ import * as express from "express";
 import helmet from "helmet";
 
 import { AppModule } from "./app.module";
+import { csrfCookieMiddleware } from "./common/middleware/csrf-cookie.middleware";
 import { PrismaService } from "./database/prisma/prisma.service";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const isProd = configService.get("NODE_ENV") === "production";
 
   app.use(helmet());
   app.use(cookieParser());
+  app.use(csrfCookieMiddleware(isProd, configService.getOrThrow<string>("APP_URL")));
 
   // Stripe needs the exact raw bytes to verify webhook signatures — register
   // this BEFORE the JSON body parser so it only applies to that one path.

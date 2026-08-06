@@ -1,8 +1,16 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { authApi } from "@vittamhub/api-client";
 import { ThemeProvider } from "next-themes";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
+import { setupHttpClient } from "@/lib/http-client-setup";
+
+// Runs once per client bundle load, before any component mounts — the CSRF
+// cookie-reading function must be registered before React Query can fire
+// any mutation.
+setupHttpClient();
 
 /**
  * App-wide providers. Kept as a single client boundary so `app/layout.tsx`
@@ -23,6 +31,16 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }),
   );
+
+  // Guarantees the csrf_token cookie exists before the user can possibly
+  // submit a mutating request (login/register included) — see
+  // docs/09-authentication-security.md §CSRF.
+  useEffect(() => {
+    authApi.csrfBootstrap().catch(() => {
+      // Best-effort — a normal GET elsewhere in the app will also set the
+      // cookie via csrfCookieMiddleware if this one fails for any reason.
+    });
+  }, []);
 
   return (
     <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem disableTransitionOnChange>
