@@ -117,10 +117,34 @@ export class VerificationOrchestratorService {
     });
   }
 
-  getRecords(entityType: VerifiableEntityType, entityId: string) {
-    return this.prisma.verificationRecord.findMany({
+  /**
+   * The ledger legitimately backs the public verification badges on a
+   * profile, so it stays readable by anyone — but only the owner sees the
+   * full rows. `rawResponse` holds the verbatim payload returned by the
+   * government/registry providers (MCA, GSTIN, SEBI, DigiLocker, ICAI...),
+   * i.e. identity PII, and `verifiedBy`/`input` can expose internal detail.
+   * Non-owners get just the badge-shaped facts.
+   */
+  async getRecords(entityType: VerifiableEntityType, entityId: string, callerId: string) {
+    const records = await this.prisma.verificationRecord.findMany({
       where: { entityType, entityId },
       orderBy: { createdAt: "desc" },
     });
+
+    const ownerId = await this.resolveOwnerId(entityType, entityId);
+    if (ownerId && ownerId === callerId) return records;
+
+    return records.map((record) => ({
+      id: record.id,
+      entityType: record.entityType,
+      entityId: record.entityId,
+      field: record.field,
+      tier: record.tier,
+      method: record.method,
+      status: record.status,
+      verifiedAt: record.verifiedAt,
+      expiresAt: record.expiresAt,
+      createdAt: record.createdAt,
+    }));
   }
 }

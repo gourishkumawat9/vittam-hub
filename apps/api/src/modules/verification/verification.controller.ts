@@ -42,8 +42,12 @@ export class VerificationController {
   }
 
   @Get(":entityType/:entityId")
-  @ApiOperation({ summary: "List the verification ledger for a profile — the audit trail behind its badges" })
-  getRecords(@Param("entityType") entityType: VerifiableEntityType, @Param("entityId") entityId: string) {
-    return this.orchestrator.getRecords(entityType, entityId);
+  @ApiOperation({ summary: "List the verification ledger for a profile — the audit trail behind its badges (raw provider responses are owner-only)" })
+  getRecords(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("entityType") entityType: VerifiableEntityType,
+    @Param("entityId") entityId: string,
+  ) {
+    return this.orchestrator.getRecords(entityType, entityId, user.sub);
   }
 }

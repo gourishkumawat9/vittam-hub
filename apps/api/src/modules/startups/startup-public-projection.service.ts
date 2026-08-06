@@ -44,8 +44,15 @@ export function bandifyAmount(value: unknown): string | null {
  */
 @Injectable()
 export class StartupPublicProjectionService {
-  project<T extends ProjectableStartup>(startup: T, viewer: StartupViewerContext): T {
-    if (viewer.isOwner) return startup;
+  /**
+   * The visibility gate on its own, for routes that expose a startup's
+   * *related* data (timeline, activity feed) rather than the record itself.
+   * Those still have to respect PRIVATE/STEALTH/INVESTOR_ONLY — otherwise a
+   * founder in stealth leaks their milestones and updates through a side
+   * door while the main profile route correctly 404s.
+   */
+  assertViewable(startup: Pick<ProjectableStartup, "visibility">, viewer: StartupViewerContext): void {
+    if (viewer.isOwner) return;
 
     if (startup.visibility === "PRIVATE" || startup.visibility === "STEALTH") {
       throw new NotFoundException("Startup not found");
@@ -53,6 +60,12 @@ export class StartupPublicProjectionService {
     if (startup.visibility === "INVESTOR_ONLY" && !viewer.isInvestor) {
       throw new ForbiddenException("This profile is visible to investors only");
     }
+  }
+
+  project<T extends ProjectableStartup>(startup: T, viewer: StartupViewerContext): T {
+    if (viewer.isOwner) return startup;
+
+    this.assertViewable(startup, viewer);
 
     // Investors see exact figures (the deal-evaluation case Bundle 11 is
     // built around); everyone else gets the founder's chosen display mode.

@@ -17,7 +17,14 @@ export class SmsService {
   async sendOtpCode(toPhone: string, code: string): Promise<void> {
     const apiKey = this.configService.get<string>("SMS_API_KEY");
     if (!apiKey) {
-      this.logger.warn(`SMS_API_KEY not configured — logging SMS instead of sending. To: ${toPhone}, Code: ${code}`);
+      // Never print a live OTP in production — it would sit in the log
+      // aggregator long after the code's own expiry, readable by anyone with
+      // log access. Local dev still needs it to test the flow end to end.
+      if (process.env.NODE_ENV === "production") {
+        this.logger.warn(`SMS_API_KEY not configured — phone OTP not sent. To: ${toPhone}`);
+      } else {
+        this.logger.warn(`SMS_API_KEY not configured — logging SMS instead of sending. To: ${toPhone}, Code: ${code}`);
+      }
       return;
     }
     // TODO: wire a real SMS provider (Twilio/MSG91/etc.) here once one is chosen.

@@ -28,8 +28,15 @@ export class EmailService {
 
   async send({ to, subject, html }: SendEmailInput): Promise<void> {
     if (!this.resend) {
-      this.logger.warn(`RESEND_API_KEY not configured — logging email instead of sending. To: ${to}, Subject: ${subject}`);
-      this.logger.debug(html);
+      this.logger.warn(`RESEND_API_KEY not configured — email not sent. To: ${to}, Subject: ${subject}`);
+      // The body carries password-reset links and OTP codes. Dumping it to
+      // stdout is fine on a developer's laptop but would put live account-
+      // recovery tokens into the platform's log aggregator in production,
+      // where they outlive the token's own TTL and are readable by anyone
+      // with log access.
+      if (process.env.NODE_ENV !== "production") {
+        this.logger.debug(html);
+      }
       return;
     }
 

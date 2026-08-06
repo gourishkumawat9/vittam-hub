@@ -29,6 +29,7 @@ import { HiringModule } from "./modules/hiring/hiring.module";
 import { IncubatorsModule } from "./modules/incubators/incubators.module";
 import { InvestorsModule } from "./modules/investors/investors.module";
 import { SavedSearchesModule } from "./modules/investors/saved-searches.module";
+import { EMAIL_QUEUE_NAME } from "./modules/jobs/email-queue.constants";
 import { MediaModule } from "./modules/media/media.module";
 import { MentorsModule } from "./modules/mentors/mentors.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
@@ -56,6 +57,10 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
     ]),
     EventEmitterModule.forRoot(),
     BullModule.forRoot({ connection: { url: process.env.REDIS_URL } }),
+    // Registered here (as well as in JobsModule) purely so AppController's
+    // /health probe can reach the shared Redis connection to report queue
+    // health — registerQueue resolves to the same underlying queue instance.
+    BullModule.registerQueue({ name: EMAIL_QUEUE_NAME }),
     PrismaModule,
 
     // Domain modules — see docs/07-backend-architecture.md for the module

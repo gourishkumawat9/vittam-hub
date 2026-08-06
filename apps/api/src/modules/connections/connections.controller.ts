@@ -83,8 +83,8 @@ export class ConnectionsController {
 
   @Get(":id/meetings")
   @ApiOperation({ summary: "List proposed/scheduled meeting times for a connection" })
-  listMeetings(@Param("id") id: string) {
-    return this.connectionsService.listMeetings(id);
+  listMeetings(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.connectionsService.listMeetings(id, user.sub);
   }
 
   @Post(":id/meetings")

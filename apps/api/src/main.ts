@@ -18,6 +18,19 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const isProd = configService.get("NODE_ENV") === "production";
 
+  // Railway terminates TLS and proxies to the container, so without this
+  // every request's `req.ip` is the proxy's address: ThrottlerGuard collapses
+  // into a single global bucket (one attacker exhausting the 10/min login
+  // limit locks out every user), and AuditLog/session/login-alert IPs are all
+  // recorded as the proxy.
+  //
+  // Deliberately the hop count `1`, never `true`: `true` trusts the entire
+  // X-Forwarded-For chain, so a client could prepend an arbitrary address and
+  // make `req.ip` attacker-controlled — turning per-IP rate limiting into a
+  // trivial bypass. A numeric value takes the Nth entry from the right, which
+  // only the trusted proxy itself can set.
+  app.set("trust proxy", 1);
+
   app.use(helmet());
   app.use(cookieParser());
   app.use(csrfCookieMiddleware(isProd, configService.getOrThrow<string>("APP_URL")));

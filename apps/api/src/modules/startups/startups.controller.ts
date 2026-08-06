@@ -232,16 +232,26 @@ export class StartupsController {
   @Public()
   @Get(":slug/milestones")
   @ApiOperation({ summary: "List a startup's public timeline, in chronological order" })
-  async listMilestones(@Param("slug") slug: string) {
+  async listMilestones(@Param("slug") slug: string, @CurrentUser() user: AuthenticatedUser | null) {
     const startup = await this.startupsService.getBySlug(slug);
+    // Same visibility gate as the profile route — a STEALTH/PRIVATE startup
+    // must not leak its timeline through this side door.
+    this.publicProjection.assertViewable(startup, {
+      isOwner: startup.ownerId === user?.sub,
+      isInvestor: user?.role === "INVESTOR",
+    });
     return this.milestonesService.listForStartup(startup.id);
   }
 
   @Public()
   @Get(":slug/activity")
   @ApiOperation({ summary: "Public activity feed for a startup — milestones, updates, job postings, traction changes" })
-  async getPublicActivity(@Param("slug") slug: string) {
+  async getPublicActivity(@Param("slug") slug: string, @CurrentUser() user: AuthenticatedUser | null) {
     const startup = await this.startupsService.getBySlug(slug);
+    this.publicProjection.assertViewable(startup, {
+      isOwner: startup.ownerId === user?.sub,
+      isInvestor: user?.role === "INVESTOR",
+    });
     return this.founderActivityService.getPublicForStartup(startup.id);
   }
 

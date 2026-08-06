@@ -178,13 +178,23 @@ export class ConnectionsService {
     return updated;
   }
 
-  /** Either party can propose a time — allowed before acceptance too (an intro call can happen ahead of a formal Accept). */
-  async scheduleMeeting(connectionId: string, callerId: string, input: ScheduleMeetingInput) {
+  /**
+   * Membership-only check — deliberately does NOT require ACCEPTED, unlike
+   * assertCanMessage: meetings can be proposed before a formal Accept (an
+   * intro call ahead of the decision), messaging cannot.
+   */
+  private async assertConnectionMember(connectionId: string, callerId: string) {
     const connection = await this.prisma.connection.findUnique({ where: { id: connectionId } });
     if (!connection) throw new NotFoundException("Connection not found");
     if (connection.requesterId !== callerId && connection.recipientId !== callerId) {
       throw new ForbiddenException("You're not part of this connection");
     }
+    return connection;
+  }
+
+  /** Either party can propose a time — allowed before acceptance too (an intro call can happen ahead of a formal Accept). */
+  async scheduleMeeting(connectionId: string, callerId: string, input: ScheduleMeetingInput) {
+    const connection = await this.assertConnectionMember(connectionId, callerId);
 
     const meeting = await this.prisma.meeting.create({
       data: {
@@ -202,7 +212,9 @@ export class ConnectionsService {
     return meeting;
   }
 
-  listMeetings(connectionId: string) {
+  /** Membership is enforced here, not just on write — meeting notes and video-call URLs are private to the two parties. */
+  async listMeetings(connectionId: string, callerId: string) {
+    await this.assertConnectionMember(connectionId, callerId);
     return this.prisma.meeting.findMany({ where: { connectionId }, orderBy: { scheduledAt: "asc" } });
   }
 

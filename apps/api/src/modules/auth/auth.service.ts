@@ -85,7 +85,7 @@ export class AuthService {
     if (user.twoFactorEnabled) {
       const challengeToken = this.jwtService.sign(
         { sub: user.id, purpose: MFA_CHALLENGE_PURPOSE },
-        { secret: this.configService.getOrThrow("JWT_ACCESS_SECRET"), expiresIn: MFA_CHALLENGE_TTL },
+        { secret: this.mfaChallengeSecret(), expiresIn: MFA_CHALLENGE_TTL },
       );
       return { mfaRequired: true as const, challengeToken };
     }
@@ -204,10 +204,22 @@ export class AuthService {
     return { accessToken, refreshToken: rawRefreshToken, rememberMe };
   }
 
+  /**
+   * Deliberately NOT the access-token secret. The MFA challenge token is
+   * handed to a caller who has proven only the first factor, so it must not
+   * be verifiable as a session token — otherwise it can simply be replayed
+   * as the session cookie and the second factor is skipped entirely.
+   * JWT_REFRESH_SECRET is already required (>=32 chars, distinct from the
+   * access secret) by env.validation.ts and was otherwise unused.
+   */
+  private mfaChallengeSecret(): string {
+    return this.configService.getOrThrow<string>("JWT_REFRESH_SECRET");
+  }
+
   private verifyMfaChallengeToken(token: string): string {
     try {
       const payload = this.jwtService.verify<{ sub: string; purpose: string }>(token, {
-        secret: this.configService.getOrThrow("JWT_ACCESS_SECRET"),
+        secret: this.mfaChallengeSecret(),
       });
       if (payload.purpose !== MFA_CHALLENGE_PURPOSE) throw new Error("wrong token purpose");
       return payload.sub;
