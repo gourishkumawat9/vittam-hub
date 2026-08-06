@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeleteDocument, useDocuments, useUploadDocument, uploadFile } from "@vittamhub/api-client";
+import { useDeleteDocument, useDocumentDownloadUrl, useDocuments, useUploadDocument, uploadFile } from "@vittamhub/api-client";
 import { DocumentType } from "@vittamhub/types";
 import { Button, EmptyState, Select } from "@vittamhub/ui";
 import { FolderLock, Loader2, Trash2, Upload } from "lucide-react";
@@ -41,6 +41,7 @@ export default function DocumentVaultPage() {
   const { data: documents, isLoading } = useDocuments();
   const uploadDocument = useUploadDocument();
   const deleteDocument = useDeleteDocument();
+  const downloadUrl = useDocumentDownloadUrl();
   const [uploadType, setUploadType] = useState<DocumentType>(DocumentType.PITCH_DECK);
   const [uploading, setUploading] = useState(false);
 
@@ -53,6 +54,13 @@ export default function DocumentVaultPage() {
     } finally {
       setUploading(false);
     }
+  };
+
+  // The API never hands out a permanent file URL — each "View" click mints a
+  // fresh short-lived signed one via GET /v1/documents/:id/access.
+  const handleView = async (documentId: string) => {
+    const result = await downloadUrl.mutateAsync(documentId);
+    window.open(result.fileUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -84,9 +92,14 @@ export default function DocumentVaultPage() {
                 <p className="text-xs text-text-secondary">{DOCUMENT_LABELS[doc.type] ?? doc.type}</p>
               </div>
               <div className="flex items-center gap-3">
-                <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-brand-primary hover:underline">
+                <button
+                  type="button"
+                  onClick={() => handleView(doc.id)}
+                  disabled={downloadUrl.isPending}
+                  className="text-xs font-medium text-brand-primary hover:underline disabled:opacity-60"
+                >
                   View
-                </a>
+                </button>
                 <Button size="sm" variant="ghost" onClick={() => deleteDocument.mutate(doc.id)} isLoading={deleteDocument.isPending}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

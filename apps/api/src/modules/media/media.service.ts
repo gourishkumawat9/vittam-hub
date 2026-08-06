@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import { S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
@@ -74,5 +75,32 @@ export class MediaService {
     });
 
     return { uploadUrl: url, uploadFields: fields, publicUrl: `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/${key}` };
+  }
+
+  /**
+   * Recovers the raw storage key from a `publicUrl` previously returned by
+   * `createUploadUrl` — `Document.fileUrl` only stores that composed URL, not
+   * the key separately, so this is how a gated document's access path gets
+   * back to something `getSignedDownloadUrl` can sign.
+   */
+  extractKeyFromPublicUrl(publicUrl: string): string {
+    const prefix = `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/`;
+    if (!publicUrl.startsWith(prefix)) {
+      throw new Error("Not a recognized storage URL");
+    }
+    return publicUrl.slice(prefix.length);
+  }
+
+  /**
+   * A short-lived, single-purpose signed GET URL — this is what gated
+   * documents (`documents`/`resumes` folders) must be served through instead
+   * of a permanent public URL, so that revoking a DocumentGrant actually
+   * revokes access: once the signature expires, the URL stops working
+   * regardless of who has it, and no *new* one can be minted without passing
+   * DocumentAccessService.access()'s grant check again.
+   */
+  async getSignedDownloadUrl(key: string, expiresInSeconds = 300): Promise<string> {
+    const bucket = this.configService.get("STORAGE_BUCKET", "");
+    return getSignedUrl(this.s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: expiresInSeconds });
   }
 }

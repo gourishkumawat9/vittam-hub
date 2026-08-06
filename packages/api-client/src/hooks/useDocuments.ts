@@ -55,3 +55,8 @@ export function useDeleteDocument() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: documentKeys.all }),
   });
 }
+
+/** Mints a short-lived signed URL on demand — the API never returns a permanent file URL, so "view/download" always goes through this first. */
+export function useDocumentDownloadUrl() {
+  return useMutation({ mutationFn: (id: string) => documentsApi.access(id) });
+}

@@ -4,13 +4,23 @@ import type { CreateDocumentGrantInput } from "@vittamhub/types";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
+import { MediaService } from "../media/media.service";
+
+/** How long a minted download link stays valid. Short enough that a leaked/forwarded link is worthless within minutes, long enough for a normal page load + click-to-open. */
+const SIGNED_URL_TTL_SECONDS = 300;
 
 /**
  * Bundle 21 — the permissioned data room. A gated document is never handed
  * out by raw URL; access always goes through `access()`, which checks for an
  * active (non-expired, non-revoked, NDA-satisfied-if-required) grant, logs
- * the view, and only then returns the file. Watermarking the file itself is
- * future work (needs a real media-processing step) — see docs/STATUS.md.
+ * the view, and only then mints a short-lived signed URL for the file.
+ * `Document.fileUrl` itself stores the permanent public CDN URL created at
+ * upload time — never returned directly, only used to recover the storage
+ * key — so a revoked/expired grant actually stops access (the old permanent
+ * URL previously returned here would have kept working forever regardless of
+ * revocation; a signed URL expires on its own and can't be re-minted without
+ * passing the grant check again). Watermarking the file itself is future
+ * work (needs a real media-processing step) — see docs/STATUS.md.
  */
 @Injectable()
 export class DocumentAccessService {
@@ -18,7 +28,13 @@ export class DocumentAccessService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly auditLog: AuditLogService,
+    private readonly mediaService: MediaService,
   ) {}
+
+  private async signedFileUrl(fileUrl: string): Promise<string> {
+    const key = this.mediaService.extractKeyFromPublicUrl(fileUrl);
+    return this.mediaService.getSignedDownloadUrl(key, SIGNED_URL_TTL_SECONDS);
+  }
 
   private async ownedDocument(ownerId: string, documentId: string) {
     const document = await this.prisma.document.findUnique({ where: { id: documentId } });
@@ -86,7 +102,7 @@ export class DocumentAccessService {
     if (!document) throw new NotFoundException("Document not found");
 
     if (document.userId === viewerId) {
-      return { fileUrl: document.fileUrl, fileName: document.fileName, type: document.type };
+      return { fileUrl: await this.signedFileUrl(document.fileUrl), fileName: document.fileName, type: document.type };
     }
 
     const now = new Date();
@@ -101,7 +117,7 @@ export class DocumentAccessService {
     }
 
     await this.prisma.documentView.create({ data: { documentId, viewerId } });
-    return { fileUrl: document.fileUrl, fileName: document.fileName, type: document.type };
+    return { fileUrl: await this.signedFileUrl(document.fileUrl), fileName: document.fileName, type: document.type };
   }
 
   /** The founder's view: who has access, and how many times they've actually opened it — "Blume opened your deck twice" (spec §21). */
