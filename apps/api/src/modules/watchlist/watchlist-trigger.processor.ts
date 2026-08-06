@@ -1,6 +1,8 @@
-import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import type { Job } from "bullmq";
+import type { Job, Worker } from "bullmq";
+
+import { RedisCircuitBreaker } from "../../common/queue/redis-circuit-breaker";
 
 import { WatchlistTriggerEvaluatorService } from "./watchlist-trigger-evaluator.service";
 import { WATCHLIST_TRIGGER_JOB, WATCHLIST_TRIGGER_QUEUE_NAME } from "./watchlist-trigger.constants";
@@ -8,9 +10,25 @@ import { WATCHLIST_TRIGGER_JOB, WATCHLIST_TRIGGER_QUEUE_NAME } from "./watchlist
 @Processor(WATCHLIST_TRIGGER_QUEUE_NAME)
 export class WatchlistTriggerProcessor extends WorkerHost {
   private readonly logger = new Logger(WatchlistTriggerProcessor.name);
+  private readonly circuitBreaker = new RedisCircuitBreaker(this.logger, WATCHLIST_TRIGGER_QUEUE_NAME);
 
   constructor(private readonly evaluator: WatchlistTriggerEvaluatorService) {
     super();
+  }
+
+  @OnWorkerEvent("error")
+  onError(err: Error) {
+    this.circuitBreaker.onError(err, this.worker as Worker);
+  }
+
+  @OnWorkerEvent("drained")
+  onDrained() {
+    this.circuitBreaker.onHealthy();
+  }
+
+  @OnWorkerEvent("completed")
+  onCompleted() {
+    this.circuitBreaker.onHealthy();
   }
 
   async process(job: Job): Promise<void> {
