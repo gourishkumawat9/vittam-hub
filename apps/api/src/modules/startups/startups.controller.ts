@@ -62,6 +62,15 @@ export class StartupsController {
   async search(@CurrentUser() user: AuthenticatedUser, @Query() filters: StartupSearchFilters) {
     const result = await this.startupsService.search(filters, user.sub);
 
+    // Scored once for the whole page, not once per row: scoreManyForInvestor
+    // does a single investor lookup and then scores in memory, so calling it
+    // with a one-element array per result was doing N investor queries for
+    // what is genuinely one query's worth of work.
+    const matchScores =
+      user.role === "INVESTOR"
+        ? await this.matchScoreService.scoreManyForInvestor(user.sub, result.items)
+        : null;
+
     const projectedOrNull = await Promise.all(
       result.items.map(async (startup) => {
         // isPublic already filters the DB query, but `visibility` (INVESTOR_ONLY/PRIVATE/STEALTH) is a finer-grained,
@@ -78,8 +87,7 @@ export class StartupsController {
         }
 
         const trustScore = await this.trustScoreService.calculate(startup.id);
-        const matchScore =
-          user.role === "INVESTOR" ? (await this.matchScoreService.scoreManyForInvestor(user.sub, [startup])).get(startup.id) : undefined;
+        const matchScore = matchScores?.get(startup.id);
         // Never expose the factors breakdown externally — only score + band.
         return { ...projected, trustScore: { score: trustScore.score, band: trustScore.band }, matchScore: matchScore ?? null };
       }),

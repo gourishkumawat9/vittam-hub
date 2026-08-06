@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import type { ScoreBand, TrustScore, TrustScoreFactor } from "@vittamhub/types";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
-import { TrustEngineService } from "../trust/trust-engine.service";
 
 import { ProfileCompletionService } from "./profile-completion.service";
 
@@ -18,16 +17,18 @@ export class TrustScoreService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly profileCompletion: ProfileCompletionService,
-    private readonly trustEngine: TrustEngineService,
   ) {}
 
   async calculate(startupId: string): Promise<TrustScore> {
-    // Shadow-mode v2 write (trust-model.ts) — never awaited by the response,
-    // never allowed to change what v1 returns here. Builds real score HISTORY
-    // now so the eventual FF_TRUST_V2 cutover (see trust-compare.ts) has data
-    // to compare against instead of starting cold.
-    void this.trustEngine.computeAndPersistForStartupSafely(startupId);
-
+    // NOTE: the shadow-mode v2 snapshot write that used to fire here has been
+    // removed deliberately. It made every *read* of a trust score perform ~9
+    // queries plus an INSERT, so a single 20-result search page wrote 20
+    // TrustScoreSnapshot rows — a table growing with read traffic, which in
+    // turn slowed the unbounded snapshot scans in PortfolioService. No history
+    // is lost: TrustRecomputeProcessor calls
+    // trustEngine.computeAndPersistForStartupSafely directly for every public
+    // startup on the daily 03:00 UTC job, which is the intended source of
+    // score history for the eventual FF_TRUST_V2 cutover (see trust-compare.ts).
     const startup = await this.prisma.startup.findUnique({
       where: { id: startupId },
       include: { owner: { include: { profile: true } }, product: true, milestones: true },
