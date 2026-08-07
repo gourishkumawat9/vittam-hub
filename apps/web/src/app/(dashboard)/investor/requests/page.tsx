@@ -8,7 +8,7 @@ import {
   useScheduleMeeting,
   type ConnectionWithRelations,
 } from "@vittamhub/api-client";
-import { Button, Card, Dialog, EmptyState, Input, Textarea } from "@vittamhub/ui";
+import { Button, Card, Dialog, EmptyState, Input, Textarea, useToast } from "@vittamhub/ui";
 import { formatMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Bookmark, Calendar, FileText, HelpCircle, Inbox, MessageCircle, PlayCircle } from "lucide-react";
 import Link from "next/link";
@@ -63,6 +63,7 @@ function PendingRequestCard({ connection }: { connection: ConnectionWithRelation
   const respond = useRespondToConnection();
   const followStartup = useFollowStartup();
   const requestMoreInfo = useRequestMoreInfo();
+  const { toast } = useToast();
   const [actioning, setActioning] = useState<"ACCEPT" | "DECLINE" | "IGNORE" | null>(null);
   const [meetingOpen, setMeetingOpen] = useState(false);
 
@@ -70,6 +71,23 @@ function PendingRequestCard({ connection }: { connection: ConnectionWithRelation
     setActioning(action);
     try {
       await respond.mutateAsync({ id: connection.id, action });
+      const founderName = connection.startup?.name ?? connection.requester.fullName;
+      // Accepting is the moment the core loop unlocks (CLAUDE.md §4), so the
+      // confirmation also says what became possible — a confirmation that
+      // only says "done" makes the user go looking for what changed.
+      if (action === "ACCEPT") {
+        toast({
+          variant: "success",
+          title: `Connected with ${founderName}`,
+          description: "You can now message each other, share documents, and schedule a meeting.",
+        });
+      } else {
+        toast({
+          variant: "info",
+          title: action === "DECLINE" ? `Declined ${founderName}` : `Ignored ${founderName}`,
+          description: action === "DECLINE" ? "They've been notified." : "It won't appear in your queue again.",
+        });
+      }
     } finally {
       setActioning(null);
     }

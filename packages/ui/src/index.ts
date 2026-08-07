@@ -18,4 +18,5 @@ export * from "./components/EmptyState/EmptyState";
 export * from "./components/EmptyState/ErrorState";
 export * from "./components/Tabs/Tabs";
 export * from "./components/Accordion/Accordion";
+export * from "./components/Toast/Toast";
 export * from "./lib/cn";

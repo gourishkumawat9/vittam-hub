@@ -13,7 +13,28 @@ export function GlobalSearch() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [shortcutHint, setShortcutHint] = useState("");
   const router = useRouter();
+
+  // ⌘K / Ctrl-K to search from anywhere, Escape to leave — the baseline
+  // keyboard affordance every tool this product is measured against has.
+  // The hint is set from an effect rather than during render because the
+  // platform check would otherwise differ between server and client markup.
+  useEffect(() => {
+    setShortcutHint(/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K");
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+        setOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
@@ -44,15 +65,29 @@ export function GlobalSearch() {
       <div className="flex items-center gap-2 rounded-button border border-border bg-background-secondary px-3 py-1.5">
         <Search className="h-4 w-4 shrink-0 text-text-secondary" />
         <input
+          ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
             if (e.key === "Enter") goToFullResults();
+            if (e.key === "Escape") {
+              setOpen(false);
+              inputRef.current?.blur();
+            }
           }}
+          aria-label="Search startups, investors and mentors"
           placeholder="Search startups, investors, mentors…"
           className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-secondary focus:outline-none"
         />
+        {shortcutHint && !query && (
+          <kbd
+            aria-hidden="true"
+            className="hidden shrink-0 rounded border border-border px-1.5 py-0.5 font-sans text-[10px] font-medium text-text-secondary sm:inline-block"
+          >
+            {shortcutHint}
+          </kbd>
+        )}
       </div>
 
       {open && debouncedQuery.trim().length > 0 && (
