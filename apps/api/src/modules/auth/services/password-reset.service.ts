@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as argon2 from "argon2";
 
@@ -11,6 +11,8 @@ const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 @Injectable()
 export class PasswordResetService {
+  private readonly logger = new Logger(PasswordResetService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
@@ -32,7 +34,17 @@ export class PasswordResetService {
     });
 
     const resetUrl = `${this.configService.get("APP_URL")}/reset-password?token=${rawToken}`;
-    await this.emailService.sendPasswordReset(email, resetUrl);
+    // Swallowed deliberately: an unknown address returns early with 200, so
+    // letting a send failure surface as a 500 would make the status code
+    // itself reveal whether an account exists — exactly the enumeration this
+    // method's contract promises to prevent.
+    try {
+      await this.emailService.sendPasswordReset(email, resetUrl);
+    } catch (err) {
+      this.logger.error(
+        `Could not send the password-reset email. Cause: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async confirmReset(rawToken: string, newPassword: string): Promise<void> {

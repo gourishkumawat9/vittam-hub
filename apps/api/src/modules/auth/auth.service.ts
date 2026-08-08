@@ -65,7 +65,20 @@ export class AuthService {
       },
     });
 
-    await this.otpService.issue(user.id, user.email, OtpPurpose.EMAIL_VERIFICATION);
+    // Best-effort: the account already exists at this point, so a failure to
+    // deliver the verification email must not fail the request. Previously any
+    // email error (unverified sending domain, provider outage, a `to` address
+    // the provider rejects) threw a 500 *after* the user row was committed —
+    // the caller saw signup fail, retried, and hit "email already exists",
+    // leaving them permanently unable to sign up. The user can always request
+    // a new code via /v1/auth/verify-email/resend.
+    try {
+      await this.otpService.issue(user.id, user.email, OtpPurpose.EMAIL_VERIFICATION);
+    } catch (err) {
+      this.logger.error(
+        `Registered ${user.id} but could not send the verification email — they can request a new code. Cause: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
 
     const session = await this.issueSession(user.id, user.email, user.role, meta);
     return { ...session, user };
