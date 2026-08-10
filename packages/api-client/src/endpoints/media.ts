@@ -25,6 +25,19 @@ export async function uploadFile(file: File, folder: UploadFolder): Promise<stri
   formData.append("file", file);
 
   const response = await fetch(uploadUrl, { method: "POST", body: formData });
-  if (!response.ok) throw new Error("File upload failed");
+  if (!response.ok) {
+    // Storage providers answer with an XML <Error><Code>…</Code></Error> body.
+    // Surfacing that code turns an unactionable "File upload failed" into
+    // something diagnosable — EntityTooLarge (over the size cap) and
+    // AccessDenied / CORS rejections look identical to a user otherwise.
+    const body = await response.text().catch(() => "");
+    const code = body.match(/<Code>([^<]+)<\/Code>/)?.[1];
+    const detail = code ?? `HTTP ${response.status}`;
+    throw new Error(
+      code === "EntityTooLarge"
+        ? "That file is too large for this upload type."
+        : `Upload to storage failed (${detail}). If this persists, storage may be misconfigured.`,
+    );
+  }
   return publicUrl;
 }

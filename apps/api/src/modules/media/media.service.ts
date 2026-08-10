@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -27,8 +27,18 @@ const MAX_UPLOAD_BYTES: Record<UploadFolder, number> = {
   resumes: 10 * 1024 * 1024,
 };
 
+/** Every setting that must be present before a single byte can be stored or served. */
+const REQUIRED_STORAGE_VARS = [
+  "STORAGE_ENDPOINT",
+  "STORAGE_BUCKET",
+  "STORAGE_ACCESS_KEY_ID",
+  "STORAGE_SECRET_ACCESS_KEY",
+  "STORAGE_PUBLIC_CDN_URL",
+] as const;
+
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
   private readonly s3: S3Client;
 
   constructor(private readonly configService: ConfigService) {
@@ -40,6 +50,36 @@ export class MediaService {
         secretAccessKey: this.configService.get("STORAGE_SECRET_ACCESS_KEY", ""),
       },
     });
+
+    const missing = this.missingStorageVars();
+    if (missing.length > 0) {
+      this.logger.warn(`Object storage is not configured — uploads will be refused. Missing: ${missing.join(", ")}`);
+    }
+  }
+
+  private missingStorageVars(): string[] {
+    return REQUIRED_STORAGE_VARS.filter((key) => !this.configService.get<string>(key));
+  }
+
+  /**
+   * Fail closed when storage isn't configured.
+   *
+   * This is not defensive padding — it fixes a real fail-open bug. With the
+   * STORAGE_* vars unset, `createPresignedPost` does NOT throw: it happily
+   * returns a well-formed policy pointing at `https://s3.auto.amazonaws.com/`
+   * (the SDK's default endpoint), so the API answered 200 and the browser
+   * then POSTed the user's pitch deck to an unrelated Amazon endpoint before
+   * failing with an opaque "File upload failed". `publicUrl` was
+   * simultaneously being built as the literal string "undefined/documents/…".
+   * Refusing loudly is the only safe behaviour.
+   */
+  private assertStorageConfigured(): void {
+    const missing = this.missingStorageVars();
+    if (missing.length > 0) {
+      throw new ServiceUnavailableException(
+        `File storage is not configured on this environment, so uploads are disabled. Missing: ${missing.join(", ")}.`,
+      );
+    }
   }
 
   /**
@@ -56,8 +96,11 @@ export class MediaService {
    * owning record (Startup.logoUrl, User.avatarUrl, ...).
    */
   async createUploadUrl(mimeType: string, folder: UploadFolder) {
+    this.assertStorageConfigured();
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-      throw new Error(`Unsupported mime type: ${mimeType}`);
+      // BadRequest, not a bare Error — a rejected file type is the caller's
+      // problem to correct, and a raw throw surfaced it as an opaque 500.
+      throw new BadRequestException(`Unsupported file type: ${mimeType}`);
     }
 
     const key = `${folder}/${randomUUID()}`;
@@ -100,6 +143,10 @@ export class MediaService {
    * DocumentAccessService.access()'s grant check again.
    */
   async getSignedDownloadUrl(key: string, expiresInSeconds = 300): Promise<string> {
+    // Same fail-closed rule as uploads: unconfigured storage would otherwise
+    // hand back a signed URL for `s3.auto.amazonaws.com`, which looks valid
+    // and silently 404s for the viewer.
+    this.assertStorageConfigured();
     const bucket = this.configService.get("STORAGE_BUCKET", "");
     return getSignedUrl(this.s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: expiresInSeconds });
   }
