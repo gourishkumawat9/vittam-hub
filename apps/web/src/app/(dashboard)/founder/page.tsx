@@ -26,6 +26,7 @@ import { FounderActivityCard } from "@/components/dashboard/founder/FounderActiv
 import { FounderReputationCard } from "@/components/dashboard/founder/FounderReputationCard";
 import { GrowthBenchmarkCard } from "@/components/dashboard/founder/GrowthBenchmarkCard";
 import { InvestorFiltersBar } from "@/components/dashboard/founder/InvestorFiltersBar";
+import { NextActionsCard } from "@/components/dashboard/founder/NextActionsCard";
 import { ProfileCompletionCard } from "@/components/dashboard/founder/ProfileCompletionCard";
 import { QuickActionsCard } from "@/components/dashboard/founder/QuickActionsCard";
 import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentProfileViewsCard";
@@ -101,7 +102,14 @@ export default function FounderDashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Founder dashboard</h1>
+        <div className="min-w-0">
+          {/* Naming the startup makes this read as *their* operating centre
+              rather than a generic screen. Falls back cleanly pre-publish. */}
+          <h1 className="font-heading text-2xl font-semibold text-text-primary">
+            {startup?.name ?? "Founder dashboard"}
+          </h1>
+          {startup && <p className="text-sm text-text-secondary">Your VittamHub operating centre</p>}
+        </div>
         {quota && (
           <Badge variant={quota.remaining === 0 ? "danger" : "neutral"}>
             {quota.limit === null
@@ -131,39 +139,48 @@ export default function FounderDashboardPage() {
         </Card>
       )}
 
-      {startup && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <StartupHealthCard startup={startup} />
-          {health && <TrustScoreCard trustScore={health.trustScore} />}
-          {health && <ProfileCompletionCard completion={health.profileCompletion} />}
-          {trustPreview && <TrustScoreV2PreviewCard preview={trustPreview} />}
-          {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
-          {startup && <VisibilitySettingsCard startup={startup} />}
-        </div>
-      )}
-
-      {startup && health && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <FounderReputationCard founderReputation={health.founderReputation} />
-        </div>
-      )}
-
-      {startup && (
+      {/* 1 — What to do next. Deliberately the first thing on the page: the
+          dashboard's job is to answer "what moves my startup forward?", and
+          burying that under status tiles made every card compete equally. */}
+      {startup && trustPreview && (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <RecentUpdatesCard milestones={startup.milestones} />
+            <NextActionsCard preview={trustPreview} />
           </div>
           <QuickActionsCard startupSlug={startup.slug} />
         </div>
       )}
 
+      {/* 2 — Where you stand: credibility and visibility at a glance. */}
       {startup && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <FounderActivityCard />
+        <section className="flex flex-col gap-4">
+          <h2 className="font-heading text-lg font-semibold text-text-primary">Your standing</h2>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <StartupHealthCard startup={startup} />
+            {health && <TrustScoreCard trustScore={health.trustScore} />}
+            {health && <ProfileCompletionCard completion={health.profileCompletion} />}
+            {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
+            {health && <FounderReputationCard founderReputation={health.founderReputation} />}
+            <VisibilitySettingsCard startup={startup} />
           </div>
-          <RecentProfileViewsCard />
-        </div>
+        </section>
+      )}
+
+      {/* 3 — Activity: who's looking, and what you've shipped. */}
+      {startup && (
+        <section className="flex flex-col gap-4">
+          <h2 className="font-heading text-lg font-semibold text-text-primary">Activity</h2>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <FounderActivityCard />
+            </div>
+            <RecentProfileViewsCard />
+            <div className="lg:col-span-2">
+              <RecentUpdatesCard milestones={startup.milestones} />
+            </div>
+            {trustPreview && <TrustScoreV2PreviewCard preview={trustPreview} />}
+          </div>
+        </section>
       )}
 
       {startup && (

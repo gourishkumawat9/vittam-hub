@@ -49,7 +49,15 @@ export function NavBar() {
     >
       <div className="mx-auto flex h-16 max-w-content items-center justify-between px-6">
         <Link href="/" className="shrink-0" aria-label="VittamHub home">
-          <Logo height={44} />
+          {/* 44px inside a 64px bar left the mark filling ~70% of the nav and
+              dominating the viewport on phones. 28/32px reads as a confident
+              brand mark rather than a splash screen. */}
+          <span className="hidden sm:block">
+            <Logo height={32} />
+          </span>
+          <span className="sm:hidden">
+            <Logo height={26} />
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary">

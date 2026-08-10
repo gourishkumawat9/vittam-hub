@@ -86,8 +86,13 @@ export function Providers({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Light is the product's default, deliberately not `system`. VittamHub is
+  // read by investors, universities and government/MSME programs, and the dark
+  // surfaces render poorly on phones — following the OS setting silently handed
+  // most mobile users a theme the product isn't tuned for. ThemeToggle still
+  // lets anyone opt into dark, and that choice persists.
   return (
-    <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
       <ToastProvider>
         <QueryProvider>{children}</QueryProvider>
       </ToastProvider>
