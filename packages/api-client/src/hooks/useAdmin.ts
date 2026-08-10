@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../endpoints/admin";
 
 const adminKeys = {
+  systemHealth: ["admin", "system-health"] as const,
   verificationOverview: ["admin", "verification-overview"] as const,
   totals: ["admin", "totals"] as const,
   signups: (filters: SignupsFilters) => ["admin", "signups", filters] as const,
@@ -13,6 +14,16 @@ const adminKeys = {
   verificationFunnel: ["admin", "verification-funnel"] as const,
   users: (filters: AdminUserListFilters) => ["admin", "users", filters] as const,
 };
+
+/** Live dependency status. Refetched on an interval so the panel reflects an outage without a manual reload. */
+export function useSystemHealth() {
+  return useQuery({
+    queryKey: adminKeys.systemHealth,
+    queryFn: adminApi.systemHealth,
+    refetchInterval: 30_000,
+    staleTime: 0,
+  });
+}
 
 export function useVerificationOverview() {
   return useQuery({ queryKey: adminKeys.verificationOverview, queryFn: adminApi.verificationOverview });

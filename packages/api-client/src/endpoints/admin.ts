@@ -6,6 +6,7 @@ import type {
   PlatformTotals,
   SignupBucket,
   SignupsFilters,
+  SystemHealth,
   VerificationFunnelStage,
   VerificationOverview,
 } from "@vittamhub/types";
@@ -13,6 +14,7 @@ import type {
 import { apiRequest } from "../http";
 
 export const adminApi = {
+  systemHealth: () => apiRequest<SystemHealth>("/v1/admin/system-health"),
   verificationOverview: () => apiRequest<VerificationOverview>("/v1/admin/verification-overview"),
   totals: () => apiRequest<PlatformTotals>("/v1/admin/analytics/totals"),
   signups: (filters: SignupsFilters) =>

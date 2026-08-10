@@ -87,3 +87,28 @@ export const adminUserSummarySchema = z.object({
   createdAt: z.string().datetime(),
 });
 export type AdminUserSummary = z.infer<typeof adminUserSummarySchema>;
+
+/**
+ * Live dependency status for the admin System Health panel.
+ * NOT_CONFIGURED is intentionally distinct from DOWN — most integrations are
+ * optional by design and degrade gracefully, so conflating "never set up" with
+ * "broken" hides real gaps.
+ */
+export const dependencyStateSchema = z.enum(["OPERATIONAL", "DEGRADED", "NOT_CONFIGURED", "DOWN"]);
+export type DependencyState = z.infer<typeof dependencyStateSchema>;
+
+export const dependencyStatusSchema = z.object({
+  name: z.string(),
+  state: dependencyStateSchema,
+  detail: z.string(),
+  userFacingImpact: z.boolean(),
+});
+export type DependencyStatus = z.infer<typeof dependencyStatusSchema>;
+
+export const systemHealthSchema = z.object({
+  checkedAt: z.string(),
+  overall: z.enum(["HEALTHY", "DEGRADED", "IMPAIRED"]),
+  blockingCount: z.number(),
+  dependencies: z.array(dependencyStatusSchema),
+});
+export type SystemHealth = z.infer<typeof systemHealthSchema>;

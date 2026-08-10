@@ -17,6 +17,7 @@ import { useState } from "react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 import { StatTilesSkeleton } from "@/components/dashboard/StatTilesSkeleton";
+import { SystemHealthCard } from "@/components/dashboard/admin/SystemHealthCard";
 
 const ENTITY_LABEL: Record<keyof VerificationOverview["counts"], string> = {
   startup: "Startups",
@@ -281,6 +282,11 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="font-heading text-2xl font-semibold text-text-primary">Admin</h1>
+
+      {/* First on the page on purpose: an operator's first question is whether
+          the platform is up, and there was previously no surface anywhere that
+          answered it — an outage went unnoticed for two days. */}
+      <SystemHealthCard />
 
       <section className="flex flex-col gap-4">
         <div>

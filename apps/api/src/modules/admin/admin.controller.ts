@@ -18,6 +18,7 @@ import { PlanLimitsService } from "../plan-limits/plan-limits.service";
 
 import { AdminService } from "./admin.service";
 import { PlatformAnalyticsService } from "./platform-analytics.service";
+import { SystemHealthService } from "./system-health.service";
 
 @ApiTags("admin")
 @Controller("v1/admin")
@@ -27,7 +28,17 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly planLimitsService: PlanLimitsService,
     private readonly platformAnalyticsService: PlatformAnalyticsService,
+    private readonly systemHealthService: SystemHealthService,
   ) {}
+
+  @Get("system-health")
+  @ApiOperation({
+    summary:
+      "Live status of every platform dependency — database, Redis, email, storage, captcha, error monitoring and each V3 registry. Distinguishes 'never configured' from 'broken'.",
+  })
+  systemHealth() {
+    return this.systemHealthService.getStatus();
+  }
 
   @Get("verification-overview")
   @ApiOperation({ summary: "Read-only verification-status counts + pending lists across every profile type (no approve/reject — status is fully automated, see modules/verification)" })
