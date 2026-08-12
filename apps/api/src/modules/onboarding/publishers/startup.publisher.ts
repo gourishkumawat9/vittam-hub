@@ -4,11 +4,11 @@ import { Prisma } from "@prisma/client";
 import {
   fundingStepSchema,
   marketStepSchema,
-  preferencesStepSchema,
   productStepSchema,
   publishStartupInputSchema,
   startupInfoStepSchema,
-  teamStepSchema,
+  teamStepPublishSchema,
+  preferencesStepPublishSchema,
   tractionStepSchema,
   verificationStepSchema,
   type StartupOnboardingDraft,
@@ -41,14 +41,20 @@ export class StartupPublisher {
       throw new BadRequestException(confirm.error.issues.map((i) => i.message).join(", "));
     }
 
+    // Only the startup's own identity is genuinely required to go live —
+    // Core Rule 3: "Every profile section is OPTIONAL. Skipping never blocks
+    // access, it only lowers the Trust Score." Team and Preferences used to
+    // hard-block publishing, which meant a founder had to reach step 9 before
+    // they could have a profile at all, and an untouched step produced an
+    // "incomplete" error naming a section they had deliberately skipped.
     const startupInfo = this.parseStep(startupInfoStepSchema, rawDraft.startupInfo, "Startup information");
     const product = productStepSchema.parse(rawDraft.product ?? {});
     const market = marketStepSchema.parse(rawDraft.market ?? {});
-    const team = this.parseStep(teamStepSchema, rawDraft.team, "Team details");
+    const team = this.parseLenient(teamStepPublishSchema, rawDraft.team);
     const traction = tractionStepSchema.parse(rawDraft.traction ?? {});
     const funding = fundingStepSchema.parse(rawDraft.funding ?? {});
     const verification = verificationStepSchema.parse(rawDraft.verification ?? {});
-    const preferences = this.parseStep(preferencesStepSchema, rawDraft.preferences, "Preferences");
+    const preferences = this.parseLenient(preferencesStepPublishSchema, rawDraft.preferences);
 
     const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId } });
     if (existing?.publishedAt) {
@@ -155,6 +161,20 @@ export class StartupPublisher {
 
     this.eventEmitter.emit("profile.upserted", { ownerId: userId });
     return startup;
+  }
+
+  /**
+   * Publish-time parse for an optional section: keep whatever the founder
+   * actually filled in, fall back to the schema's defaults for anything they
+   * skipped, and never throw. A half-finished optional step lowers the Trust
+   * Score rather than blocking the profile.
+   */
+  private parseLenient<T>(schema: { safeParse: (input: unknown) => { success: boolean; data?: T } }, value: unknown): T {
+    const attempt = schema.safeParse(value ?? {});
+    if (attempt.success && attempt.data !== undefined) return attempt.data;
+    // Still invalid even with defaults applied (e.g. a malformed team member
+    // row) — fall back to a clean empty section rather than failing publish.
+    return schema.safeParse({}).data as T;
   }
 
   private parseStep<T>(schema: { parse: (input: unknown) => T }, value: unknown, label: string): T {

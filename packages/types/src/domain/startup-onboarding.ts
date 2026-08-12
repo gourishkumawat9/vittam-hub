@@ -165,6 +165,28 @@ export const preferencesStepSchema = z.object({
 });
 export type PreferencesStepInput = z.infer<typeof preferencesStepSchema>;
 
+// ─── Publish-time (lenient) variants ──────────────────────────────────────
+//
+// Core Rule 3: "Every profile section is OPTIONAL. Skipping never blocks
+// access — it only lowers the Trust Score." The strict schemas above still
+// drive each step's own form validation, so a founder filling a step is
+// guided properly. These lenient variants are what PUBLISH validates
+// against, so an untouched or partly-filled section can never prevent a
+// profile going live.
+//
+// The defaults are factual, not invented: a startup has at least its founder
+// (teamSize 1), a founder who hasn't said what they're looking for gets an
+// empty list, and neither claims anything the user didn't state.
+
+export const teamStepPublishSchema = teamStepSchema.extend({
+  hiringStatus: z.nativeEnum(HiringStatus).default(HiringStatus.NOT_HIRING),
+  teamSize: z.coerce.number().int().min(1).max(100000).default(1),
+});
+
+export const preferencesStepPublishSchema = z.object({
+  lookingFor: z.array(z.nativeEnum(LookingForType)).default([]),
+});
+
 // ─── Step 10 — Review & publish ───────────────────────────────────────────
 
 export const publishStartupInputSchema = z.object({
