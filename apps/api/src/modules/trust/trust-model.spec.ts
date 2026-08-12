@@ -2,14 +2,11 @@ import { compareTrust, type ProfileState } from "./trust-compare";
 import { computeTrust, decayFactor, deriveBand, penaltyTotal, type TrustSignals } from "./trust-model";
 
 const EMPTY: TrustSignals = {
-  profileLive: false,
   emailVerified: false,
   phoneVerified: false,
-  companyDepth: 0,
   founderKyc: false,
   linkedinMatched: false,
   workDomainEmail: false,
-  productBundleComplete: false,
   demoPresent: false,
   liveUrlVerified: false,
   mcaVerified: false,
@@ -28,21 +25,18 @@ const EMPTY: TrustSignals = {
   noExpiredVerifications: false,
 };
 
-const FULL: TrustSignals = Object.fromEntries(
-  Object.keys(EMPTY).map((k) => [k, k === "companyDepth" ? 1 : true]),
-) as unknown as TrustSignals;
+const FULL: TrustSignals = Object.fromEntries(Object.keys(EMPTY).map((k) => [k, true])) as unknown as TrustSignals;
 
 describe("Trust v2 — ladder", () => {
   // At S3 every component is fully applicable, so the normalized score equals the
   // raw cumulative sum — this is the exact ladder the product spec defines.
   const rungs: Array<[string, Partial<TrustSignals>, number]> = [
-    ["registered only", { profileLive: true, emailVerified: true, phoneVerified: true }, 15],
-    ["+ company depth", { companyDepth: 1 }, 25],
-    ["+ founder verified", { founderKyc: true, linkedinMatched: true, workDomainEmail: true }, 40],
-    ["+ product evidence", { productBundleComplete: true, demoPresent: true, liveUrlVerified: true }, 50],
-    ["+ business/legal (V3)", { mcaVerified: true, dpiitVerified: true, gstinVerified: true }, 65],
+    ["contact verified", { emailVerified: true, phoneVerified: true }, 10],
+    ["+ founder verified", { founderKyc: true, linkedinMatched: true, workDomainEmail: true }, 30],
+    ["+ product evidence", { demoPresent: true, liveUrlVerified: true }, 40],
+    ["+ business/legal (V3)", { mcaVerified: true, dpiitVerified: true, gstinVerified: true }, 60],
     ["+ revenue attested (V2)", { revenueAttested: true, seriesContinuity6mo: true, customerEvidence: true }, 80],
-    ["+ funding confirmed", { roundsDocumented: true, investorTwoSideConfirmed: true }, 90],
+    ["+ funding confirmed", { roundsDocumented: true, investorTwoSideConfirmed: true }, 92],
     ["+ transparency & freshness", {
       deckUploaded: true, risksDisclosed: true, capTableProvided: true,
       profileFresh30d: true, metricsFresh45d: true, noExpiredVerifications: true,
@@ -71,19 +65,38 @@ describe("Trust v2 — P4: typing cannot raise the score", () => {
     // typed everything
     phoneTyped: true, websiteTyped: true, linkedinTyped: true, registrationStatusRegistered: true,
     demoUrlPresent: true, profileCompletionPct: 100, founderBioAndCityTyped: true, milestoneCount: 5, deckUploaded: true,
-    // verified nothing (profile is live, but no real verification)
-    profileLive: true, emailVerified: false, phoneOtpVerified: false, companyDepth: 0, founderKyc: false,
-    linkedinMatched: false, workDomainEmail: false, productBundleComplete: false, liveUrlVerified: false,
+    // verified nothing at all
+    emailVerified: false, phoneOtpVerified: false, founderKyc: false,
+    linkedinMatched: false, workDomainEmail: false, liveUrlVerified: false,
     mcaVerified: false, dpiitVerified: false, gstinVerified: false, revenueAttested: false, seriesContinuity6mo: false,
     customerEvidence: false, roundsDocumented: false, investorTwoSideConfirmed: false, risksDisclosed: false,
     capTableProvided: false, profileFresh30d: false, metricsFresh45d: false, noExpiredVerifications: false,
   };
 
-  it("quantifies the fix: v1 rewards typing (~85), v2 does not (~10)", () => {
+  it("quantifies the fix: v1 rewards typing (85), v2 barely does (7)", () => {
     const { v1, v2, delta } = compareTrust(typedButUnverified);
-    expect(v1).toBe(85); // current production behaviour: reachable by typing
-    expect(v2).toBe(10); // v2: only profileLive(5) + demo artifact(3) + deck(2)
-    expect(delta).toBe(-75);
+    expect(v1).toBe(85); // current production behaviour: reachable by typing alone
+    // The remaining 7 are both real artifacts, not typed text: a supplied demo
+    // (5) and an uploaded deck (2). Before the D3 cleanup this was 10, because
+    // merely publishing the profile paid out another 5.
+    expect(v2).toBe(7);
+    expect(delta).toBe(-78);
+  });
+
+  /**
+   * Guards the D3 rule at the boundary the previous suite missed: it pinned
+   * `companyDepth` to 0 by hand, so it never exercised the path where the
+   * engine derived that value from four typed/dropdown fields and paid out up
+   * to 10 points. Those signals no longer exist, so the type system now
+   * enforces what this test asserts.
+   */
+  it("awards nothing for a profile whose only inputs are typed", () => {
+    const { v2 } = compareTrust({
+      ...typedButUnverified,
+      demoUrlPresent: false, // remove the two real artifacts
+      deckUploaded: false,
+    });
+    expect(v2).toBe(0);
   });
 
   it("is invariant to changes in any typed-only field", () => {

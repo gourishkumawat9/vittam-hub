@@ -30,14 +30,11 @@ export interface ProfileState {
   deckUploaded: boolean;
 
   // Verified / evidenced (v2 rewards these)
-  profileLive: boolean;
   emailVerified: boolean;
   phoneOtpVerified: boolean;
-  companyDepth: number; // 0..1 of structured, verifiable company facts
   founderKyc: boolean;
   linkedinMatched: boolean;
   workDomainEmail: boolean;
-  productBundleComplete: boolean;
   liveUrlVerified: boolean;
   mcaVerified: boolean;
   dpiitVerified: boolean;
@@ -73,14 +70,11 @@ export function computeTrustV1(p: ProfileState): number {
 /** Project a ProfileState onto the v2 signal set — verified facts only. */
 export function toTrustSignals(p: ProfileState): TrustSignals {
   return {
-    profileLive: p.profileLive,
     emailVerified: p.emailVerified,
     phoneVerified: p.phoneOtpVerified, // typing a number is worth nothing here
-    companyDepth: p.companyDepth,
     founderKyc: p.founderKyc,
     linkedinMatched: p.linkedinMatched, // matched identity, not a pasted URL
     workDomainEmail: p.workDomainEmail,
-    productBundleComplete: p.productBundleComplete,
     demoPresent: p.demoUrlPresent, // a provided demo artifact is weak evidence, counts
     liveUrlVerified: p.liveUrlVerified, // DNS/HTTP reachable, not a typed URL
     mcaVerified: p.mcaVerified,

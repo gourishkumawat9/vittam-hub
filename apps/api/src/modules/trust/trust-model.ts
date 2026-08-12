@@ -19,41 +19,52 @@ export const TRUST_MODEL_VERSION = "v2.0-hypothesis";
 
 export type TrustStage = "S0" | "S1" | "S2" | "S3" | "S4+";
 
-/** Every field is a proven/evidenced/recency signal — never typed prose. */
+/**
+ * Every field is a proven/evidenced/recency signal — never typed prose, and
+ * never mere completeness (D3: "V0 is exactly zero").
+ *
+ * Three signals were removed in the D3 cleanup because each was reachable by
+ * typing alone, worth 19 of 100 points between them:
+ *   · `profileLive` (5)          — publishing your own profile proves nothing.
+ *   · `companyDepth` (10)        — four dropdown/typed fields (registration
+ *                                  status, company type, HQ, founded year).
+ *                                  None was verified against any authority.
+ *                                  D3 names this component as deleted.
+ *   · `productBundleComplete` (4) — literally `productName && description`,
+ *                                  i.e. completeness, which D3 requires be
+ *                                  displayed separately and kept out of the
+ *                                  index entirely.
+ * Their weight moved to components backed by genuine third-party evidence.
+ */
 export interface TrustSignals {
-  // 1 — Registration & presence (max 15)
-  profileLive: boolean; // 5
+  // 1 — Registration & presence (max 10)
   emailVerified: boolean; // 5
   phoneVerified: boolean; // 5 (OTP, not a typed number)
-  // 2 — Company depth (max 10). 0..1 completion of *structured, verifiable* company
-  //     facts (incorporation type, HQ, founded year) — never free-text length.
-  companyDepth: number; // ×10
-  // 3 — Founder verification (max 15)
-  founderKyc: boolean; // 8
-  linkedinMatched: boolean; // 4 (identity matched, not merely pasted)
-  workDomainEmail: boolean; // 3
-  // 4 — Product evidence (max 10)
-  productBundleComplete: boolean; // 4
-  demoPresent: boolean; // 3
-  liveUrlVerified: boolean; // 3 (DNS/HTTP reachable, not a typed URL)
-  // 5 — Business / legal, V3 authority-verified (max 15)
-  mcaVerified: boolean; // 8
-  dpiitVerified: boolean; // 4
-  gstinVerified: boolean; // 3
-  // 6 — Revenue & traction, V2 source-attested (max 15)
-  revenueAttested: boolean; // 8 (Razorpay/Stripe/GA4 integration)
-  seriesContinuity6mo: boolean; // 4 (≥6 continuous months of attested observations)
-  customerEvidence: boolean; // 3
-  // 7 — Funding & investor confirmation (max 10)
-  roundsDocumented: boolean; // 4
-  investorTwoSideConfirmed: boolean; // 6 (counterparty confirmed — free V2)
-  // 8 — Transparency & documents (max 5)
+  // 2 — Founder verification (max 20)
+  founderKyc: boolean; // 11
+  linkedinMatched: boolean; // 5 (identity matched, not merely pasted)
+  workDomainEmail: boolean; // 4
+  // 3 — Product evidence (max 10)
+  demoPresent: boolean; // 5 (an actual artifact)
+  liveUrlVerified: boolean; // 5 (DNS/HTTP reachable, not a typed URL)
+  // 4 — Business / legal, V3 authority-verified (max 20)
+  mcaVerified: boolean; // 10
+  dpiitVerified: boolean; // 6
+  gstinVerified: boolean; // 4
+  // 5 — Revenue & traction, V2 source-attested (max 20)
+  revenueAttested: boolean; // 10 (Razorpay/Stripe/GA4 integration)
+  seriesContinuity6mo: boolean; // 6 (≥6 continuous months of attested observations)
+  customerEvidence: boolean; // 4
+  // 6 — Funding & investor confirmation (max 12)
+  roundsDocumented: boolean; // 5
+  investorTwoSideConfirmed: boolean; // 7 (counterparty confirmed — free V2)
+  // 7 — Transparency & documents (max 5)
   deckUploaded: boolean; // 2
   risksDisclosed: boolean; // 2 (disclosed a negative rather than leaving it blank)
   capTableProvided: boolean; // 1
-  // 9 — Freshness & activity (max 5)
-  profileFresh30d: boolean; // 2
-  metricsFresh45d: boolean; // 2
+  // 8 — Freshness & activity (max 3)
+  profileFresh30d: boolean; // 1
+  metricsFresh45d: boolean; // 1
   noExpiredVerifications: boolean; // 1
 }
 
@@ -87,17 +98,24 @@ export interface TrustResult {
 
 const MAX_PENALTY = 20;
 
-/** Component maxima, in ladder order. Sum = 100. */
+/**
+ * Component maxima, in ladder order. Sum = 100.
+ *
+ * "Company depth" is deliberately absent — see the TrustSignals doc comment.
+ * The 19 points freed by the D3 cleanup were moved into the components that
+ * rest on third-party verification (founder identity, statutory registries,
+ * source-attested revenue), so the index now measures corroboration rather
+ * than effort spent filling forms.
+ */
 const COMPONENTS = [
-  { key: "registration", label: "Registration & presence", max: 15 },
-  { key: "companyDepth", label: "Company depth", max: 10 },
-  { key: "founder", label: "Founder verification", max: 15 },
+  { key: "registration", label: "Contact verification", max: 10 },
+  { key: "founder", label: "Founder verification", max: 20 },
   { key: "product", label: "Product evidence", max: 10 },
-  { key: "legal", label: "Business & legal verification", max: 15 },
-  { key: "revenue", label: "Revenue & traction verification", max: 15 },
-  { key: "funding", label: "Funding & investor confirmation", max: 10 },
+  { key: "legal", label: "Business & legal verification", max: 20 },
+  { key: "revenue", label: "Revenue & traction verification", max: 20 },
+  { key: "funding", label: "Funding & investor confirmation", max: 12 },
   { key: "transparency", label: "Transparency & documents", max: 5 },
-  { key: "freshness", label: "Freshness & activity", max: 5 },
+  { key: "freshness", label: "Freshness & activity", max: 3 },
 ] as const;
 
 /**
@@ -107,25 +125,24 @@ const COMPONENTS = [
  * everything an idea-stage startup can prove (required by P2).
  */
 const APPLICABILITY: Record<TrustStage, number[]> = {
-  // registration, company, founder, product, legal, revenue, funding, transparency, freshness
-  S0: [1, 1, 1, 0.2, 0.3, 0.2, 0.2, 1, 1],
-  S1: [1, 1, 1, 1.0, 0.6, 0.5, 0.4, 1, 1],
-  S2: [1, 1, 1, 1.0, 1.0, 1.0, 0.8, 1, 1],
-  S3: [1, 1, 1, 1.0, 1.0, 1.0, 1.0, 1, 1],
-  "S4+": [1, 1, 1, 1.0, 1.0, 1.0, 1.0, 1, 1],
+  // registration, founder, product, legal, revenue, funding, transparency, freshness
+  S0: [1, 1, 0.2, 0.3, 0.2, 0.2, 1, 1],
+  S1: [1, 1, 1.0, 0.6, 0.5, 0.4, 1, 1],
+  S2: [1, 1, 1.0, 1.0, 1.0, 0.8, 1, 1],
+  S3: [1, 1, 1.0, 1.0, 1.0, 1.0, 1, 1],
+  "S4+": [1, 1, 1.0, 1.0, 1.0, 1.0, 1, 1],
 };
 
 function earnedPerComponent(s: TrustSignals): number[] {
   return [
-    (s.profileLive ? 5 : 0) + (s.emailVerified ? 5 : 0) + (s.phoneVerified ? 5 : 0),
-    Math.max(0, Math.min(1, s.companyDepth)) * 10,
-    (s.founderKyc ? 8 : 0) + (s.linkedinMatched ? 4 : 0) + (s.workDomainEmail ? 3 : 0),
-    (s.productBundleComplete ? 4 : 0) + (s.demoPresent ? 3 : 0) + (s.liveUrlVerified ? 3 : 0),
-    (s.mcaVerified ? 8 : 0) + (s.dpiitVerified ? 4 : 0) + (s.gstinVerified ? 3 : 0),
-    (s.revenueAttested ? 8 : 0) + (s.seriesContinuity6mo ? 4 : 0) + (s.customerEvidence ? 3 : 0),
-    (s.roundsDocumented ? 4 : 0) + (s.investorTwoSideConfirmed ? 6 : 0),
+    (s.emailVerified ? 5 : 0) + (s.phoneVerified ? 5 : 0),
+    (s.founderKyc ? 11 : 0) + (s.linkedinMatched ? 5 : 0) + (s.workDomainEmail ? 4 : 0),
+    (s.demoPresent ? 5 : 0) + (s.liveUrlVerified ? 5 : 0),
+    (s.mcaVerified ? 10 : 0) + (s.dpiitVerified ? 6 : 0) + (s.gstinVerified ? 4 : 0),
+    (s.revenueAttested ? 10 : 0) + (s.seriesContinuity6mo ? 6 : 0) + (s.customerEvidence ? 4 : 0),
+    (s.roundsDocumented ? 5 : 0) + (s.investorTwoSideConfirmed ? 7 : 0),
     (s.deckUploaded ? 2 : 0) + (s.risksDisclosed ? 2 : 0) + (s.capTableProvided ? 1 : 0),
-    (s.profileFresh30d ? 2 : 0) + (s.metricsFresh45d ? 2 : 0) + (s.noExpiredVerifications ? 1 : 0),
+    (s.profileFresh30d ? 1 : 0) + (s.metricsFresh45d ? 1 : 0) + (s.noExpiredVerifications ? 1 : 0),
   ];
 }
 

@@ -14,8 +14,7 @@ export interface NextBestAction {
 
 /** One human-readable suggestion per component key — static copy, not derived from typed text (stays P4-clean). */
 const NEXT_BEST_ACTION_COPY: Record<string, string> = {
-  registration: "Verify your email and phone, and make sure your profile is published.",
-  companyDepth: "Fill in registration status, company type, headquarters, and founded year.",
+  registration: "Verify your email address and confirm your phone number by OTP.",
   founder: "Complete founder KYC and use a work-domain email instead of a personal one.",
   product: "Add a product demo video and a live, reachable product URL.",
   legal: "Get your MCA, DPIIT, and GSTIN registrations verified.",
@@ -139,23 +138,12 @@ export class TrustEngineService {
     const dpiitVerified = startupRecords.some((r) => r.method === "DPIIT_API");
     const gstinVerified = startupRecords.some((r) => r.method === "GSTIN_API");
 
-    const structuredCompanyFields = [
-      startup.registrationStatus === "REGISTERED",
-      !!startup.companyType,
-      !!startup.headquarters,
-      !!startup.foundedYear,
-    ];
-    const companyDepth = structuredCompanyFields.filter(Boolean).length / structuredCompanyFields.length;
-
     const signals: TrustSignals = {
-      profileLive: startup.isPublic && !!startup.publishedAt,
       emailVerified: !!startup.owner.emailVerifiedAt,
       phoneVerified: !!startup.owner.phoneVerifiedAt, // real OTP round-trip — PhoneVerificationService
-      companyDepth,
       founderKyc: false, // Phase 3+: government ID (DigiLocker) verification not integrated yet
       linkedinMatched: false, // Phase 3+: LinkedIn URL is typed today, not identity-matched
       workDomainEmail,
-      productBundleComplete: !!(startup.product?.productName && startup.product?.description),
       demoPresent: !!(startup.product?.demoVideoUrl || startup.product?.pitchVideoUrl),
       liveUrlVerified: false, // Phase 3+: no DNS/HTTP reachability check yet
       mcaVerified, // reads the ledger — flips true automatically once MCA_API_KEY is configured, no code change needed
@@ -163,8 +151,15 @@ export class TrustEngineService {
       gstinVerified,
       revenueAttested: false, // Phase 3+: no payment-gateway/bank integration yet
       seriesContinuity6mo: false, // needs >=6mo of MetricObservation history — table just created, empty
-      customerEvidence: !!(startup.traction?.totalCustomers && startup.traction.totalCustomers > 0),
-      roundsDocumented: !!(startup.funding?.fundingTypes && startup.funding.fundingTypes.length > 0),
+      // Both of these previously read a typed field — a self-reported customer
+      // count, and a self-selected list of funding types. Neither is corroborated
+      // by anything, so under D3 they are worth zero until there is real evidence
+      // (a confirmed customer reference; a round corroborated by MCA filing dates
+      // or an investor's two-sided confirmation). Stubbed false in the same
+      // honest style as the other un-integrated signals above rather than
+      // silently paying out for typing.
+      customerEvidence: false,
+      roundsDocumented: false,
       investorTwoSideConfirmed: !!twoSidedInvestorClaim, // RelationshipClaimsService — spec §9
       deckUploaded: !!pitchDeck,
       risksDisclosed: false, // no negative-disclosure field modeled yet
