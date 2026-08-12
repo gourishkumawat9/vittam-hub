@@ -21,8 +21,10 @@ describe("publish-time leniency for optional steps", () => {
       expect(result.data?.members).toEqual([]);
     });
 
-    it("accepts a missing section entirely", () => {
-      expect(teamStepPublishSchema.safeParse(undefined ?? {}).success).toBe(true);
+    it("ignores unrelated leftover keys rather than failing on them", () => {
+      // Drafts accumulate keys across wizard revisions; a stale one must not
+      // block a publish.
+      expect(teamStepPublishSchema.safeParse({ someRemovedField: "x" }).success).toBe(true);
     });
 
     it("keeps what the founder actually filled in", () => {

@@ -76,11 +76,11 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Startup name" error={errors.name?.message} {...register("name")} />
-        <Input label="Tagline" hint="A one-line pitch, max 160 characters" error={errors.tagline?.message} {...register("tagline")} />
+        <Input label="Startup name" required error={errors.name?.message} {...register("name")} />
+        <Input label="Tagline" required hint="A one-line pitch, max 160 characters" error={errors.tagline?.message} {...register("tagline")} />
       </div>
 
-      <Textarea label="Description" rows={3} error={errors.description?.message} {...register("description")} />
+      <Textarea label="Description" required rows={3} error={errors.description?.message} {...register("description")} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
@@ -109,6 +109,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
           render={({ field }) => (
             <Select
               label="Product status"
+              required
               options={PRODUCT_STATUS_OPTIONS}
               value={field.value}
               onChange={field.onChange}
@@ -122,6 +123,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
           render={({ field }) => (
             <Select
               label="Revenue status"
+              required
               options={REVENUE_STATUS_OPTIONS}
               value={field.value}
               onChange={field.onChange}
@@ -135,6 +137,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
           render={({ field }) => (
             <Select
               label="Funding status"
+              required
               options={FUNDING_STATUS_OPTIONS}
               value={field.value}
               onChange={field.onChange}
@@ -151,6 +154,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
           render={({ field }) => (
             <Select
               label="How would you describe your stage?"
+              required
               hint="Your own take, shown alongside the computed stage, never instead of it"
               options={STAGE_OPTIONS}
               value={field.value}
@@ -165,6 +169,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
           render={({ field }) => (
             <Select
               label="Industry"
+              required
               options={INDUSTRY_OPTIONS}
               value={field.value}
               onChange={field.onChange}
@@ -176,12 +181,13 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="Year founded" type="number" error={errors.foundedYear?.message} {...register("foundedYear")} />
+        <Input label="Year founded" required type="number" error={errors.foundedYear?.message} {...register("foundedYear")} />
         <Controller
           control={control}
           name="registrationStatus"
           render={({ field }) => (
-            <Select label="Registration status" options={REGISTRATION_OPTIONS} value={field.value} onChange={field.onChange} />
+            <Select label="Registration status"
+              required options={REGISTRATION_OPTIONS} value={field.value} onChange={field.onChange} />
           )}
         />
         <Controller
@@ -192,7 +198,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Headquarters" hint="City, Country" error={errors.headquarters?.message} {...register("headquarters")} />
+        <Input label="Headquarters" required hint="City, Country" error={errors.headquarters?.message} {...register("headquarters")} />
         <Input label="Business model" hint='e.g. "Subscription", "Marketplace take-rate"' {...register("businessModelSummary")} />
       </div>
 

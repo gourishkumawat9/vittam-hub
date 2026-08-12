@@ -13,6 +13,8 @@ export interface SelectOption {
 
 export interface SelectProps {
   label?: string;
+  /** Renders the required marker; the wizard previously gave no signal at all about which fields were mandatory. */
+  required?: boolean;
   hint?: string;
   error?: string;
   placeholder?: string;
@@ -24,7 +26,7 @@ export interface SelectProps {
 }
 
 /** Single-select dropdown — Radix under the hood for correct keyboard/focus/ARIA behavior. */
-export function Select({ label, hint, error, placeholder = "Select…", options, value, onChange, disabled, name }: SelectProps) {
+export function Select({ label, hint, error, placeholder = "Select…", options, value, onChange, disabled, name, required }: SelectProps) {
   const id = useId();
 
   return (
@@ -32,6 +34,11 @@ export function Select({ label, hint, error, placeholder = "Select…", options,
       {label && (
         <label htmlFor={id} className="text-sm font-medium text-text-primary">
           {label}
+          {required && (
+            <span aria-hidden="true" className="ml-0.5 text-danger-600">
+              *
+            </span>
+          )}
         </label>
       )}
       <RadixSelect.Root value={value} onValueChange={onChange} disabled={disabled} name={name}>
