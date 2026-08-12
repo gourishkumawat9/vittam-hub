@@ -19,6 +19,23 @@ const ALLOWED_MIME_TYPES = new Set([
 
 type UploadFolder = "logos" | "avatars" | "documents" | "resumes";
 
+/**
+ * Folders whose objects are rendered directly in `<img src=…>` on **public**
+ * marketing pages (a startup's logo on /startups/[slug], an avatar in a
+ * thread), so they must be world-readable over the CDN domain.
+ *
+ * Everything not listed here — pitch decks, cap tables, financials, resumes —
+ * lives in a separate PRIVATE bucket with no public domain mapped to it, and
+ * is only ever reachable through a short-lived signed URL minted after
+ * DocumentAccessService has checked the grant.
+ *
+ * This split is load-bearing. With a single bucket, attaching the R2 custom
+ * domain needed for logos would make every object under it publicly readable
+ * by URL — including `documents/<uuid>` — with no expiry and no grant check,
+ * silently defeating the entire data room.
+ */
+const PUBLIC_FOLDERS = new Set<UploadFolder>(["logos", "avatars"]);
+
 /** Per-folder max upload size, enforced by S3/R2 itself via the presigned POST policy's content-length-range condition — never trusted to the client. */
 const MAX_UPLOAD_BYTES: Record<UploadFolder, number> = {
   logos: 5 * 1024 * 1024,
@@ -30,7 +47,8 @@ const MAX_UPLOAD_BYTES: Record<UploadFolder, number> = {
 /** Every setting that must be present before a single byte can be stored or served. */
 const REQUIRED_STORAGE_VARS = [
   "STORAGE_ENDPOINT",
-  "STORAGE_BUCKET",
+  "STORAGE_BUCKET", // private — documents, resumes
+  "STORAGE_PUBLIC_BUCKET", // public — logos, avatars (the CDN domain maps here)
   "STORAGE_ACCESS_KEY_ID",
   "STORAGE_SECRET_ACCESS_KEY",
   "STORAGE_PUBLIC_CDN_URL",
@@ -103,8 +121,12 @@ export class MediaService {
       throw new BadRequestException(`Unsupported file type: ${mimeType}`);
     }
 
+    // Key is `<folder>/<uuid>`: the folder comes from a closed enum validated
+    // at the controller, and the filename is a server-generated UUID, so no
+    // user-controlled string ever reaches the object key. The uploader's
+    // original filename is stored on the Document row, never in storage.
     const key = `${folder}/${randomUUID()}`;
-    const bucket = this.configService.get("STORAGE_BUCKET", "");
+    const bucket = this.bucketFor(folder);
 
     const { url, fields } = await createPresignedPost(this.s3, {
       Bucket: bucket,
@@ -117,7 +139,30 @@ export class MediaService {
       Fields: { "Content-Type": mimeType },
     });
 
-    return { uploadUrl: url, uploadFields: fields, publicUrl: `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/${key}` };
+    return { uploadUrl: url, uploadFields: fields, publicUrl: this.objectUrl(folder, key) };
+  }
+
+  private bucketFor(folder: UploadFolder): string {
+    return PUBLIC_FOLDERS.has(folder)
+      ? this.configService.get("STORAGE_PUBLIC_BUCKET", "")
+      : this.configService.get("STORAGE_BUCKET", "");
+  }
+
+  /**
+   * The stable reference persisted on the owning record.
+   *
+   * Public folders get the CDN domain, because a browser loads them directly.
+   * Private folders deliberately get the S3-API form
+   * (`<endpoint>/<bucket>/<key>`) — a well-formed URL that satisfies the
+   * `z.string().url()` contract on DocumentUploadInput, but which returns 401
+   * to anyone who fetches it without a signature. It is a locator, not an
+   * access grant.
+   */
+  private objectUrl(folder: UploadFolder, key: string): string {
+    if (PUBLIC_FOLDERS.has(folder)) {
+      return `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/${key}`;
+    }
+    return `${this.configService.get("STORAGE_ENDPOINT")}/${this.configService.get("STORAGE_BUCKET")}/${key}`;
   }
 
   /**
@@ -127,11 +172,29 @@ export class MediaService {
    * back to something `getSignedDownloadUrl` can sign.
    */
   extractKeyFromPublicUrl(publicUrl: string): string {
-    const prefix = `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/`;
-    if (!publicUrl.startsWith(prefix)) {
-      throw new Error("Not a recognized storage URL");
+    // Accepts both shapes produced by objectUrl(): the public CDN form and the
+    // private S3-API form. Anything else is rejected rather than guessed at,
+    // so a URL from an unrelated host can never be turned into a signed read.
+    for (const prefix of this.storageUrlPrefixes()) {
+      if (publicUrl.startsWith(prefix)) return publicUrl.slice(prefix.length);
     }
-    return publicUrl.slice(prefix.length);
+    throw new Error("Not a recognized storage URL");
+  }
+
+  /** The URL prefixes this deployment considers its own. */
+  storageUrlPrefixes(): string[] {
+    return [
+      `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/`,
+      `${this.configService.get("STORAGE_ENDPOINT")}/${this.configService.get("STORAGE_BUCKET")}/`,
+    ];
+  }
+
+  /** Which bucket a previously-stored URL lives in — private unless it came from the public CDN. */
+  bucketForUrl(storedUrl: string): string {
+    const cdnPrefix = `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/`;
+    return storedUrl.startsWith(cdnPrefix)
+      ? this.configService.get("STORAGE_PUBLIC_BUCKET", "")
+      : this.configService.get("STORAGE_BUCKET", "");
   }
 
   /**
@@ -142,12 +205,13 @@ export class MediaService {
    * regardless of who has it, and no *new* one can be minted without passing
    * DocumentAccessService.access()'s grant check again.
    */
-  async getSignedDownloadUrl(key: string, expiresInSeconds = 300): Promise<string> {
+  async getSignedDownloadUrl(key: string, expiresInSeconds = 300, bucket?: string): Promise<string> {
     // Same fail-closed rule as uploads: unconfigured storage would otherwise
     // hand back a signed URL for `s3.auto.amazonaws.com`, which looks valid
     // and silently 404s for the viewer.
     this.assertStorageConfigured();
-    const bucket = this.configService.get("STORAGE_BUCKET", "");
-    return getSignedUrl(this.s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: expiresInSeconds });
+    // Defaults to the private bucket — the only one that needs signing.
+    const target = bucket ?? this.configService.get("STORAGE_BUCKET", "");
+    return getSignedUrl(this.s3, new GetObjectCommand({ Bucket: target, Key: key }), { expiresIn: expiresInSeconds });
   }
 }

@@ -25,6 +25,8 @@ function setup() {
   const mediaService = {
     extractKeyFromPublicUrl: jest.fn().mockReturnValue("documents/some-uuid"),
     getSignedDownloadUrl: jest.fn().mockResolvedValue(SIGNED_URL),
+    // Documents live in the private bucket; access() signs against it explicitly.
+    bucketForUrl: jest.fn().mockReturnValue("vittamhub-docs"),
   };
 
   const service = new DocumentAccessService(
@@ -131,6 +133,6 @@ describe("DocumentAccessService.access", () => {
 
     expect(result.fileUrl).toBe(SIGNED_URL);
     expect(prisma.documentView.create).toHaveBeenCalledWith({ data: { documentId: DOCUMENT_ID, viewerId: VIEWER_ID } });
-    expect(mediaService.getSignedDownloadUrl).toHaveBeenCalledWith("documents/some-uuid", 300);
+    expect(mediaService.getSignedDownloadUrl).toHaveBeenCalledWith("documents/some-uuid", 300, "vittamhub-docs");
   });
 });

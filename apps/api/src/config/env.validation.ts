@@ -25,7 +25,8 @@ export const envSchema = z.object({
   CAPTCHA_SECRET_KEY: z.string().optional(),
   STORAGE_ENDPOINT: z.string().url().optional(),
   STORAGE_REGION: z.string().optional(),
-  STORAGE_BUCKET: z.string().optional(),
+  STORAGE_BUCKET: z.string().optional(), // private — documents, resumes
+  STORAGE_PUBLIC_BUCKET: z.string().optional(), // public — logos, avatars (CDN domain maps here)
   STORAGE_ACCESS_KEY_ID: z.string().optional(),
   STORAGE_SECRET_ACCESS_KEY: z.string().optional(),
   // Was missing from this schema entirely despite being load-bearing:
@@ -78,7 +79,8 @@ export type Env = z.infer<typeof envSchema>;
  */
 const PRODUCTION_RECOMMENDED: Array<{ key: keyof Env; consequence: string }> = [
   { key: "CAPTCHA_SECRET_KEY", consequence: "captcha verification is skipped entirely on register/login" },
-  { key: "STORAGE_BUCKET", consequence: "file uploads (logos, pitch decks, documents) cannot work" },
+  { key: "STORAGE_BUCKET", consequence: "document/pitch-deck uploads cannot work" },
+  { key: "STORAGE_PUBLIC_BUCKET", consequence: "logo and avatar uploads cannot work" },
   { key: "STORAGE_PUBLIC_CDN_URL", consequence: "uploaded-document URL validation cannot work" },
   { key: "SENTRY_DSN", consequence: "no error monitoring — failures are only visible in raw logs" },
 ];

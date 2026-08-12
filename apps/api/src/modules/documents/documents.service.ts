@@ -6,6 +6,7 @@ import type { DocumentUploadInput } from "@vittamhub/types";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
+import { MediaService } from "../media/media.service";
 
 /**
  * Every role's private document vault — a Document belongs to the uploading
@@ -21,12 +22,20 @@ export class DocumentsService {
     private readonly eventEmitter: EventEmitter2,
     private readonly auditLog: AuditLogService,
     private readonly configService: ConfigService,
+    private readonly mediaService: MediaService,
   ) {}
 
-  /** Rejects any fileUrl that isn't a VittamHub-managed storage object — prevents registering an arbitrary external URL as a "document". */
+  /**
+   * Rejects any fileUrl that isn't a VittamHub-managed storage object —
+   * prevents registering an arbitrary external URL as a "document" (which
+   * would let a user point other people's viewers at a tracking pixel or a
+   * phishing page). Delegates to MediaService so the accepted prefixes stay
+   * in one place: documents live in the private bucket and therefore carry
+   * the S3-API URL form, not the public CDN one.
+   */
   private assertOwnedStorageUrl(fileUrl: string) {
-    const prefix = `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/`;
-    if (!fileUrl.startsWith(prefix)) {
+    const isOwned = this.mediaService.storageUrlPrefixes().some((prefix: string) => fileUrl.startsWith(prefix));
+    if (!isOwned) {
       throw new BadRequestException("fileUrl must reference a file uploaded via /v1/media/upload-url");
     }
   }

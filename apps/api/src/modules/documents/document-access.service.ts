@@ -33,7 +33,10 @@ export class DocumentAccessService {
 
   private async signedFileUrl(fileUrl: string): Promise<string> {
     const key = this.mediaService.extractKeyFromPublicUrl(fileUrl);
-    return this.mediaService.getSignedDownloadUrl(key, SIGNED_URL_TTL_SECONDS);
+    // Sign against whichever bucket the object actually lives in. Documents
+    // are in the private bucket; passing it explicitly keeps this correct if a
+    // legacy row ever points at the public one.
+    return this.mediaService.getSignedDownloadUrl(key, SIGNED_URL_TTL_SECONDS, this.mediaService.bucketForUrl(fileUrl));
   }
 
   private async ownedDocument(ownerId: string, documentId: string) {

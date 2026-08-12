@@ -5,10 +5,12 @@ import { DocumentType } from "@vittamhub/types";
 
 import type { PrismaService } from "../../database/prisma/prisma.service";
 import type { AuditLogService } from "../audit-log/audit-log.service";
+import type { MediaService } from "../media/media.service";
 
 import { DocumentsService } from "./documents.service";
 
 const OWNED_CDN = "https://media.vittamhub.com";
+const PRIVATE_PREFIX = "https://acct.r2.cloudflarestorage.com/vittamhub-docs";
 
 function setup() {
   const prisma = { document: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), delete: jest.fn() } };
@@ -16,11 +18,16 @@ function setup() {
   const auditLog = { record: jest.fn().mockResolvedValue(undefined) };
   const configService = { get: jest.fn().mockReturnValue(OWNED_CDN) };
 
+  // Documents live in the PRIVATE bucket, so their stored URL is the S3-API
+  // form, not the public CDN one — the ownership guard must accept both.
+  const mediaService = { storageUrlPrefixes: () => [`${OWNED_CDN}/`, `${PRIVATE_PREFIX}/`] };
+
   const service = new DocumentsService(
     prisma as unknown as PrismaService,
     eventEmitter as unknown as EventEmitter2,
     auditLog as unknown as AuditLogService,
     configService as unknown as ConfigService,
+    mediaService as unknown as MediaService,
   );
 
   return { service, prisma };
