@@ -14,6 +14,7 @@ import {
   type StartupOnboardingDraft,
 } from "@vittamhub/types";
 import { slugify } from "@vittamhub/utils";
+import { ZodError } from "zod";
 
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { recordTractionObservations } from "../../startups/metric-observations.util";
@@ -159,8 +160,24 @@ export class StartupPublisher {
   private parseStep<T>(schema: { parse: (input: unknown) => T }, value: unknown, label: string): T {
     try {
       return schema.parse(value ?? {});
-    } catch {
-      throw new BadRequestException(`${label} is incomplete — please finish this step before publishing.`);
+    } catch (err) {
+      // The bare `catch` here previously discarded the Zod issue entirely, so
+      // every failure read as an identical "incomplete" message with no
+      // indication of which field was wrong — or, worse, that the section was
+      // missing from the saved draft altogether. Naming the fields makes the
+      // difference between "you left a field blank" and "this step never
+      // reached the server" visible to both the user and the logs.
+      const fields =
+        err instanceof ZodError
+          ? [...new Set(err.issues.map((issue) => issue.path.join(".")).filter(Boolean))].slice(0, 5)
+          : [];
+      const detail =
+        value === undefined || value === null
+          ? " We don't have any saved answers for this step — please reopen it and continue."
+          : fields.length > 0
+            ? ` Check: ${fields.join(", ")}.`
+            : "";
+      throw new BadRequestException(`${label} is incomplete — please finish this step before publishing.${detail}`);
     }
   }
 

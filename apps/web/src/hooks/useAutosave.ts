@@ -45,16 +45,24 @@ export function useAutosave(section: string, step: number, data: unknown) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on serialized data, not the object identity
   }, [JSON.stringify(data)]);
 
-  // Flush a pending change when the step unmounts — e.g. the user edits a field
-  // and clicks Continue within the debounce window. Without this the pending
-  // timer is cancelled and that edit is silently lost, which then fails publish
-  // with a confusing "section incomplete" error.
+  // Always flush this step's values when it unmounts — deliberately NOT
+  // conditional on there being a pending debounced change.
+  //
+  // The save effect above is keyed on JSON.stringify(data) and skips its first
+  // run, so a step whose values the user never altered produced no change, set
+  // no pending flag, and was therefore never persisted at all. That silently
+  // broke publishing for anyone who accepted a step's defaults — most often
+  // Team, whose defaults (teamSize 1, NOT_HIRING) are exactly right for a solo
+  // founder, so the section stayed absent from the server draft while the
+  // wizard showed it complete from local state and publish failed with
+  // "Team details is incomplete".
+  //
+  // Saving unconditionally costs one request per step visit and guarantees
+  // every visited step exists in the draft.
   useEffect(() => {
     return () => {
-      if (pendingRef.current) {
-        pendingRef.current = false;
-        mutate({ section, step, data: latestDataRef.current as Record<string, unknown> });
-      }
+      pendingRef.current = false;
+      mutate({ section, step, data: latestDataRef.current as Record<string, unknown> });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount-only; section/step/mutate are stable for a step instance
   }, []);
