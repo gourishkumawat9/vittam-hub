@@ -15,7 +15,7 @@ export function SecurityBadges() {
       </div>
       <p className="max-w-xs text-xs text-text-secondary">
         We never share your data without permission. Read our{" "}
-        <a href="#" className="underline hover:text-text-primary">
+        <a href="/privacy" className="underline hover:text-text-primary">
           Privacy Policy
         </a>
         .

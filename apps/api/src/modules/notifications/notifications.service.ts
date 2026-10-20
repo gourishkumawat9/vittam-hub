@@ -220,6 +220,29 @@ export class NotificationsService {
     });
   }
 
+  /** Someone answered your community question. Votes stay silent, same reasoning as likes. */
+  @OnEvent("discussion.replied")
+  handleDiscussionReplied(payload: { userId: string; replierName: string; discussionId: string; title: string }) {
+    return this.create({
+      userId: payload.userId,
+      type: "POST_COMMENTED",
+      title: "New reply",
+      body: `${payload.replierName} replied to "${payload.title}".`,
+      linkUrl: `/communities/discussions/${payload.discussionId}`,
+    });
+  }
+
+  @OnEvent("discussion.solution-marked")
+  handleDiscussionSolutionMarked(payload: { userId: string; discussionId: string; title: string }) {
+    return this.create({
+      userId: payload.userId,
+      type: "SYSTEM",
+      title: "Your answer was marked as the solution",
+      body: `Your reply solved "${payload.title}".`,
+      linkUrl: `/communities/discussions/${payload.discussionId}`,
+    });
+  }
+
   @OnEvent("mentor.review-submitted")
   handleFounderReviewSubmitted(payload: { founderId: string; mentorName: string }) {
     return this.create({
