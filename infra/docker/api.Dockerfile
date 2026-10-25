@@ -38,6 +38,10 @@ RUN addgroup -S vittamhub && adduser -S vittamhub -G vittamhub
 COPY --from=build /out/dist ./dist
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /out/src/database/prisma ./src/database/prisma
+# Migrate-then-start entrypoint for hosts with no pre-deploy hook (Render free).
+# The default CMD below is unchanged, so Railway's behaviour is too.
+COPY infra/docker/api-start.sh ./start.sh
+RUN chmod 0755 ./start.sh
 USER vittamhub
 EXPOSE 4000
 CMD ["node", "dist/src/main.js"]
