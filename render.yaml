@@ -1,0 +1,24 @@
+# Render Blueprint for the API (https://render.com/docs/blueprint-spec).
+# Free plan: sleeps after 15 min without traffic, ~1 min cold start.
+# Full setup steps: docs/deploy-render.md
+services:
+  - type: web
+    name: vittamhub-api
+    runtime: docker
+    plan: free
+    # Same region as the Neon database and Upstash Redis. Cannot be changed later.
+    region: singapore
+    branch: main
+    dockerfilePath: ./infra/docker/api.Dockerfile
+    dockerContext: .
+    # Free instances have no pre-deploy command, so migrations run at start.
+    dockerCommand: ./start.sh
+    # /health fails on Postgres only, never on Redis.
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Every other variable (DATABASE_URL, REDIS_URL, JWT_*, APP_URL, API_URL,
+      # RESEND_API_KEY, EMAIL_FROM, GOOGLE_*, ...) is pasted in the dashboard
+      # from the old Railway service. Never commit real values.
