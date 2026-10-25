@@ -19,6 +19,7 @@ import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { AuditLogModule } from "./modules/audit-log/audit-log.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
+import { CommunitiesModule } from "./modules/communities/communities.module";
 import { CommunityModule } from "./modules/community/community.module";
 import { ConnectionsModule } from "./modules/connections/connections.module";
 import { DiscoveryModule } from "./modules/discovery/discovery.module";
@@ -92,6 +93,7 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
     IncubatorsModule,
     HiringModule,
     CommunityModule,
+    CommunitiesModule,
     UniversitiesModule,
     ServiceProvidersModule,
     FollowsModule,

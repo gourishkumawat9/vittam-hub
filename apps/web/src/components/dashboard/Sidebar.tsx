@@ -19,6 +19,7 @@ import {
   Kanban,
   LayoutDashboard,
   MessageCircle,
+  MessagesSquare,
   Network,
   Search,
   Settings,
@@ -46,16 +47,19 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/incubators", label: "Incubators", icon: Building2 },
     { href: "/learning", label: "Learning", icon: BookOpen },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
   ],
   MENTOR: [
     { href: "/mentors/bookings", label: "Session Requests", icon: CalendarClock },
     { href: "/learning", label: "Learning", icon: BookOpen },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
   ],
   JOB_SEEKER: [
     { href: "/jobs", label: "Browse Jobs", icon: Briefcase },
     { href: "/learning", label: "Learning", icon: BookOpen },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
   ],
   INVESTOR: [
     { href: "/investor", label: "Dashboard", icon: LayoutDashboard },
@@ -77,14 +81,19 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/investor/profile", label: "Profile", icon: UserCircle },
     { href: "/investor/settings", label: "Settings", icon: Settings },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
   ],
-  ADMIN: [{ href: "/admin", label: "Admin", icon: Shield }],
+  ADMIN: [
+    { href: "/admin", label: "Admin", icon: Shield },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
+  ],
   INCUBATOR: [
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/incubators", label: "Incubators", icon: Building2 },
     { href: "/universities", label: "Universities", icon: GraduationCap },
     { href: "/service-providers", label: "Service Providers", icon: Briefcase },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
   ],
   UNIVERSITY: [
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
@@ -92,6 +101,7 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/universities", label: "Universities", icon: GraduationCap },
     { href: "/service-providers", label: "Service Providers", icon: Briefcase },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
   ],
   SERVICE_PROVIDER: [
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
@@ -99,6 +109,7 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/universities", label: "Universities", icon: GraduationCap },
     { href: "/service-providers", label: "Service Providers", icon: Briefcase },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/communities", label: "Communities", icon: MessagesSquare },
   ],
 };
 
@@ -117,7 +128,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex h-full flex-col gap-1 overflow-y-auto p-4" aria-label="Dashboard">
       {primaryNav.map((item) => {
-        const isActive = pathname === item.href.split("?")[0];
+        const base = item.href.split("?")[0]!;
+        // Communities has nested thread pages; keep its item lit on them.
+        const isActive = pathname === base || (base === "/communities" && pathname.startsWith("/communities/"));
         return (
           <Link
             key={item.href}
