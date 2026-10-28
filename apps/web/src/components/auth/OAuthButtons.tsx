@@ -1,6 +1,12 @@
-import { Github, Linkedin } from "lucide-react";
+"use client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { getApiBaseUrl, waitForApi } from "@vittamhub/api-client";
+import { Github, Linkedin } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+
+import { StatusScreen } from "@/components/StatusScreen";
+import { WakingProgress } from "@/components/WakingProgress";
 
 const PROVIDERS = [
   { id: "google", label: "Continue with Google", icon: GoogleIcon },
@@ -28,20 +34,52 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-/** OAuth is a full-page redirect to the API, not a fetch call — plain anchor tags to /v1/auth/{provider}. */
+/**
+ * OAuth is a full-page redirect to the API (/v1/auth/{provider}), not a fetch
+ * call. Going there blind meant a sleeping API showed a blank tab for a
+ * minute, and a down API showed the host's raw error page. So the button
+ * first waits for the API's health check behind a VittamHub loading screen,
+ * then redirects — or goes to /unavailable if the API never answers.
+ */
 export function OAuthButtons() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [connecting, setConnecting] = useState<string | null>(null);
+
+  const startOAuth = async (event: React.MouseEvent<HTMLAnchorElement>, label: string) => {
+    // Let modified clicks (new tab etc.) behave like the plain link they are.
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    // currentTarget is gone once the handler awaits, so read the URL now.
+    const oauthUrl = event.currentTarget.href;
+    setConnecting(label.replace("Continue with ", ""));
+    if (await waitForApi()) {
+      window.location.href = oauthUrl;
+    } else {
+      router.push(`/unavailable?from=${encodeURIComponent(pathname)}`);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2.5">
       {PROVIDERS.map((provider) => (
         <a
           key={provider.id}
-          href={`${API_URL}/v1/auth/${provider.id}`}
+          href={`${getApiBaseUrl()}/v1/auth/${provider.id}`}
+          onClick={(event) => void startOAuth(event, provider.label)}
           className="inline-flex items-center justify-center gap-2.5 rounded-button border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-background-secondary"
         >
           <provider.icon className="h-4 w-4" />
           {provider.label}
         </a>
       ))}
+      {connecting && (
+        <div className="fixed inset-0 z-modal" role="alertdialog" aria-modal="true" aria-label={`Connecting to ${connecting}`}>
+          <StatusScreen title={`Connecting to ${connecting}`} description="Getting VittamHub ready to sign you in.">
+            <WakingProgress />
+          </StatusScreen>
+        </div>
+      )}
     </div>
   );
 }

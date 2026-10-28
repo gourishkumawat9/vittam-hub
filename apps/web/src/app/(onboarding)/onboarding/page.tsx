@@ -1,9 +1,11 @@
 "use client";
 
-import { useCurrentUser } from "@vittamhub/api-client";
-import { UserRole } from "@vittamhub/types";
+import { useCurrentUser, useOnboardingState } from "@vittamhub/api-client";
+import { OnboardingStatus, UserRole } from "@vittamhub/types";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+
+import { roleHome } from "@/lib/role-home";
 
 const ROLE_ONBOARDING_PATH: Record<string, string> = {
   [UserRole.FOUNDER]: "/onboarding/founder",
@@ -19,6 +21,7 @@ const ROLE_ONBOARDING_PATH: Record<string, string> = {
 export default function OnboardingRedirectPage() {
   const router = useRouter();
   const { data: user, isLoading, isError } = useCurrentUser();
+  const { data: onboarding, isLoading: onboardingLoading } = useOnboardingState();
 
   useEffect(() => {
     if (isLoading) return;
@@ -26,8 +29,12 @@ export default function OnboardingRedirectPage() {
       router.replace("/login");
       return;
     }
-    router.replace(ROLE_ONBOARDING_PATH[user.role] ?? "/admin");
-  }, [user, isLoading, isError, router]);
+    if (onboardingLoading) return;
+    // Every login lands here, so someone who already finished onboarding goes
+    // to their dashboard instead of back into the wizard.
+    const wizard = ROLE_ONBOARDING_PATH[user.role];
+    router.replace(wizard && onboarding?.status !== OnboardingStatus.COMPLETED ? wizard : roleHome(user.role));
+  }, [user, isLoading, isError, onboarding, onboardingLoading, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

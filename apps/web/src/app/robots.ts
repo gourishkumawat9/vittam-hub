@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/founder", "/investor", "/admin", "/api/"],
+        disallow: ["/founder", "/investor", "/admin", "/api/", "/unavailable"],
       },
     ],
     sitemap: "https://vittamhub.com/sitemap.xml",

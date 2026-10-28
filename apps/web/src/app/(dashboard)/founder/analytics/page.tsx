@@ -1,10 +1,12 @@
 "use client";
 
 import { useMyStartupAnalytics } from "@vittamhub/api-client";
-import { Card, EmptyState, ErrorState } from "@vittamhub/ui";
+import { Button, Card, EmptyState, ErrorState } from "@vittamhub/ui";
 import { BarChart3 } from "lucide-react";
+import Link from "next/link";
 
 import { StatTilesSkeleton } from "@/components/dashboard/StatTilesSkeleton";
+import { isNotFoundError } from "@/lib/utils";
 
 function WeeklyViewsChart({ buckets }: { buckets: { label: string; count: number }[] }) {
   const max = Math.max(1, ...buckets.map((b) => b.count));
@@ -31,7 +33,7 @@ function WeeklyViewsChart({ buckets }: { buckets: { label: string; count: number
 }
 
 export default function FounderAnalyticsPage() {
-  const { data, isLoading, isError } = useMyStartupAnalytics();
+  const { data, isLoading, isError, error } = useMyStartupAnalytics();
 
   if (isLoading) {
     return (
@@ -41,13 +43,20 @@ export default function FounderAnalyticsPage() {
       </div>
     );
   }
-  if (isError) return <ErrorState />;
+  // A founder who hasn't finished onboarding has no startup yet, so the API
+  // answers 404 — that's the empty state, not a failure.
+  if (isError && !isNotFoundError(error)) return <ErrorState />;
   if (!data) {
     return (
       <EmptyState
         icon={BarChart3}
         title="No analytics yet"
         description="Complete your startup profile to start tracking views, connections, and growth."
+        action={
+          <Button asChild size="sm">
+            <Link href="/onboarding/founder">Complete your profile</Link>
+          </Button>
+        }
       />
     );
   }

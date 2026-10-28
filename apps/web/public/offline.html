@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>VittamHub · Can't connect</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --text: rgb(17 24 39);
+        --muted: rgb(107 114 128);
+        --brand: rgb(95 137 200);
+        --track: rgb(229 231 235);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: rgb(2 6 23); --text: rgb(241 245 249); --muted: rgb(148 163 184); --brand: rgb(108 151 206); --track: rgb(31 41 55); }
+        .logo { background: #ffffff; border-radius: 12px; padding: 8px 12px; }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        padding: 24px 16px;
+        text-align: center;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      .logo { height: 36px; width: auto; }
+      h1 { font-size: 24px; margin: 0; }
+      p { margin: 0; max-width: 420px; color: var(--muted); line-height: 1.5; }
+      .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--track); border-top-color: var(--brand); animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      button { padding: 12px 28px; border: 0; border-radius: 10px; background: var(--brand); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <img class="logo" src="/brand/vittamhub-logo.png" alt="VittamHub" />
+    <h1>We can't load VittamHub right now</h1>
+    <p>Check your internet connection. If you're online, our site may be briefly down. This page keeps trying and opens VittamHub as soon as it's back.</p>
+    <div class="spinner" role="status" aria-label="Trying to reconnect"></div>
+    <button type="button" onclick="location.reload()">Try again</button>
+    <script>
+      // Reload when the connection comes back, and every 15 seconds in case
+      // it was the site (not the connection) that was down.
+      window.addEventListener("online", () => location.reload());
+      setInterval(() => { if (navigator.onLine) location.reload(); }, 15000);
+    </script>
+  </body>
+</html>

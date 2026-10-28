@@ -122,12 +122,19 @@ export class AuthController {
   @ApiOperation({ summary: "Rotate the session using the refresh cookie" })
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const rawRefreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
-    const { accessToken, refreshToken, rememberMe } = await this.authService.refresh(
-      rawRefreshToken,
-      this.requestMeta(req),
-    );
-    this.setSessionCookies(res, accessToken, refreshToken, rememberMe);
-    return { refreshed: true };
+    try {
+      const { accessToken, refreshToken, rememberMe } = await this.authService.refresh(
+        rawRefreshToken,
+        this.requestMeta(req),
+      );
+      this.setSessionCookies(res, accessToken, refreshToken, rememberMe);
+      return { refreshed: true };
+    } catch (error) {
+      // A dead refresh cookie would otherwise keep passing the web
+      // middleware's "can this session be renewed?" check forever.
+      this.clearSessionCookies(res);
+      throw error;
+    }
   }
 
   @Post("logout")
@@ -135,8 +142,7 @@ export class AuthController {
   @ApiOperation({ summary: "Revoke the current session" })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(req.cookies?.[REFRESH_COOKIE_NAME]);
-    res.clearCookie(this.configService.get("SESSION_COOKIE_NAME", "vh_session"));
-    res.clearCookie(REFRESH_COOKIE_NAME);
+    this.clearSessionCookies(res);
     return { loggedOut: true };
   }
 
@@ -334,7 +340,9 @@ export class AuthController {
 
     const { accessToken, refreshToken } = await this.authService.findOrCreateOAuthUser(profile, this.requestMeta(req));
     this.setSessionCookies(res, accessToken, refreshToken, false);
-    res.redirect(`${this.configService.get("APP_URL")}/founder`);
+    // /onboarding routes each role to its own place; /founder sent investors
+    // and every other role to the founder dashboard.
+    res.redirect(`${this.configService.get("APP_URL")}/onboarding`);
   }
 
   private requestMeta(req: Request, rememberMe = false): RequestMeta {
@@ -350,13 +358,40 @@ export class AuthController {
     return createHash("sha256").update(rawToken).digest("hex");
   }
 
-  private setSessionCookies(res: Response, accessToken: string, refreshToken: string, rememberMe: boolean) {
+  /**
+   * In production the API (api.vittamhub.com) and the web app (vittamhub.com)
+   * are different hosts. A cookie set without `domain` is host-only, so the
+   * web app's middleware never saw the session and bounced every signed-in
+   * user from /founder, /investor and /admin back to /login. Scoping to the
+   * parent domain — as csrfCookieMiddleware already does — fixes that.
+   */
+  private cookieScope(): { isProd: boolean; domain: string | undefined } {
     const isProd = this.configService.get("NODE_ENV") === "production";
+    const domain = isProd ? `.${new URL(this.configService.getOrThrow<string>("APP_URL")).hostname}` : undefined;
+    return { isProd, domain };
+  }
+
+  private clearSessionCookies(res: Response) {
+    // Cookies only clear when path and domain match how they were set.
+    const { domain } = this.cookieScope();
+    const sessionCookie = this.configService.get("SESSION_COOKIE_NAME", "vh_session");
+    res.clearCookie(sessionCookie, { path: "/", domain });
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: "/", domain });
+    if (domain) {
+      // Sessions issued before cookies were domain-scoped were host-only.
+      res.clearCookie(sessionCookie, { path: "/" });
+      res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
+    }
+  }
+
+  private setSessionCookies(res: Response, accessToken: string, refreshToken: string, rememberMe: boolean) {
+    const { isProd, domain } = this.cookieScope();
     const baseOptions: CookieOptions = {
       httpOnly: true,
       secure: isProd,
       sameSite: "lax",
       path: "/",
+      domain,
     };
 
     res.cookie(this.configService.get("SESSION_COOKIE_NAME", "vh_session"), accessToken, {
