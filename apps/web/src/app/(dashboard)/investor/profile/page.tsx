@@ -3,9 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMyInvestorProfile, useUpdateMyInvestorProfile } from "@vittamhub/api-client";
 import { InvestorType, StartupStage, updateInvestorInputSchema, type UpdateInvestorInput } from "@vittamhub/types";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, ErrorState, Input, Select, Skeleton, TagsInput, Textarea } from "@vittamhub/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, EmptyState, ErrorState, Input, Select, Skeleton, TagsInput, Textarea } from "@vittamhub/ui";
+import { UserRound } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+
+import { isNotFoundError } from "@/lib/utils";
 
 function titleCase(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -15,7 +19,7 @@ const INVESTOR_TYPE_OPTIONS = Object.values(InvestorType).map((value) => ({ labe
 const STAGE_OPTIONS = Object.values(StartupStage);
 
 export default function InvestorProfilePage() {
-  const { data: investor, isLoading, isError } = useMyInvestorProfile();
+  const { data: investor, isLoading, isError, error } = useMyInvestorProfile();
   const updateProfile = useUpdateMyInvestorProfile();
   const [saved, setSaved] = useState(false);
 
@@ -75,6 +79,22 @@ export default function InvestorProfilePage() {
           <Skeleton className="h-20 w-full" />
         </div>
       </div>
+    );
+  }
+  // No investor profile until onboarding is finished — the API answers 404.
+  if (isNotFoundError(error)) {
+    return (
+      <EmptyState
+        className="mx-auto max-w-2xl"
+        icon={UserRound}
+        title="Set up your investor profile"
+        description="Finish onboarding to create the profile founders see when they find you."
+        action={
+          <Button asChild size="sm">
+            <Link href="/onboarding/investor">Finish onboarding</Link>
+          </Button>
+        }
+      />
     );
   }
   if (isError) return <ErrorState className="mx-auto max-w-2xl" />;
