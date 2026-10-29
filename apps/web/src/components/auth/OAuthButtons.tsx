@@ -5,6 +5,7 @@ import { Github, Linkedin } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { PillarLoader } from "@/components/PillarLoader";
 import { StatusScreen } from "@/components/StatusScreen";
 import { WakingProgress } from "@/components/WakingProgress";
 
@@ -75,7 +76,11 @@ export function OAuthButtons() {
       ))}
       {connecting && (
         <div className="fixed inset-0 z-modal" role="alertdialog" aria-modal="true" aria-label={`Connecting to ${connecting}`}>
-          <StatusScreen title={`Connecting to ${connecting}`} description="Getting VittamHub ready to sign you in.">
+          <StatusScreen
+            title={`Connecting to ${connecting}`}
+            description="Getting VittamHub ready to sign you in."
+            illustration={<PillarLoader />}
+          >
             <WakingProgress />
           </StatusScreen>
         </div>

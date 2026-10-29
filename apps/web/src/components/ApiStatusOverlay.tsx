@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { PillarLoader } from "@/components/PillarLoader";
 import { StatusScreen } from "@/components/StatusScreen";
 import { WakingProgress } from "@/components/WakingProgress";
 
@@ -32,6 +33,7 @@ export function ApiStatusOverlay() {
         <StatusScreen
           title="Waking up VittamHub"
           description="Our servers rest when things are quiet. We're starting them up for you now."
+          illustration={<PillarLoader />}
         >
           <WakingProgress />
         </StatusScreen>
