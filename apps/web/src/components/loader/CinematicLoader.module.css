@@ -1,0 +1,92 @@
+/*
+ * A dark "screen" for the scene. Its background matches the night sky, so the
+ * still poster (before JavaScript, or with reduced motion) and the first
+ * canvas frame look the same. --logo, --logo-scale, --glint and --tagline are
+ * set every frame by CinematicLoader; their defaults are the poster.
+ */
+.root {
+  position: relative;
+  width: 100%;
+  max-width: 40rem;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  isolation: isolate;
+  container-type: inline-size;
+  border-radius: 1rem;
+  background: radial-gradient(ellipse at 50% 30%, #13254a 0%, #071330 55%, #02040c 100%);
+  box-shadow:
+    0 1.5rem 3.5rem -1.5rem rgb(2 6 23 / 0.55),
+    0 0 0 1px rgb(126 167 216 / 0.18);
+}
+
+.delayed {
+  animation: appear 0.4s ease-out var(--appear-after, 0ms) both;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.brand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3cqi;
+  pointer-events: none;
+}
+
+.logo {
+  position: relative;
+  width: 52%;
+  opacity: var(--logo, 1);
+  transform: scale(var(--logo-scale, 1));
+}
+
+.logoImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 1.1rem rgb(126 167 216 / 0.55));
+}
+
+/* A light sweep across the logo, masked to the logo's own shape. */
+.glint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 40%, rgb(255 255 255 / 0.95) 50%, transparent 60%) no-repeat;
+  background-size: 300% 100%;
+  background-position: calc(100% - var(--glint, -1) * 100%) 0;
+  mask-position: center;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.tagline {
+  margin: 0;
+  color: #dbe7f7;
+  font:
+    500 0.875rem/1.2 var(--font-heading, Manrope),
+    system-ui,
+    sans-serif;
+  font-size: clamp(0.7rem, 3.3cqi, 1.2rem);
+  letter-spacing: calc(0.04em + (1 - var(--tagline, 1)) * 0.25em);
+  text-align: center;
+  text-shadow: 0 0 0.9rem rgb(126 167 216 / 0.6);
+  opacity: var(--tagline, 1);
+}

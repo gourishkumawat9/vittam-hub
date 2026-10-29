@@ -6,9 +6,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { PillarLoader } from "@/components/PillarLoader";
 import { StatusScreen } from "@/components/StatusScreen";
 import { WakingProgress } from "@/components/WakingProgress";
+import { CinematicLoader } from "@/components/loader/CinematicLoader";
 
 /** Pages that render fully without the API, so a slow API is no reason to cover them. */
 const STATIC_PATHS = new Set(["/", "/about", "/pricing", "/privacy", "/terms", "/unavailable"]);
@@ -33,7 +33,7 @@ export function ApiStatusOverlay() {
         <StatusScreen
           title="Waking up VittamHub"
           description="Our servers rest when things are quiet. We're starting them up for you now."
-          illustration={<PillarLoader />}
+          illustration={<CinematicLoader />}
         >
           <WakingProgress />
         </StatusScreen>

@@ -10,7 +10,7 @@ export interface StatusScreenProps {
   eyebrow?: string;
   /** Buttons/links, or a progress bar while something loads. */
   children?: ReactNode;
-  /** Shown above the title in place of the logo, e.g. the animated `PillarLoader` while something loads. */
+  /** Shown above the title in place of the logo, e.g. the animated `CinematicLoader` while something loads. */
   illustration?: ReactNode;
   className?: string;
 }
