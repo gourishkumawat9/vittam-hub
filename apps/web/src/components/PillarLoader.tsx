@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 
 import styles from "./PillarLoader.module.css";
 
-export const BRAND_TAGLINE = "Visibility for Tomorrow's Unicorns";
+/** Shown under the logo at the end of each loop. The site-wide tagline is still "Visibility for Tomorrow's Unicorns". */
+const LOADER_TAGLINE = "Nurturing Future Unicorns";
 
 /** One pillar, centered on x=0 with its top at y=0. Same flared I-beam profile as the pillars in the sketches. */
 const PILLAR =
@@ -137,7 +138,7 @@ export interface PillarLoaderProps {
  * Decorative only (aria-hidden): whatever screen uses it says what is loading.
  * With reduced motion it shows just the logo and tagline, still.
  */
-export function PillarLoader({ className, tagline = BRAND_TAGLINE }: PillarLoaderProps) {
+export function PillarLoader({ className, tagline = LOADER_TAGLINE }: PillarLoaderProps) {
   return (
     <div className={cn(styles.root, className)} aria-hidden="true">
       <svg className={styles.svg} viewBox="0 0 460 280" fill="none">
