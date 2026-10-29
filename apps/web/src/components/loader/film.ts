@@ -675,7 +675,6 @@ export function createFilm(target: HTMLCanvasElement, font = "system-ui, sans-se
     depth: false,
     stencil: false,
     preserveDrawingBuffer: preserve,
-    powerPreference: "high-performance",
   });
   if (!gl) throw new Error("WebGL2 is not available");
   const vs = compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
