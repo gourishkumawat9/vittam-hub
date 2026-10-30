@@ -28,19 +28,20 @@ export interface CinematicLoaderProps {
 }
 
 /**
- * VittamHub's loading animation, a five-second loop in the site's own colours:
+ * VittamHub's loading animation, a ten-second loop in the site's own colours:
  * founders push the Startups pillar to the Investors pillar, a bridge of
  * mentors, community and incubators joins them, the idea bubble of founders
- * who haven't joined yet pops into Startups, and startups cross the bridge
- * to Investors, which launches them as unicorns. The logo and tagline stay
- * underneath as live HTML. See ./scene.ts for the story itself.
+ * who haven't joined yet is connected and pops into Startups, and startups
+ * cross the bridge to Investors, which launches them as unicorns. Then the
+ * logo and tagline come in as an end card, as live HTML timed by the scene.
+ * See ./scene.ts for the story itself.
  *
  * The scene's code loads only when a loader mounts, so it adds nothing to the
  * pages' first load. Until then, or without a canvas, the loader is its
- * poster: the logo and tagline. With reduced motion, data saver or a 2G
- * connection, or on a device too slow to keep up, it shows a still of the
- * story instead of playing it. Decorative only (aria-hidden): the screen
- * using it says what is loading.
+ * poster: the end card. With reduced motion, data saver or a 2G connection,
+ * or on a device too slow to keep up, it holds the end card instead of
+ * playing the story. Decorative only (aria-hidden): the screen using it says
+ * what is loading.
  */
 export function CinematicLoader({
   className,
@@ -139,7 +140,9 @@ function play(root: HTMLDivElement, canvas: HTMLCanvasElement, scene: Scene, app
     canvas.height = Math.max(1, Math.round(Math.min(root.clientHeight * ratio, 2048)));
   };
   const paint = (t: number | "still") => {
-    const { glint } = scene.draw(t);
+    const { logo, tagline, glint } = scene.draw(t);
+    root.style.setProperty("--logo-in", logo.toFixed(3));
+    root.style.setProperty("--tagline-in", tagline.toFixed(3));
     root.style.setProperty("--glint", glint.toFixed(3));
     root.dataset.scene = "on";
   };

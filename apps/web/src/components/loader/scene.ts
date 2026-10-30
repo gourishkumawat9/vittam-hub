@@ -1,21 +1,27 @@
 /**
- * The loader's five-second story, drawn on a 2D canvas as a pure function of
+ * The loader's ten-second story, drawn on a 2D canvas as a pure function of
  * time, so it loops seamlessly and can be rendered frame by frame for video:
  *
  *   0.0 s   the Startups and Investors pillars rise out of a glossy floor, and
  *           an idea bubble of founders who haven't joined yet inflates over Startups
- *   0.8 s   three founders push Startups toward Investors
- *   1.6 s   a bridge of mentors, community and incubators joins the two, and
- *           with its V the pillars read as the logo's mark
- *   2.2 s   the founders cheer, the bubble pops and its founders drop into Startups
- *   2.45 s  startups travel the bridge to Investors…
- *   3.2 s   …which launches them as unicorns, and a light sweeps the logo
- *   4.4 s   everything sinks back into the floor, ready for the next loop
+ *   1.4 s   three founders push Startups toward Investors, kicking up dust
+ *   2.65 s  a bridge grows from Startups to Investors, lighting Mentors,
+ *           Community and Incubators as it reaches them; with its V the
+ *           pillars read as the logo's mark
+ *   3.75 s  it locks in and the founders cheer
+ *   3.85 s  a line of light reaches from the bridge up to the bubble, which
+ *           pops: its founders drop into Startups
+ *   5.0 s   startups cross the bridge, stopping at each node and growing as
+ *           they go, then climb Investors past Seed, Series A and Series B…
+ *   6.4 s   …and leave the top as unicorns
+ *   7.6 s   everything sinks back into the floor
+ *   7.95 s  the end card: the logo and tagline come in, a light sweeps the
+ *           logo, and they fade before the next loop
  *
  * The world is measured in units: the floor is y = 0, up is negative, and the
  * frame is 100 units tall. Landscape and portrait frames share the world and
  * differ only in the camera. The logo and tagline aren't drawn here: they're
- * live HTML over the canvas (see CinematicLoader).
+ * live HTML over the canvas (see CinematicLoader), which this scene times.
  */
 import { CYCLE } from "./constants";
 
@@ -23,12 +29,16 @@ type Ctx = CanvasRenderingContext2D;
 type V2 = readonly [number, number];
 
 export interface Overlay {
+  /** How far the logo has come in, from 0 (hidden) to 1. */
+  logo: number;
+  /** How far the tagline has come in, from 0 (hidden) to 1. */
+  tagline: number;
   /** Progress of the light sweep across the logo, from 0 to 1, or -1 when there's none. */
   glint: number;
 }
 
 export interface Scene {
-  /** Draws the frame `t` seconds into the loop, or the still used as the poster. */
+  /** Draws the frame `t` seconds into the loop, or the still: the end card. */
   draw(t: number | "still"): Overlay;
   /** Switches between the light and dark theme's colours. */
   theme(dark: boolean): void;
@@ -115,7 +125,8 @@ const CHAMFER = 2.6;
 const INVESTORS_X = 22;
 const STARTUPS_FROM = -44;
 const STARTUPS_TO = -22;
-const PUSH: V2 = [0.8, 1.7];
+const RISE: V2 = [0.1, 1.0];
+const PUSH: V2 = [1.4, 2.7];
 
 // The bridge dips into a V in the middle, like the logo's crossbar.
 const BRIDGE_Y = -17;
@@ -126,7 +137,7 @@ const BRIDGE: V2[] = [
   [5, BRIDGE_Y],
   [INVESTORS_X - SHAFT, BRIDGE_Y],
 ];
-const BRIDGE_DRAW: V2 = [1.62, 2.2];
+const BRIDGE_DRAW: V2 = [2.65, 3.75];
 const NODES: { text: string; at: V2; label: V2 }[] = [
   { text: "Mentors", at: [-11.5, BRIDGE_Y], label: [-11.5, BRIDGE_Y - 3.7] },
   { text: "Community", at: [0, BRIDGE_Y + 5], label: [0, BRIDGE_Y + 9] },
@@ -134,7 +145,11 @@ const NODES: { text: string; at: V2; label: V2 }[] = [
 ];
 
 const BUBBLE_R = 8.5;
-const POP = 2.25;
+/** The line of light from Mentors up to the bubble. */
+const LINK: V2 = [3.85, 4.35];
+const POP = 4.6;
+const DROP_GAP = 0.06;
+const DROP_TIME = 0.55;
 /** Where the bubble's founders float, relative to its centre. */
 const CROWD: V2[] = [
   [-3.6, 2.4],
@@ -147,9 +162,18 @@ const CROWD: V2[] = [
 /** Startups crossing the bridge and climbing Investors. */
 const FLOW_PATH: V2[] = [...BRIDGE, [INVESTORS_X, BRIDGE_Y], [INVESTORS_X, -PILLAR_H - 0.6]];
 const FLOW_COUNT = 7;
-const FLOW_START = 2.45;
-const FLOW_GAP = 0.07;
-const FLOW_TIME = 0.78;
+const FLOW_START = 5.0;
+const FLOW_GAP = 0.15;
+const FLOW_TIME = 1.35;
+/** Share of each startup's trip spent stopped at each node. */
+const DWELL = 0.09;
+const arrival = (i: number) => FLOW_START + i * FLOW_GAP + FLOW_TIME;
+/** Funding stages marked up Investors' shaft, lowest first. */
+const STAGES: { text: string; y: number }[] = [
+  { text: "Seed", y: -22 },
+  { text: "Series A", y: -26.5 },
+  { text: "Series B", y: -31 },
+];
 
 interface Flight {
   launch: number;
@@ -157,10 +181,11 @@ interface Flight {
   path: readonly [V2, V2, V2, V2];
 }
 const LAUNCH_Y = -PILLAR_H - 1.5;
-const FLIGHT_TIME = 1.0;
+const FLIGHT_TIME = 1.2;
+// Each unicorn leaves just after a startup reaches the top.
 const FLIGHTS: Flight[] = [
   {
-    launch: 3.2,
+    launch: arrival(0) + 0.08,
     size: 1,
     path: [
       [22, LAUNCH_Y],
@@ -170,7 +195,7 @@ const FLIGHTS: Flight[] = [
     ],
   },
   {
-    launch: 3.42,
+    launch: arrival(3) + 0.08,
     size: 0.85,
     path: [
       [21, LAUNCH_Y],
@@ -180,7 +205,7 @@ const FLIGHTS: Flight[] = [
     ],
   },
   {
-    launch: 3.64,
+    launch: arrival(6) + 0.08,
     size: 0.93,
     path: [
       [23, LAUNCH_Y],
@@ -191,14 +216,18 @@ const FLIGHTS: Flight[] = [
   },
 ];
 /** The bridge reaches Investors: a light runs down both pillars. */
-const DOCK = 2.2;
+const DOCK = 3.75;
 
-const GLINT: V2 = [3.95, 4.55];
-const SINK: V2 = [4.4, 4.85];
-
-/** The poster: every part of the story at its best moment in one frame. */
-const STILL = { base: 3.15, bubble: 1.95, flow: 2.86, unicorn: 3.82 };
-type Times = typeof STILL;
+/** Labels, founders and stages fade as the story ends. */
+const FADE: V2 = [7.45, 7.75];
+const SINK: V2 = [7.6, 8.2];
+// The end card.
+const LOGO_IN: V2 = [7.95, 8.75];
+const TAGLINE_IN: V2 = [8.3, 9.1];
+const GLINT: V2 = [8.85, 9.45];
+const CARD_OUT: V2 = [9.62, 9.96];
+/** The still: the end card, with the story sunk away. */
+const STILL = 9.3;
 
 // Easing.
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
@@ -208,6 +237,7 @@ const outCubic = (x: number) => 1 - (1 - x) ** 3;
 const inCubic = (x: number) => x ** 3;
 const inOutCubic = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2);
 const inOutSine = (x: number) => (1 - Math.cos(Math.PI * x)) / 2;
+const outExpo = (x: number) => (x >= 1 ? 1 : 1 - 2 ** (-10 * x));
 const outBack = (x: number) => 1 + 2.4 * (x - 1) ** 3 + 1.4 * (x - 1) ** 2;
 const TAU = Math.PI * 2;
 
@@ -215,15 +245,16 @@ const startupsX = (t: number) => lerp(STARTUPS_FROM, STARTUPS_TO, inOutSine(seg(
 
 /** How far a pillar (and what hangs on it) is below its place: rising at the start, sinking at the end. */
 function sunk(t: number, delay: number): number {
-  const up = outCubic(seg(t, 0.05 + delay, 0.62 + delay));
+  const up = outCubic(seg(t, RISE[0] + delay, RISE[1] + delay));
   return PILLAR_H * (1 - up) + (PILLAR_H + 2) * inCubic(seg(t, SINK[0], SINK[1]));
 }
 
 function camera(t: number, portrait: boolean): { x: number; zoom: number } {
-  const push = 0.035 * (inOutSine(seg(t, 0.2, 4.3)) - inOutSine(seg(t, 4.4, 5)));
-  if (!portrait) return { x: 0, zoom: 1.08 * (1 + push) };
-  // Too narrow for both pillars at the start: follow Startups, then settle between them.
-  const x = -26 + 26 * inOutCubic(seg(t, 0.75, 1.95)) - 26 * inOutSine(seg(t, 4.86, 4.99));
+  const push = 0.04 * (inOutSine(seg(t, 0.2, 7.6)) - inOutSine(seg(t, 7.6, 8.4)));
+  if (!portrait) return { x: 0, zoom: 1.22 * (1 + push) };
+  // Too narrow for both pillars at the start: follow Startups, then settle between them,
+  // and pan back during the end card, when there's nothing on the floor.
+  const x = -26 + 26 * inOutCubic(seg(t, 1.45, 3.1)) - 26 * inOutSine(seg(t, 8.4, 9.4));
   return { x, zoom: 0.72 * (1 + push) };
 }
 
@@ -273,19 +304,34 @@ const NODE_AT = NODES.map(({ at }) => {
   return best;
 });
 
-const flowEase = (u: number) => 0.45 * u + 0.55 * inOutSine(u);
+/** Distance along FLOW_PATH `u` of the way through a trip: easing into each node, pausing, and moving on. */
+function flowDistance(u: number): number {
+  const end = FLOW_LEN[FLOW_LEN.length - 1]!;
+  const stops = [0, ...NODE_AT, end];
+  const moving = 1 - DWELL * NODE_AT.length;
+  let from = 0;
+  for (let i = 1; i < stops.length; i++) {
+    const a = stops[i - 1]!;
+    const b = stops[i]!;
+    const leg = ((b - a) / end) * moving;
+    if (u <= from + leg) return lerp(a, b, inOutSine((u - from) / leg));
+    from += leg + DWELL;
+    if (u <= from) return b;
+  }
+  return end;
+}
 
 /** Distance each startup has travelled along FLOW_PATH, or -1 if it isn't on it. */
 function flowAt(t: number, i: number): number {
-  const u = seg(t, FLOW_START + i * FLOW_GAP, FLOW_START + i * FLOW_GAP + FLOW_TIME);
-  return u <= 0 || u >= 1 ? -1 : flowEase(u) * FLOW_LEN[FLOW_LEN.length - 1]!;
+  const u = seg(t, FLOW_START + i * FLOW_GAP, arrival(i));
+  return u <= 0 || u >= 1 ? -1 : flowDistance(u);
 }
 
 /** Light gathered on Investors' capital from arriving startups and launching unicorns. */
 function charge(t: number): number {
   let c = 0;
   for (let i = 0; i < FLOW_COUNT; i++) {
-    const dt = t - (FLOW_START + i * FLOW_GAP + FLOW_TIME);
+    const dt = t - arrival(i);
     if (dt > 0) c += 0.35 * Math.exp(-dt * 5);
   }
   for (const f of FLIGHTS) {
@@ -383,7 +429,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     size: number,
     color: string,
     alpha: number,
-    opts: { weight?: number; tracking?: number } = {},
+    opts: { weight?: number; tracking?: number; align?: CanvasTextAlign } = {},
   ) {
     if (alpha <= 0.003) return;
     const mt = x.getTransform();
@@ -398,7 +444,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     x.textBaseline = "middle";
     const track = (opts.tracking ?? 0) * px;
     if (!track) {
-      x.textAlign = "center";
+      x.textAlign = opts.align ?? "center";
       x.fillText(str, sx, sy);
     } else {
       x.textAlign = "left";
@@ -451,6 +497,15 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     x.lineTo(cx - SHAFT + 0.85, drop - SLAB - CHAMFER - 1);
     x.moveTo(cx - CAP + 0.5, top + 0.35);
     x.lineTo(cx + CAP - 0.8, top + 0.35);
+    x.stroke();
+    // Two faint flutes down the shaft.
+    x.strokeStyle = p.pillarLine;
+    x.lineWidth = 0.12;
+    x.beginPath();
+    for (const fx of [-0.7, 1.1]) {
+      x.moveTo(cx + fx, top + SLAB + CHAMFER + 1.4);
+      x.lineTo(cx + fx, drop - SLAB - CHAMFER - 1.4);
+    }
     x.stroke();
     if (lit > 0.01 || (sweep > 0 && sweep < 1)) {
       x.save();
@@ -532,7 +587,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
 
   function nodes(x: Ctx, t: number, drop: number, labels: boolean) {
     const reach = BRIDGE_LEN[BRIDGE_LEN.length - 1]! * inOutCubic(seg(t, BRIDGE_DRAW[0], BRIDGE_DRAW[1]));
-    const fade = 1 - seg(t, 4.2, 4.42);
+    const fade = 1 - seg(t, FADE[0], FADE[1]);
     NODES.forEach((node, n) => {
       // Each node appears as the bridge reaches it.
       const passed = reach - NODE_AT[n]!;
@@ -554,6 +609,15 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       x.beginPath();
       x.arc(nx, ny, 0.6 * s * (1 + 0.5 * light), 0, TAU);
       x.fill();
+      // A ring goes out as the bridge reaches it (Incubators is 7 units from the end).
+      const ring = clamp01(passed / 5.5);
+      if (ring < 1) {
+        x.strokeStyle = rgba(p.glow, 0.7 * (1 - ring));
+        x.lineWidth = 0.25;
+        x.beginPath();
+        x.arc(nx, ny, 1.6 + 4.5 * outCubic(ring), 0, TAU);
+        x.stroke();
+      }
       if (labels) {
         const a = clamp01((passed - 2) / 6) * fade;
         const lift = 0.8 * (1 - clamp01((passed - 2) / 6));
@@ -564,15 +628,15 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
 
   /** The three founders, nearest first: walk in, push, then straighten up. */
   function founders(x: Ctx, t: number) {
-    const alpha = seg(t, 0.3, 0.55) * (1 - seg(t, 4.2, 4.45));
+    const alpha = seg(t, 0.6, 0.9) * (1 - seg(t, FADE[0], FADE[1]));
     if (alpha <= 0) return;
     const face = startupsX(t) - SHAFT;
     const moving = t < PUSH[1] + 0.05;
     // How far into the pushing stance they are: lean in before the push, straighten up after it.
-    const brace = seg(t, 0.66, 0.86) * (1 - inOutSine(seg(t, 1.72, 2.1)));
+    const brace = seg(t, 1.2, 1.45) * (1 - inOutSine(seg(t, 2.75, 3.2)));
     const lean = 0.08 + 0.55 * brace;
-    const approach = 9 * (1 - outCubic(seg(t, 0.3, 0.82)));
-    const stepBack = 1.6 * inOutSine(seg(t, 1.72, 2.1));
+    const approach = 9 * (1 - outCubic(seg(t, 0.6, 1.4)));
+    const stepBack = 1.6 * inOutSine(seg(t, 2.75, 3.2));
     x.save();
     x.globalAlpha = alpha;
     x.lineCap = "round";
@@ -584,11 +648,11 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       const torso = 2.9 * k;
       const hipY = floor - (3.2 - 0.25 * brace) * k;
       // Head down just short of the pillar, so their arms bend as they push.
-      const cheer = Math.sin(Math.PI * seg(t, 2.25 + i * 0.07, 2.95 + i * 0.07));
+      const cheer = Math.sin(Math.PI * seg(t, DOCK + 0.05 + i * 0.08, DOCK + 0.85 + i * 0.08));
       const shoulderX = face - 0.2 - 1.15 * k - 1.65 * k * dir[0] - lerp(2.7, 1.7, brace) * i - approach - stepBack;
       const hip: V2 = [shoulderX - torso * dir[0], hipY - 0.5 * k * cheer];
       const shoulder: V2 = [shoulderX, hipY + torso * dir[1]];
-      const phase = TAU * 2.3 * t + i * 2.1;
+      const phase = TAU * 1.9 * t + i * 2.1;
       const back = -1.3 * k * brace;
       const feet = [0, 1].map((j): V2 => {
         const swing = Math.sin(phase + j * Math.PI);
@@ -634,6 +698,19 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     x.restore();
   }
 
+  /** Dust kicked up behind Startups' base as it slides. */
+  function dust(x: Ctx, t: number) {
+    for (let i = 0; i < 16; i++) {
+      const born = lerp(PUSH[0] + 0.1, PUSH[1] - 0.15, i / 15);
+      const age = t - born;
+      if (age < 0 || age > 0.8) continue;
+      const k = age / 0.8;
+      const side = Math.sin(i * 7.31);
+      const at: V2 = [startupsX(born) - CAP - 0.4 - 3 * outCubic(k) * (0.6 + 0.4 * side), -0.3 - 2.6 * k + 1.6 * k * k];
+      glowDot(x, at[0], at[1], 0.6 + 1.6 * k, 0.32 * (1 - k), p.floor);
+    }
+  }
+
   /** Everything standing on the floor, which the floor reflects. */
   function grounded(x: Ctx, t: number, labels: boolean) {
     const sx = startupsX(t);
@@ -641,10 +718,11 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     const iDrop = sunk(t, 0);
     let landed = 0;
     for (let i = 0; i < CROWD.length; i++) {
-      const dt = t - (POP + i * 0.035 + 0.42);
+      const dt = t - (POP + i * DROP_GAP + DROP_TIME);
       if (dt > 0) landed += Math.exp(-dt * 6);
     }
-    const sweep = seg(t, DOCK, DOCK + 0.6);
+    const sweep = seg(t, DOCK, DOCK + 0.8);
+    dust(x, t);
     founders(x, t);
     pillar(x, sx, sDrop, landed, sweep);
     pillar(x, INVESTORS_X, iDrop, charge(t), sweep);
@@ -695,17 +773,18 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
   }
 
   function bubble(x: Ctx, t: number) {
-    const s = outBack(seg(t, 0.5, 0.95));
+    const s = outBack(seg(t, 0.7, 1.3));
     const centre = bubbleCentre(Math.min(t, POP));
+    link(x, t, centre);
     if (t < POP && s > 0) {
-      const tension = seg(t, 1.95, POP);
+      const tension = seg(t, LINK[1], POP);
       const wob = (0.018 + 0.05 * tension) * Math.sin(t * (9 + 16 * tension));
       const r = BUBBLE_R * s;
       x.save();
       x.translate(centre[0], centre[1]);
       x.scale(1 + wob, 1 - wob);
       CROWD.forEach((_, i) => {
-        const appear = outBack(seg(t, 0.7 + i * 0.07, 0.98 + i * 0.07));
+        const appear = outBack(seg(t, 0.95 + i * 0.09, 1.3 + i * 0.09));
         if (appear <= 0) return;
         const at = crowdAt(t, i, [0, 0], s);
         person(x, at, 0.82 * appear, p.people[i]!, 0.12 * Math.sin(t * 2 + i));
@@ -723,6 +802,13 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       x.strokeStyle = rim;
       x.lineWidth = 0.34;
       x.stroke();
+      // Once connected, it glows.
+      const lit = seg(t, LINK[1] - 0.05, LINK[1] + 0.15);
+      if (lit > 0) {
+        x.globalCompositeOperation = p.glowMode;
+        glowDot(x, 0, 0, r * 1.5, 0.22 * lit);
+        x.globalCompositeOperation = "source-over";
+      }
       x.lineCap = "round";
       x.strokeStyle = p.shine;
       x.lineWidth = 0.6;
@@ -762,8 +848,8 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     }
     // Its founders drop into the Startups pillar.
     CROWD.forEach((_, i) => {
-      const start = POP + i * 0.035;
-      const u = seg(t, start, start + 0.42);
+      const start = POP + i * DROP_GAP;
+      const u = seg(t, start, start + DROP_TIME);
       if (u >= 1) return;
       const from = crowdAt(POP, i, centre, 1);
       const to: V2 = [STARTUPS_TO + (i - 2) * 0.8, -PILLAR_H + 0.4];
@@ -774,7 +860,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     });
     // A ripple on the capital where each one lands.
     CROWD.forEach((_, i) => {
-      const dt = t - (POP + i * 0.035 + 0.42);
+      const dt = t - (POP + i * DROP_GAP + DROP_TIME);
       if (dt < 0 || dt > 0.4) return;
       const k2 = dt / 0.4;
       x.strokeStyle = rgba(p.glow, 0.6 * (1 - k2));
@@ -783,6 +869,51 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       x.ellipse(STARTUPS_TO + (i - 2) * 0.8, -PILLAR_H, 1 + 4 * outCubic(k2), 0.35 + 1.1 * outCubic(k2), 0, 0, TAU);
       x.stroke();
     });
+  }
+
+  /** The line of light from Mentors up to the bubble: the network reaching the founders who haven't joined yet. */
+  function link(x: Ctx, t: number, centre: V2) {
+    const grow = inOutCubic(seg(t, LINK[0], LINK[1]));
+    const fade = 1 - seg(t, POP, POP + 0.25);
+    if (grow <= 0 || fade <= 0) return;
+    const from: V2 = [NODES[0]!.at[0], NODES[0]!.at[1] + sunk(t, 0)];
+    const to: V2 = [centre[0] + BUBBLE_R * 0.5, centre[1] + BUBBLE_R * 0.87];
+    const ctrl: V2 = [from[0] + 2, lerp(from[1], to[1], 0.75)];
+    const point = (u: number): V2 => {
+      const v = 1 - u;
+      return [
+        v * v * from[0] + 2 * v * u * ctrl[0] + u * u * to[0],
+        v * v * from[1] + 2 * v * u * ctrl[1] + u * u * to[1],
+      ];
+    };
+    x.save();
+    x.globalAlpha = fade;
+    x.strokeStyle = rgba(p.glow, 0.75);
+    x.lineWidth = 0.22;
+    x.lineCap = "round";
+    x.setLineDash([0.7, 0.7]);
+    x.lineDashOffset = -t * 4;
+    x.beginPath();
+    for (let j = 0; j <= 24; j++) {
+      const pt = point((j / 24) * grow);
+      if (j) x.lineTo(pt[0], pt[1]);
+      else x.moveTo(pt[0], pt[1]);
+    }
+    x.stroke();
+    x.setLineDash([]);
+    // Its tip while it reaches up, then pulses running along it.
+    x.globalCompositeOperation = p.glowMode;
+    if (grow < 1) {
+      const tip = point(grow);
+      glowDot(x, tip[0], tip[1], 2.4, 0.8);
+    } else {
+      for (let j = 0; j < 2; j++) {
+        const u = ((((t - LINK[1]) * 2.2 + j * 0.5) % 1) + 1) % 1;
+        const pt = point(u);
+        glowDot(x, pt[0], pt[1], 1.8, 0.7 * Math.sin(Math.PI * u));
+      }
+    }
+    x.restore();
   }
 
   function star(x: Ctx, at: V2, r: number, color: string, alpha: number) {
@@ -802,22 +933,24 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
   }
 
   function flow(x: Ctx, t: number) {
-    const end = FLOW_LEN[FLOW_LEN.length - 1]!;
     for (let i = 0; i < FLOW_COUNT; i++) {
-      const start = FLOW_START + i * FLOW_GAP;
-      const u = seg(t, start, start + FLOW_TIME);
+      const u = seg(t, FLOW_START + i * FLOW_GAP, arrival(i));
       if (u <= 0 || u >= 1) continue;
-      const head = along(FLOW_PATH, FLOW_LEN, flowEase(u) * end);
+      const d = flowDistance(u);
+      const head = along(FLOW_PATH, FLOW_LEN, d);
+      // Each node it has been through makes it a little bigger and brighter.
+      const grown = NODE_AT.reduce((sum, at) => sum + seg(d, at - 0.4, at + 1.2), 0);
+      const size = 1 + 0.28 * grown;
       x.globalCompositeOperation = p.glowMode;
       for (let j = 6; j >= 1; j--) {
-        const back = along(FLOW_PATH, FLOW_LEN, flowEase(Math.max(0, u - j * 0.022)) * end);
-        glowDot(x, back[0], back[1], 1.6 * (1 - j / 7), 0.5 * (1 - j / 7));
+        const back = along(FLOW_PATH, FLOW_LEN, flowDistance(Math.max(0, u - j * 0.012)));
+        glowDot(x, back[0], back[1], 1.6 * size * (1 - j / 7), 0.45 * (1 - j / 7));
       }
-      glowDot(x, head[0], head[1], 3, 0.9);
+      glowDot(x, head[0], head[1], 3 * size, 0.75 + 0.08 * grown);
       x.globalCompositeOperation = "source-over";
       x.fillStyle = "#FFFFFF";
       x.beginPath();
-      x.arc(head[0], head[1], 0.55, 0, TAU);
+      x.arc(head[0], head[1], 0.45 * size, 0, TAU);
       x.fill();
     }
     const ch = charge(t);
@@ -826,6 +959,45 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       glowDot(x, INVESTORS_X, -PILLAR_H, 6 + 4 * ch, 0.55 * Math.min(1, ch));
       x.globalCompositeOperation = "source-over";
     }
+  }
+
+  /** Seed, Series A and Series B marked up Investors' shaft, each lighting as the first startup climbs past. */
+  function stages(x: Ctx, t: number) {
+    const fade = 1 - seg(t, FADE[0], FADE[1]);
+    const lead = flowAt(t, 0);
+    const reached = (y: number) => {
+      // The first startup's height on the climb, or past the top once it has left.
+      const climb = lead >= 0 ? along(FLOW_PATH, FLOW_LEN, lead) : null;
+      if (t >= arrival(0)) return 1;
+      if (!climb || climb[0] < INVESTORS_X - 0.01) return 0;
+      return clamp01((y - climb[1]) / 1.5 + 0.2);
+    };
+    STAGES.forEach(({ text: label, y }) => {
+      const k = reached(y) * fade;
+      if (k <= 0) return;
+      const near = Math.max(
+        0,
+        ...Array.from({ length: FLOW_COUNT }, (_, i) => {
+          const d = flowAt(t, i);
+          if (d < 0) return 0;
+          const at = along(FLOW_PATH, FLOW_LEN, d);
+          return at[0] >= INVESTORS_X - 0.01 ? Math.exp(-(((at[1] - y) / 1.4) ** 2)) : 0;
+        }),
+      );
+      const x0 = INVESTORS_X + SHAFT + 0.6;
+      x.strokeStyle = rgba(p.glow, (0.45 + 0.5 * near) * k);
+      x.lineWidth = 0.22;
+      x.beginPath();
+      x.moveTo(x0, y);
+      x.lineTo(x0 + 1.4 * outCubic(k), y);
+      x.stroke();
+      if (near > 0.05) {
+        x.globalCompositeOperation = p.glowMode;
+        glowDot(x, x0 + 0.7, y, 1.8, 0.5 * near * k);
+        x.globalCompositeOperation = "source-over";
+      }
+      text(x, label, [x0 + 2.2 + 0.6 * (1 - outCubic(k)), y], 1.85, p.caption, k, { align: "left" });
+    });
   }
 
   /** Where a unicorn is `dt` seconds after launch, and how big. */
@@ -943,7 +1115,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       }
       // Sparks shed along the way.
       for (let m = 1; m <= 9; m++) {
-        const te = m * 0.085;
+        const te = m * 0.085 * FLIGHT_TIME;
         const age = dt - te;
         if (age < 0 || age > 0.5) continue;
         const e = flight(f, te).at;
@@ -955,7 +1127,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     });
   }
 
-  function floor(x: Ctx, w: number, floorY: number, unit: number) {
+  function floor(x: Ctx, w: number, floorY: number, unit: number, swell: number) {
     // A soft pool on the floor under the stage, fading out before the frame's
     // sides so a narrow (portrait) frame doesn't cut it off with hard edges.
     const r = w * 0.5;
@@ -970,7 +1142,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     x.restore();
     const line = x.createLinearGradient(0, 0, w, 0);
     line.addColorStop(0, rgba(p.floor, 0));
-    line.addColorStop(0.5, rgba(p.floor, 0.4));
+    line.addColorStop(0.5, rgba(p.floor, 0.4 + 0.35 * swell));
     line.addColorStop(1, rgba(p.floor, 0));
     x.fillStyle = line;
     x.fillRect(0, floorY - 0.06 * unit, w, Math.max(1, 0.12 * unit));
@@ -992,24 +1164,31 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
 
   function draw(time: number | "still"): Overlay {
     const still = time === "still";
-    const T: Times = still ? STILL : { base: time, bubble: time, flow: time, unicorn: time };
-    const t = T.base;
+    const t = still ? STILL : time;
+    const out = 1 - inOutSine(seg(t, CARD_OUT[0], CARD_OUT[1]));
+    const g = seg(t, GLINT[0], GLINT[1]);
+    const overlay: Overlay = {
+      logo: outExpo(seg(t, LOGO_IN[0], LOGO_IN[1])) * out,
+      tagline: outExpo(seg(t, TAGLINE_IN[0], TAGLINE_IN[1])) * out,
+      glint: still || g <= 0 || g >= 1 ? -1 : g,
+    };
     const w = canvas.width;
     const h = canvas.height;
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, w, h);
-    if (w < 2 || h < 2) return { glint: -1 };
+    if (w < 2 || h < 2) return overlay;
     const unit = h / 100;
     const portrait = h > w;
-    const floorY = h * (portrait ? 0.66 : 0.62);
-    const cam = still ? { x: 0, zoom: portrait ? 0.74 : 1.1 } : camera(t, portrait);
+    const floorY = h * (portrait ? 0.76 : 0.716);
+    const cam = camera(t, portrait);
     const k = unit * cam.zoom;
     const PIVOT = -20;
     const e = w / 2 - cam.x * k;
     const f = floorY + PIVOT * unit - PIVOT * k;
 
-    floor(c, w, f, unit);
-    motes(c, time === "still" ? 1.2 : time, w, h, unit);
+    // The floor line swells as the logo comes in.
+    floor(c, w, f, unit, Math.sin(Math.PI * seg(t, LOGO_IN[0], LOGO_IN[1] + 0.5)));
+    motes(c, t, w, h, unit);
 
     // The floor's reflection: the scene mirrored, fading with depth.
     if (mirror.width !== w || mirror.height !== h) {
@@ -1058,17 +1237,17 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     grounded(c, t, true);
     c.restore();
 
-    const labels = seg(t, 0.38, 0.8) * (1 - seg(t, 4.2, 4.42));
-    const rise = 0.6 * (1 - outCubic(seg(t, 0.38, 0.8)));
+    const labels = seg(t, 0.6, 1.2) * (1 - seg(t, FADE[0], FADE[1]));
+    const rise = 0.6 * (1 - outCubic(seg(t, 0.6, 1.2)));
     text(c, "STARTUPS", [startupsX(t), 4.4 + rise], 2.1, p.label, labels * 0.85, { weight: 700, tracking: 0.22 });
     text(c, "INVESTORS", [INVESTORS_X, 4.4 + rise], 2.1, p.label, labels * 0.85, { weight: 700, tracking: 0.22 });
 
-    flow(c, T.flow);
-    bubble(c, T.bubble);
-    unicorns(c, T.unicorn);
+    stages(c, t);
+    flow(c, t);
+    bubble(c, t);
+    unicorns(c, t);
     c.setTransform(1, 0, 0, 1, 0, 0);
-    const g = seg(t, GLINT[0], GLINT[1]);
-    return { glint: still || g <= 0 || g >= 1 ? -1 : g };
+    return overlay;
   }
 
   return {

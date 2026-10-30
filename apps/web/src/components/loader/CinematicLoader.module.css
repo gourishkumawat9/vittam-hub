@@ -1,16 +1,18 @@
 /*
  * The loader sits straight on the page, in the theme's own colours. Its
- * poster (before the scene's code arrives, or without a canvas) is the logo
- * and tagline under a faint floor line; the canvas fades in over it once it
- * has drawn (data-scene="on"). The positions below match the floor and
- * framing in ./scene.ts. --glint is set every frame by CinematicLoader.
+ * poster (before the scene's code arrives, or without a canvas) is the end
+ * card: the logo and tagline over a faint floor line. The canvas fades in
+ * over it once it has drawn (data-scene="on"), and from then on the scene
+ * times the logo and tagline through --logo-in, --tagline-in and --glint,
+ * set every frame by CinematicLoader. The positions below match the floor
+ * and framing in ./scene.ts.
  */
 .root {
-  --floor: 63.6%;
-  --brand-top: 74.5%;
-  --logo-width: 26%;
-  --brand-gap: 0.9cqi;
-  --tagline-size: clamp(0.7rem, 1.5cqi, 1.1rem);
+  --floor: 76%;
+  --brand-top: 45%;
+  --logo-width: 36%;
+  --brand-gap: 1.3cqi;
+  --tagline-size: clamp(0.75rem, 1.75cqi, 1.15rem);
 
   position: relative;
   width: 100%;
@@ -25,11 +27,11 @@
 /* A 9:16 frame on portrait phone screens. */
 @media (orientation: portrait) and (max-width: 40rem) {
   .auto {
-    --floor: 60.4%;
-    --brand-top: 75%;
-    --logo-width: 72%;
-    --brand-gap: 2.8cqi;
-    --tagline-size: clamp(0.75rem, 4.1cqi, 1.1rem);
+    --floor: 70.4%;
+    --brand-top: 46%;
+    --logo-width: 70%;
+    --brand-gap: 3cqi;
+    --tagline-size: clamp(0.75rem, 4.2cqi, 1.1rem);
 
     max-width: min(26rem, calc(80svh * 9 / 16));
     aspect-ratio: 9 / 16;
@@ -87,9 +89,18 @@
   pointer-events: none;
 }
 
+/* The poster's logo waits a moment, so a scene that loads quickly takes over without a flash of it. */
+.root:not([data-scene]) .brand {
+  animation: appear 0.5s ease-out 0.25s both;
+}
+
+/* The end card's reveal: each comes up into focus. */
 .logo {
   position: relative;
   width: var(--logo-width);
+  opacity: var(--logo-in, 1);
+  filter: blur(calc((1 - var(--logo-in, 1)) * 0.9cqi));
+  transform: translateY(calc((1 - var(--logo-in, 1)) * 1.6cqi)) scale(calc(0.96 + 0.04 * var(--logo-in, 1)));
 }
 
 .logoImage {
@@ -120,6 +131,7 @@
     500 var(--tagline-size) / 1.2 var(--font-heading, Manrope),
     system-ui,
     sans-serif;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em + (1 - var(--tagline-in, 1)) * 0.3em);
   text-align: center;
+  opacity: var(--tagline-in, 1);
 }
