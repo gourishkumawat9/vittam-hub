@@ -87,7 +87,7 @@ export function OAuthButtons() {
           <StatusScreen
             title={`Connecting to ${connecting}`}
             description="Getting VittamHub ready to sign you in."
-            illustration={<CinematicLoader />}
+            illustration={<CinematicLoader framing="landscape" />}
           >
             <WakingProgress />
           </StatusScreen>

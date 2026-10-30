@@ -1,25 +1,54 @@
 /*
- * A dark "screen" for the film. Its background is a still of the storm, shown
- * as the poster (before JavaScript, while the shader compiles, without WebGL2)
- * under the logo and tagline. The canvas fades in once the first frame is
- * drawn (data-film="on"). --logo, --logo-scale, --glint and --tagline are set
- * every frame by CinematicLoader; their defaults are the poster.
+ * The loader sits straight on the page, in the theme's own colours. Its
+ * poster (before the scene's code arrives, or without a canvas) is the logo
+ * and tagline under a faint floor line; the canvas fades in over it once it
+ * has drawn (data-scene="on"). The positions below match the floor and
+ * framing in ./scene.ts. --glint is set every frame by CinematicLoader.
  */
 .root {
+  --floor: 63.6%;
+  --brand-top: 74.5%;
+  --logo-width: 26%;
+  --brand-gap: 0.9cqi;
+  --tagline-size: clamp(0.7rem, 1.5cqi, 1.1rem);
+
   position: relative;
   width: 100%;
-  max-width: 40rem;
+  max-width: 48rem;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   isolation: isolate;
   container-type: inline-size;
-  border-radius: 1rem;
-  background:
-    radial-gradient(ellipse 70% 45% at 50% 100%, rgb(150 105 70 / 0.28), transparent 70%),
-    radial-gradient(ellipse at 50% 35%, #172a42 0%, #0a1422 55%, #03060c 100%);
-  box-shadow:
-    0 1.5rem 3.5rem -1.5rem rgb(2 6 23 / 0.55),
-    0 0 0 1px rgb(126 167 216 / 0.18);
+  background: radial-gradient(ellipse 55% 50% at 50% 42%, rgb(var(--color-brand-primary) / 0.08), transparent 70%);
+}
+
+/* A 9:16 frame on portrait phone screens. */
+@media (orientation: portrait) and (max-width: 40rem) {
+  .auto {
+    --floor: 60.4%;
+    --brand-top: 75%;
+    --logo-width: 72%;
+    --brand-gap: 2.8cqi;
+    --tagline-size: clamp(0.75rem, 4.1cqi, 1.1rem);
+
+    max-width: min(26rem, calc(80svh * 9 / 16));
+    aspect-ratio: 9 / 16;
+  }
+}
+
+.root::before {
+  content: "";
+  position: absolute;
+  top: var(--floor);
+  right: 8%;
+  left: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--color-brand-primary) / 0.4), transparent);
+  transition: opacity 0.6s ease-out;
+}
+
+.root[data-scene="on"]::before {
+  opacity: 0;
 }
 
 .delayed {
@@ -42,60 +71,38 @@
   transition: opacity 0.6s ease-out;
 }
 
-.root[data-film="on"] .canvas {
+.root[data-scene="on"] .canvas {
   opacity: 1;
-}
-
-/* Captions for the bridge's nodes, placed over the canvas by the film. */
-.caption {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  color: #e6eefa;
-  font:
-    600 0.75rem/1 var(--font-heading, Manrope),
-    system-ui,
-    sans-serif;
-  font-size: clamp(0.45rem, 1.7cqi, 0.8rem);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  text-shadow:
-    0 0 0.6rem rgb(120 170 255 / 0.9),
-    0 1px 2px rgb(0 0 0 / 0.8);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .brand {
   position: absolute;
-  inset: 0;
+  top: var(--brand-top);
+  right: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3cqi;
+  gap: var(--brand-gap);
   pointer-events: none;
 }
 
 .logo {
   position: relative;
-  width: 52%;
-  opacity: var(--logo, 1);
-  transform: scale(var(--logo-scale, 1));
+  width: var(--logo-width);
 }
 
 .logoImage {
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 0 1.1rem rgb(126 167 216 / 0.55));
 }
 
-/* A light sweep across the logo, masked to the logo's own shape. */
+/* A light sweep across the logo as the unicorns fly off, masked to the logo's own shape. */
 .glint {
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, transparent 40%, rgb(255 255 255 / 0.95) 50%, transparent 60%) no-repeat;
+  background: linear-gradient(100deg, transparent 40%, rgb(255 255 255 / 0.9) 50%, transparent 60%) no-repeat;
   background-size: 300% 100%;
   background-position: calc(100% - var(--glint, -1) * 100%) 0;
   mask-position: center;
@@ -108,14 +115,11 @@
 
 .tagline {
   margin: 0;
-  color: #dbe7f7;
+  color: rgb(var(--color-text-secondary));
   font:
-    500 0.875rem/1.2 var(--font-heading, Manrope),
+    500 var(--tagline-size) / 1.2 var(--font-heading, Manrope),
     system-ui,
     sans-serif;
-  font-size: clamp(0.7rem, 3.3cqi, 1.2rem);
-  letter-spacing: calc(0.04em + (1 - var(--tagline, 1)) * 0.25em);
+  letter-spacing: 0.06em;
   text-align: center;
-  text-shadow: 0 0 0.9rem rgb(126 167 216 / 0.6);
-  opacity: var(--tagline, 1);
 }
