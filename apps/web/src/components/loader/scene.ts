@@ -2,16 +2,18 @@
  * The loader's ten-second story, drawn on a 2D canvas as a pure function of
  * time, so it loops seamlessly and can be rendered frame by frame for video:
  *
- *   0.0 s   the Startups and Investors pillars rise out of a glossy floor, and
- *           an idea bubble of founders who haven't joined yet inflates over Startups
+ *   0.0 s   the Startups and Investors pillars rise out of a glossy floor
  *   1.4 s   three founders push Startups toward Investors, kicking up dust
+ *   2.3 s   a founder who hasn't joined yet walks in, thinks, and has an idea:
+ *           a lightbulb lights up in a thought bubble over their head
  *   2.65 s  a bridge grows from Startups to Investors, lighting Mentors,
  *           Community and Incubators as it reaches them; with its V the
  *           pillars read as the logo's mark
  *   3.75 s  it locks in and the founders cheer
- *   3.85 s  a line of light reaches from the bridge up to the bubble, which
- *           pops: its founders drop into Startups
- *   5.0 s   startups cross the bridge, stopping at each node and growing as
+ *   3.9 s   the bubble floats over to Startups, a line of light reaches it
+ *           from Mentors, and it pops: the idea drops into Startups, which
+ *           lights up as it's put to work, and its founder cheers and joins in
+ *   5.1 s   startups cross the bridge, stopping at each node and growing as
  *           they go, then climb Investors past Seed, Series A and Series B…
  *   6.4 s   …and leave the top as unicorns
  *   7.6 s   everything sinks back into the floor
@@ -58,7 +60,6 @@ interface Palette {
   nodeFill: string;
   /** Founders, nearest first. */
   ink: readonly string[];
-  people: readonly string[];
   rim: readonly string[];
   /** Unicorns are made of the pillars' material: top to bottom of the body, then the wing. */
   unicorn: readonly [string, string];
@@ -83,7 +84,6 @@ const LIGHT: Palette = {
   caption: "#6B7280",
   nodeFill: "#FFFFFF",
   ink: ["#334155", "#7A889C", "#B4BFCD"],
-  people: ["#4D71A8", "#334155", "#6C97CE", "#475569", "#3D5A85"],
   rim: ["#9CC0E6", "#B9A8F5", "#8ED8CF"],
   unicorn: ["#C6DDF4", "#5F89C8"],
   wing: ["#FFFFFF", "#A3C8EC"],
@@ -105,7 +105,6 @@ const DARK: Palette = {
   caption: "#94A3B8",
   nodeFill: "#0F172A",
   ink: ["#E2E8F0", "#94A3B8", "#56657A"],
-  people: ["#A9C7E6", "#E2E8F0", "#7EA7D8", "#CBD5E1", "#CEE0F3"],
   rim: ["#A9C7E6", "#C4B5FD", "#99E2DA"],
   unicorn: ["#FFFFFF", "#7EA7D8"],
   wing: ["#FFFFFF", "#BCD5F0"],
@@ -144,25 +143,28 @@ const NODES: { text: string; at: V2; label: V2 }[] = [
   { text: "Incubators", at: [11.5, BRIDGE_Y], label: [11.5, BRIDGE_Y - 3.7] },
 ];
 
-const BUBBLE_R = 8.5;
+// The founder with the idea: walks in, thinks, lights up, and later joins the others.
+const DREAMER_FROM = -56;
+const DREAMER_X = -42;
+const DREAMER_JOIN = -36.8;
+const DREAMER_WALK: V2 = [2.3, 3.1];
+const THINK: V2 = [3.1, 3.62];
+/** The lightbulb in the thought bubble switches on. */
+const IDEA = 3.62;
+// The thought bubble over their head, then over Startups.
+const BUBBLE_R: V2 = [5.2, 6.4];
+const BUBBLE_GROW: V2 = [3.2, 3.6];
+const FLOAT: V2 = [3.92, 4.5];
 /** The line of light from Mentors up to the bubble. */
-const LINK: V2 = [3.85, 4.35];
-const POP = 4.6;
-const DROP_GAP = 0.06;
-const DROP_TIME = 0.55;
-/** Where the bubble's founders float, relative to its centre. */
-const CROWD: V2[] = [
-  [-3.6, 2.4],
-  [0.2, 3.4],
-  [3.9, 1.8],
-  [-1.9, -2.3],
-  [2.3, -2.6],
-];
+const LINK: V2 = [4.15, 4.5];
+const POP = 4.65;
+/** The idea drops into Startups and lands. */
+const LAND = POP + 0.42;
 
 /** Startups crossing the bridge and climbing Investors. */
 const FLOW_PATH: V2[] = [...BRIDGE, [INVESTORS_X, BRIDGE_Y], [INVESTORS_X, -PILLAR_H - 0.6]];
 const FLOW_COUNT = 7;
-const FLOW_START = 5.0;
+const FLOW_START = 5.1;
 const FLOW_GAP = 0.15;
 const FLOW_TIME = 1.35;
 /** Share of each startup's trip spent stopped at each node. */
@@ -252,10 +254,12 @@ function sunk(t: number, delay: number): number {
 function camera(t: number, portrait: boolean): { x: number; zoom: number } {
   const push = 0.04 * (inOutSine(seg(t, 0.2, 7.6)) - inOutSine(seg(t, 7.6, 8.4)));
   if (!portrait) return { x: 0, zoom: 1.22 * (1 + push) };
-  // Too narrow for both pillars at the start: follow Startups, then settle between them,
-  // and pan back during the end card, when there's nothing on the floor.
-  const x = -26 + 26 * inOutCubic(seg(t, 1.45, 3.1)) - 26 * inOutSine(seg(t, 8.4, 9.4));
-  return { x, zoom: 0.72 * (1 + push) };
+  // Too narrow for everything at once: follow Startups, keep the founder with the idea in
+  // view until it lands, settle between the pillars, and pan back during the end card,
+  // when there's nothing on the floor.
+  const x =
+    -26 + 19 * inOutCubic(seg(t, 1.45, 3.0)) + 6 * inOutSine(seg(t, 5.6, 6.3)) - 25 * inOutSine(seg(t, 8.4, 9.4));
+  return { x, zoom: 0.7 * (1 + push) };
 }
 
 function cubic(p: readonly [V2, V2, V2, V2], u: number): V2 {
@@ -716,14 +720,11 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     const sx = startupsX(t);
     const sDrop = sunk(t, 0.1);
     const iDrop = sunk(t, 0);
-    let landed = 0;
-    for (let i = 0; i < CROWD.length; i++) {
-      const dt = t - (POP + i * DROP_GAP + DROP_TIME);
-      if (dt > 0) landed += Math.exp(-dt * 6);
-    }
+    const landed = t > LAND ? 1.3 * Math.exp(-(t - LAND) * 3.5) : 0;
     const sweep = seg(t, DOCK, DOCK + 0.8);
     dust(x, t);
     founders(x, t);
+    dreamer(x, t);
     pillar(x, sx, sDrop, landed, sweep);
     pillar(x, INVESTORS_X, iDrop, charge(t), sweep);
     bridge(x, t, iDrop);
@@ -741,54 +742,207 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     }
   }
 
-  function person(x: Ctx, at: V2, s: number, color: string, rot: number) {
+  /** Where the founder with the idea stands: walking in, then later stepping over to join the others. */
+  function dreamerX(t: number): number {
+    const walk = lerp(DREAMER_FROM, DREAMER_X, outCubic(seg(t, DREAMER_WALK[0], DREAMER_WALK[1])));
+    return walk + (DREAMER_JOIN - DREAMER_X) * inOutSine(seg(t, LAND + 0.55, LAND + 1.2));
+  }
+
+  /** The founder with the idea: walks in, thinks with a hand on their chin, points up as it lights, then cheers. */
+  function dreamer(x: Ctx, t: number) {
+    const alpha = seg(t, DREAMER_WALK[0], DREAMER_WALK[0] + 0.25) * (1 - seg(t, FADE[0], FADE[1]));
+    if (alpha <= 0) return;
+    const k = 1.12;
+    const hx = dreamerX(t);
+    const moving = (t > DREAMER_WALK[0] && t < DREAMER_WALK[1] - 0.12) || (t > LAND + 0.55 && t < LAND + 1.15);
+    const think = seg(t, THINK[0], THINK[0] + 0.2) * (1 - seg(t, IDEA - 0.02, IDEA + 0.1));
+    const eureka = seg(t, IDEA - 0.02, IDEA + 0.08) * (1 - seg(t, FLOAT[0], FLOAT[0] + 0.2));
+    const cheer = Math.sin(Math.PI * seg(t, LAND - 0.05, LAND + 0.75));
+    // Looking up at the bubble from the moment it appears until it lands.
+    const look = seg(t, BUBBLE_GROW[0], BUBBLE_GROW[0] + 0.2) * (1 - seg(t, LAND, LAND + 0.3));
+    const hip: V2 = [hx, -3.2 * k - 0.5 * k * cheer];
+    const shoulder: V2 = [hx + 0.15, hip[1] - 2.9 * k];
+    const tilt: V2 = [0.18 + 0.3 * look, -1];
+    const tl = Math.hypot(tilt[0], tilt[1]);
+    const head: V2 = [shoulder[0] + (tilt[0] / tl) * 1.65 * k, shoulder[1] + (tilt[1] / tl) * 1.65 * k];
+    const phase = TAU * 1.9 * t + 0.7;
+    const feet = [0, 1].map((j): V2 => {
+      if (!moving) return [hip[0] + (j ? 0.55 : -0.75) * k, 0];
+      return [hip[0] + 1.1 * k * Math.sin(phase + j * Math.PI), -Math.max(0, Math.cos(phase + j * Math.PI)) * 0.75 * k];
+    });
+    const hands = [0, 1].map((j): V2 => {
+      const swing = moving ? 0.5 * k * Math.sin(phase + (j ? 0 : Math.PI)) : 0;
+      let hand: V2 = [shoulder[0] + (j ? -0.45 : 0.45) * k + swing, shoulder[1] + 2.75 * k];
+      if (j === 0) {
+        const chin: V2 = [head[0] + 0.75 * k, head[1] + 1.05 * k];
+        const point: V2 = [shoulder[0] + 0.9 * k, shoulder[1] - 2.75 * k];
+        hand = [lerp(hand[0], chin[0], think), lerp(hand[1], chin[1], think)];
+        hand = [lerp(hand[0], point[0], eureka), lerp(hand[1], point[1], eureka)];
+      }
+      const up: V2 = [shoulder[0] + (j ? -2 : 2.1) * k, shoulder[1] - 1.95 * k];
+      return [lerp(hand[0], up[0], cheer), lerp(hand[1], up[1], cheer)];
+    });
     x.save();
-    x.translate(at[0], at[1]);
-    x.rotate(rot);
-    x.scale(s, s);
-    x.fillStyle = color;
+    x.globalAlpha = alpha;
+    x.lineCap = "round";
+    x.lineJoin = "round";
+    x.strokeStyle = p.ink[0]!;
+    x.fillStyle = p.ink[0]!;
+    x.lineWidth = 1.05 * k;
     x.beginPath();
-    x.arc(0, -2.75, 0.95, 0, TAU);
-    x.moveTo(-1.35, 0.9);
-    x.lineTo(-1.35, -0.7);
-    x.quadraticCurveTo(-1.35, -1.6, -0.45, -1.6);
-    x.lineTo(0.45, -1.6);
-    x.quadraticCurveTo(1.35, -1.6, 1.35, -0.7);
-    x.lineTo(1.35, 0.9);
-    x.closePath();
+    for (const foot of feet) {
+      const knee = ik(hip, foot, 1.75 * k, 1.7 * k, (q) => q[0]);
+      x.moveTo(hip[0], hip[1]);
+      x.lineTo(knee[0], knee[1]);
+      x.lineTo(foot[0], foot[1]);
+    }
+    for (const hand of hands) {
+      const elbow = ik(shoulder, hand, 1.5 * k, 1.45 * k, (q) => q[1] + 0.3 * q[0]);
+      x.moveTo(shoulder[0], shoulder[1]);
+      x.lineTo(elbow[0], elbow[1]);
+      x.lineTo(hand[0], hand[1]);
+    }
+    x.stroke();
+    x.lineWidth = 1.55 * k;
+    x.beginPath();
+    x.moveTo(hip[0], hip[1]);
+    x.lineTo(shoulder[0], shoulder[1]);
+    x.stroke();
+    x.beginPath();
+    x.arc(head[0], head[1], 1.15 * k, 0, TAU);
     x.fill();
     x.restore();
   }
 
-  function bubbleCentre(t: number): V2 {
-    return [
-      startupsX(t - 0.12) + 0.4 * Math.sin(t * 2.1),
-      -(PILLAR_H + 3.4 + BUBBLE_R) + sunk(t, 0.1) + 0.55 * Math.sin(t * 2.7),
-    ];
+  /** The thought bubble's centre and radius: over its founder's head, then floating over to Startups. */
+  function bubbleAt(t: number): { centre: V2; r: number } {
+    const anchor = dreamerX(Math.min(t, FLOAT[0]));
+    const home: V2 = [anchor + 5, -21.5];
+    const over: V2 = [STARTUPS_TO, -(PILLAR_H + 3.6 + BUBBLE_R[1]) + sunk(t, 0.1)];
+    const u = inOutCubic(seg(t, FLOAT[0], FLOAT[1]));
+    const v = 1 - u;
+    const ctrl: V2 = [home[0] + 1, over[1] + 2];
+    const bob = 0.45 * Math.sin(t * 2.7);
+    return {
+      centre: [
+        v * v * home[0] + 2 * v * u * ctrl[0] + u * u * over[0] + 0.3 * Math.sin(t * 2.1),
+        v * v * home[1] + 2 * v * u * ctrl[1] + u * u * over[1] + bob,
+      ],
+      r: lerp(BUBBLE_R[0], BUBBLE_R[1], u),
+    };
   }
 
-  function crowdAt(t: number, i: number, centre: V2, s: number): V2 {
-    const [ox, oy] = CROWD[i]!;
-    return [centre[0] + ox * s, centre[1] + oy * s + 0.35 * Math.sin(t * 3.1 + i * 1.7)];
+  /** A lightbulb, `on` from 0 (dark) to 1 (lit), centred on its glass. */
+  function bulb(x: Ctx, at: V2, s: number, on: number, t: number) {
+    x.save();
+    x.translate(at[0], at[1]);
+    x.scale(s, s);
+    if (on > 0) {
+      x.globalCompositeOperation = p.glowMode;
+      glowDot(x, 0, 0, 5.5, 0.55 * on, "246 213 142");
+      x.globalCompositeOperation = "source-over";
+    }
+    // Glass: a round bulb narrowing to a neck.
+    x.beginPath();
+    x.arc(0, 0, 1.6, Math.PI * 0.78, Math.PI * 2.22);
+    x.quadraticCurveTo(0.95, 1.55, 0.72, 2.15);
+    x.lineTo(-0.72, 2.15);
+    x.quadraticCurveTo(-0.95, 1.55, -1.23, 1.02);
+    x.closePath();
+    const glass = x.createRadialGradient(-0.4, -0.5, 0.1, 0, 0, 1.9);
+    glass.addColorStop(0, on > 0.5 ? "#FFFBEA" : p.nodeFill);
+    glass.addColorStop(1, on > 0.5 ? p.gold[0] : rgba(p.glow, 0.25));
+    x.fillStyle = glass;
+    x.globalAlpha = 0.55 + 0.45 * on;
+    x.fill();
+    x.globalAlpha = 1;
+    x.strokeStyle = on > 0.5 ? p.gold[1] : p.pillar[3]!;
+    x.lineWidth = 0.18;
+    x.stroke();
+    // Filament.
+    x.strokeStyle = on > 0.5 ? p.gold[1] : p.pillar[3]!;
+    x.lineWidth = 0.16;
+    x.beginPath();
+    x.moveTo(-0.45, 2.1);
+    x.lineTo(-0.45, 0.5);
+    x.lineTo(-0.2, 0.15);
+    x.lineTo(0, 0.5);
+    x.lineTo(0.2, 0.15);
+    x.lineTo(0.45, 0.5);
+    x.lineTo(0.45, 2.1);
+    x.stroke();
+    // Screw base.
+    x.fillStyle = p.pillar[3]!;
+    for (let i = 0; i < 3; i++) {
+      x.beginPath();
+      x.rect(-0.72 + i * 0.06, 2.3 + i * 0.42, 1.44 - i * 0.12, 0.32);
+      x.fill();
+    }
+    // Rays as it switches on, then a soft shimmer.
+    const burst = seg(t, IDEA, IDEA + 0.35);
+    if (on > 0.5) {
+      x.strokeStyle = p.gold[1];
+      x.lineCap = "round";
+      x.lineWidth = 0.2;
+      x.globalAlpha = 0.35 + 0.65 * (1 - burst) * (burst > 0 ? 1 : 0) + 0.15 * Math.sin(t * 6);
+      x.beginPath();
+      for (let i = 0; i < 7; i++) {
+        const a = Math.PI * (1.1 + (i / 6) * 0.8);
+        const r0 = 2.2 + 0.4 * outCubic(burst);
+        const r1 = r0 + 0.6 + 0.7 * (1 - burst);
+        x.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+        x.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+      }
+      x.stroke();
+    }
+    x.restore();
   }
 
   function bubble(x: Ctx, t: number) {
-    const s = outBack(seg(t, 0.7, 1.3));
-    const centre = bubbleCentre(Math.min(t, POP));
-    link(x, t, centre);
-    if (t < POP && s > 0) {
+    const { centre, r: full } = bubbleAt(Math.min(t, POP));
+    link(x, t, centre, full);
+    const on = seg(t, IDEA, IDEA + 0.06);
+    if (t < POP) {
+      // The little bubbles rising from their head, gone once it floats away.
+      const head = dreamerX(t);
+      const trail = 1 - seg(t, FLOAT[0], FLOAT[0] + 0.15);
+      [
+        [1.1, -11.4, 0.35],
+        [2.0, -13.3, 0.55],
+        [3.0, -15.6, 0.8],
+      ].forEach(([dx, dy, rad], i) => {
+        const k = outBack(seg(t, THINK[0] - 0.1 + i * 0.1, THINK[0] + 0.1 + i * 0.1)) * trail;
+        if (k <= 0) return;
+        x.fillStyle = rgba(p.glow, 0.18);
+        x.strokeStyle = p.rim[i % p.rim.length]!;
+        x.lineWidth = 0.18;
+        x.beginPath();
+        x.arc(head + dx!, dy!, rad! * k, 0, TAU);
+        x.fill();
+        x.stroke();
+      });
+      const s = outBack(seg(t, BUBBLE_GROW[0], BUBBLE_GROW[1]));
+      if (s <= 0) return;
       const tension = seg(t, LINK[1], POP);
       const wob = (0.018 + 0.05 * tension) * Math.sin(t * (9 + 16 * tension));
-      const r = BUBBLE_R * s;
+      const r = full * s;
       x.save();
       x.translate(centre[0], centre[1]);
       x.scale(1 + wob, 1 - wob);
-      CROWD.forEach((_, i) => {
-        const appear = outBack(seg(t, 0.95 + i * 0.09, 1.3 + i * 0.09));
-        if (appear <= 0) return;
-        const at = crowdAt(t, i, [0, 0], s);
-        person(x, at, 0.82 * appear, p.people[i]!, 0.12 * Math.sin(t * 2 + i));
-      });
+      // Once connected, it glows.
+      const lit = seg(t, LINK[1] - 0.05, LINK[1] + 0.15);
+      if (lit > 0) {
+        x.globalCompositeOperation = p.glowMode;
+        glowDot(x, 0, 0, r * 1.5, 0.22 * lit);
+        x.globalCompositeOperation = "source-over";
+      }
+      bulb(
+        x,
+        [0, -0.6 * s],
+        0.95 * s * (r / BUBBLE_R[0]) * (1 + 0.12 * Math.sin(Math.PI * seg(t, IDEA, IDEA + 0.3))),
+        on,
+        t,
+      );
       const fill = x.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
       fill.addColorStop(0, rgba(p.glow, 0));
       fill.addColorStop(0.7, rgba(p.glow, 0.05));
@@ -802,13 +956,6 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       x.strokeStyle = rim;
       x.lineWidth = 0.34;
       x.stroke();
-      // Once connected, it glows.
-      const lit = seg(t, LINK[1] - 0.05, LINK[1] + 0.15);
-      if (lit > 0) {
-        x.globalCompositeOperation = p.glowMode;
-        glowDot(x, 0, 0, r * 1.5, 0.22 * lit);
-        x.globalCompositeOperation = "source-over";
-      }
       x.lineCap = "round";
       x.strokeStyle = p.shine;
       x.lineWidth = 0.6;
@@ -819,25 +966,21 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       x.beginPath();
       x.arc(Math.cos(Math.PI * 1.46) * r * 0.8, Math.sin(Math.PI * 1.46) * r * 0.8, 0.32, 0, TAU);
       x.fill();
-      // The idea's spark, twinkling at the top of the bubble.
-      const tw = 0.6 + 0.4 * Math.sin(t * 7);
-      star(x, [r * 0.55, -r * 0.62], 1.3 * s * tw, p.gold[1], s);
       x.restore();
       return;
     }
     const since = t - POP;
-    if (since < 0) return;
     // The pop: a ring of film and a spray of droplets.
     const k = clamp01(since / 0.32);
     if (k < 1) {
       x.strokeStyle = rgba(p.glow, 0.7 * (1 - k));
       x.lineWidth = 0.3 * (1 - k) + 0.05;
       x.beginPath();
-      x.arc(centre[0], centre[1], BUBBLE_R * (1 + 0.45 * outCubic(k)), 0, TAU);
+      x.arc(centre[0], centre[1], full * (1 + 0.45 * outCubic(k)), 0, TAU);
       x.stroke();
       for (let i = 0; i < 12; i++) {
         const a = (i / 12) * TAU + 0.2;
-        const d = BUBBLE_R * (1 + 0.6 * outCubic(k));
+        const d = full * (1 + 0.6 * outCubic(k));
         x.fillStyle = p.rim[i % p.rim.length]!;
         x.globalAlpha = 1 - k;
         x.beginPath();
@@ -846,38 +989,44 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       }
       x.globalAlpha = 1;
     }
-    // Its founders drop into the Startups pillar.
-    CROWD.forEach((_, i) => {
-      const start = POP + i * DROP_GAP;
-      const u = seg(t, start, start + DROP_TIME);
-      if (u >= 1) return;
-      const from = crowdAt(POP, i, centre, 1);
-      const to: V2 = [STARTUPS_TO + (i - 2) * 0.8, -PILLAR_H + 0.4];
-      const at: V2 = [lerp(from[0], to[0], inOutSine(u)), from[1] + (to[1] - from[1]) * u * u - 2.2 * u * (1 - u)];
-      x.globalAlpha = 1 - seg(u, 0.8, 1);
-      person(x, at, lerp(0.82, 0.62, u), p.people[i]!, (i % 2 ? 0.4 : -0.4) * Math.sin(Math.PI * u));
+    // The idea drops into the Startups pillar…
+    const u = seg(t, POP, LAND);
+    if (u < 1) {
+      const to: V2 = [STARTUPS_TO, -PILLAR_H - 1];
+      const at: V2 = [lerp(centre[0], to[0], u), lerp(centre[1] - 0.6, to[1], u * u)];
+      x.globalAlpha = 1 - seg(u, 0.85, 1);
+      bulb(x, at, lerp(0.95 * (full / BUBBLE_R[0]), 0.6, u), 1, t);
       x.globalAlpha = 1;
-    });
-    // A ripple on the capital where each one lands.
-    CROWD.forEach((_, i) => {
-      const dt = t - (POP + i * DROP_GAP + DROP_TIME);
-      if (dt < 0 || dt > 0.4) return;
-      const k2 = dt / 0.4;
-      x.strokeStyle = rgba(p.glow, 0.6 * (1 - k2));
-      x.lineWidth = 0.22;
-      x.beginPath();
-      x.ellipse(STARTUPS_TO + (i - 2) * 0.8, -PILLAR_H, 1 + 4 * outCubic(k2), 0.35 + 1.1 * outCubic(k2), 0, 0, TAU);
-      x.stroke();
-    });
+    }
+    // …and lands with a flash and a ripple on the capital.
+    const dt = t - LAND;
+    if (dt > 0 && dt < 0.6) {
+      const k2 = dt / 0.6;
+      x.globalCompositeOperation = p.glowMode;
+      glowDot(x, STARTUPS_TO, -PILLAR_H, 9 * outCubic(k2) + 2, 0.7 * (1 - k2), "246 213 142");
+      x.globalCompositeOperation = "source-over";
+      for (const [delay, grow] of [
+        [0, 1],
+        [0.12, 1.5],
+      ] as const) {
+        const k3 = clamp01((dt - delay) / 0.45);
+        if (k3 <= 0 || k3 >= 1) continue;
+        x.strokeStyle = rgba(p.glow, 0.65 * (1 - k3));
+        x.lineWidth = 0.22;
+        x.beginPath();
+        x.ellipse(STARTUPS_TO, -PILLAR_H, 1 + 5 * grow * outCubic(k3), 0.35 + 1.3 * grow * outCubic(k3), 0, 0, TAU);
+        x.stroke();
+      }
+    }
   }
 
-  /** The line of light from Mentors up to the bubble: the network reaching the founders who haven't joined yet. */
-  function link(x: Ctx, t: number, centre: V2) {
+  /** The line of light from Mentors up to the bubble: the network reaching an idea that hasn't joined yet. */
+  function link(x: Ctx, t: number, centre: V2, r: number) {
     const grow = inOutCubic(seg(t, LINK[0], LINK[1]));
     const fade = 1 - seg(t, POP, POP + 0.25);
     if (grow <= 0 || fade <= 0) return;
     const from: V2 = [NODES[0]!.at[0], NODES[0]!.at[1] + sunk(t, 0)];
-    const to: V2 = [centre[0] + BUBBLE_R * 0.5, centre[1] + BUBBLE_R * 0.87];
+    const to: V2 = [centre[0] + r * 0.5, centre[1] + r * 0.87];
     const ctrl: V2 = [from[0] + 2, lerp(from[1], to[1], 0.75)];
     const point = (u: number): V2 => {
       const v = 1 - u;

@@ -27,7 +27,7 @@
 /* A 9:16 frame on portrait phone screens. */
 @media (orientation: portrait) and (max-width: 40rem) {
   .auto {
-    --floor: 70.4%;
+    --floor: 70%;
     --brand-top: 46%;
     --logo-width: 70%;
     --brand-gap: 3cqi;
