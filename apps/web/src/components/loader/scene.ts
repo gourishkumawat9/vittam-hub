@@ -956,14 +956,17 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
   }
 
   function floor(x: Ctx, w: number, floorY: number, unit: number) {
-    // A soft pool on the floor under the stage.
+    // A soft pool on the floor under the stage, fading out before the frame's
+    // sides so a narrow (portrait) frame doesn't cut it off with hard edges.
+    const r = w * 0.5;
+    const depth = 0.2 * Math.max(r, 60 * unit);
     x.save();
     x.beginPath();
     x.rect(0, floorY, w, 30 * unit);
     x.clip();
     x.translate(w / 2, floorY);
-    x.scale(1, 0.2);
-    glowDot(x, 0, 0, Math.max(w * 0.5, 60 * unit), 0.16, p.floor);
+    x.scale(1, depth / r);
+    glowDot(x, 0, 0, r, 0.16, p.floor);
     x.restore();
     const line = x.createLinearGradient(0, 0, w, 0);
     line.addColorStop(0, rgba(p.floor, 0));
