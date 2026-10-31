@@ -7,15 +7,10 @@ import { cn } from "@/lib/utils";
 
 import styles from "./CinematicLoader.module.css";
 import { CYCLE } from "./constants";
-import type { Scene } from "./scene";
 
 const LOGO_SRC = "/brand/vittamhub-logo.png";
 /** Shown under the logo. The site-wide tagline is still "Visibility for Tomorrow's Unicorns". */
 const LOADER_TAGLINE = "Nurturing Future Unicorns";
-/** Device-pixel ratios tried in turn when frames come too slowly; after the last, the loader holds a still. */
-const SHARPNESS = [2, 1.5, 1];
-/** If the median gap between frames is longer than this, drop a sharpness step. */
-const SLOW_FRAME_MS = 40;
 
 export interface CinematicLoaderProps {
   className?: string;
@@ -60,12 +55,12 @@ export function CinematicLoader({
     const appearsAt = performance.now() + (appearAfter ?? 0);
     let stop = () => {};
     let cancelled = false;
-    import("./scene")
-      .then(({ createScene }) => {
+    Promise.all([import("./scene"), import("./player")])
+      .then(([{ createScene }, { play }]) => {
         if (cancelled) return;
         const font = getComputedStyle(root).getPropertyValue("--font-heading").trim();
-        const scene = createScene(canvas, font ? `${font}, system-ui, sans-serif` : undefined);
-        if (scene) stop = play(root, canvas, scene, appearsAt);
+        const scene = createScene(canvas, { font: font ? `${font}, system-ui, sans-serif` : undefined });
+        if (scene) stop = play(root, canvas, scene, { startAt: appearsAt, time: (clock) => clock % CYCLE }).stop;
       })
       .catch(() => {
         // Offline: keep the poster.
@@ -102,101 +97,4 @@ export function CinematicLoader({
       </div>
     </div>
   );
-}
-
-/** True when the connection asks for less data: data saver on, or 2G. */
-function savingData(): boolean {
-  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
-    .connection;
-  return Boolean(connection?.saveData) || /(^|-)2g$/.test(connection?.effectiveType ?? "");
-}
-
-/** Whether the page behind the loader is dark, from the theme's background colour. */
-function isDark(root: HTMLElement): boolean {
-  const [r = 255, g = 255, b = 255] = getComputedStyle(root)
-    .getPropertyValue("--color-background")
-    .trim()
-    .split(/\s+/)
-    .map(Number);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
-}
-
-/** Plays `scene` in the loader at `root`. Returns a function that stops it. */
-function play(root: HTMLDivElement, canvas: HTMLCanvasElement, scene: Scene, appearsAt: number): () => void {
-  // If the scene's code arrived late, start from the beginning now rather than mid-loop.
-  const startAt = Math.max(appearsAt, performance.now());
-  const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-  let sharpness = 0;
-  let frame = 0;
-  let last = 0;
-  let gaps: number[] = [];
-  let tooSlow = false;
-
-  const still = () => motion.matches || tooSlow || savingData();
-  const resize = () => {
-    const ratio = Math.min(window.devicePixelRatio || 1, SHARPNESS[sharpness] ?? 1);
-    canvas.width = Math.max(1, Math.round(Math.min(root.clientWidth * ratio, 2048)));
-    canvas.height = Math.max(1, Math.round(Math.min(root.clientHeight * ratio, 2048)));
-  };
-  const paint = (t: number | "still") => {
-    const { logo, tagline, glint } = scene.draw(t);
-    root.style.setProperty("--logo-in", logo.toFixed(3));
-    root.style.setProperty("--tagline-in", tagline.toFixed(3));
-    root.style.setProperty("--glint", glint.toFixed(3));
-    root.dataset.scene = "on";
-  };
-  const tick = (now: number) => {
-    frame = requestAnimationFrame(tick);
-    if (last) {
-      gaps.push(now - last);
-      if (gaps.length === 20) {
-        const median = [...gaps].sort((a, b) => a - b)[10] ?? 0;
-        gaps = [];
-        if (median > SLOW_FRAME_MS) {
-          if (sharpness === SHARPNESS.length - 1) {
-            tooSlow = true;
-            return run();
-          }
-          sharpness += 1;
-          resize();
-        }
-      }
-    }
-    last = now;
-    paint((Math.max(0, now - startAt) / 1000) % CYCLE);
-  };
-  const run = () => {
-    cancelAnimationFrame(frame);
-    last = 0;
-    gaps = [];
-    if (still()) paint("still");
-    else if (!document.hidden) frame = requestAnimationFrame(tick);
-  };
-  const retheme = () => {
-    scene.theme(isDark(root));
-    if (still()) paint("still");
-  };
-  const observer = new ResizeObserver(() => {
-    resize();
-    if (still()) paint("still");
-  });
-  const themeObserver = new MutationObserver(retheme);
-
-  scene.theme(isDark(root));
-  resize();
-  run();
-  observer.observe(root);
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
-  darkScheme.addEventListener("change", retheme);
-  motion.addEventListener("change", run);
-  document.addEventListener("visibilitychange", run);
-  return () => {
-    cancelAnimationFrame(frame);
-    observer.disconnect();
-    themeObserver.disconnect();
-    darkScheme.removeEventListener("change", retheme);
-    motion.removeEventListener("change", run);
-    document.removeEventListener("visibilitychange", run);
-  };
 }

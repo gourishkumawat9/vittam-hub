@@ -20,12 +20,18 @@
  *   7.95 s  the end card: the logo and tagline come in, a light sweeps the
  *           logo, and they fade before the next loop
  *
+ * The landing page plays it live instead (`live`): there's no end card. The
+ * story holds just before it would sink, and from then on the scene carries
+ * on forever, a startup setting off across the bridge every couple of
+ * seconds and every third leaving as a unicorn.
+ *
  * The world is measured in units: the floor is y = 0, up is negative, and the
  * frame is 100 units tall. Landscape and portrait frames share the world and
- * differ only in the camera. The logo and tagline aren't drawn here: they're
+ * differ only in the camera; a third camera, closer in, serves frames that
+ * are only a little wider than tall, such as the landing page's 4:3. The logo and tagline aren't drawn here: they're
  * live HTML over the canvas (see CinematicLoader), which this scene times.
  */
-import { CYCLE } from "./constants";
+import { CYCLE, STORY_END } from "./constants";
 
 type Ctx = CanvasRenderingContext2D;
 type V2 = readonly [number, number];
@@ -39,8 +45,18 @@ export interface Overlay {
   glint: number;
 }
 
+export interface SceneOptions {
+  /** The canvas text's font family list. */
+  font?: string;
+  /** Play the landing page's version: the story, then the scene carrying on live, with no end card. */
+  live?: boolean;
+}
+
 export interface Scene {
-  /** Draws the frame `t` seconds into the loop, or the still: the end card. */
+  /**
+   * Draws the frame `t` seconds in, or the still: the end card, or in the
+   * live version a moment from the live scene.
+   */
   draw(t: number | "still"): Overlay;
   /** Switches between the light and dark theme's colours. */
   theme(dark: boolean): void;
@@ -177,7 +193,20 @@ const STAGES: { text: string; y: number }[] = [
   { text: "Series B", y: -31 },
 ];
 
+/** A startup's trip across the bridge and up Investors. */
+interface Trip {
+  start: number;
+  time: number;
+}
+const arrivalOf = (trip: Trip) => trip.start + trip.time;
+const STORY_TRIPS: Trip[] = Array.from({ length: FLOW_COUNT }, (_, i) => ({
+  start: FLOW_START + i * FLOW_GAP,
+  time: FLOW_TIME,
+}));
+
 interface Flight {
+  /** Tells unicorns apart, for their sparks and wingbeats. */
+  id: number;
   launch: number;
   size: number;
   path: readonly [V2, V2, V2, V2];
@@ -187,6 +216,7 @@ const FLIGHT_TIME = 1.2;
 // Each unicorn leaves just after a startup reaches the top.
 const FLIGHTS: Flight[] = [
   {
+    id: 0,
     launch: arrival(0) + 0.08,
     size: 1,
     path: [
@@ -197,6 +227,7 @@ const FLIGHTS: Flight[] = [
     ],
   },
   {
+    id: 1,
     launch: arrival(3) + 0.08,
     size: 0.85,
     path: [
@@ -207,6 +238,7 @@ const FLIGHTS: Flight[] = [
     ],
   },
   {
+    id: 2,
     launch: arrival(6) + 0.08,
     size: 0.93,
     path: [
@@ -231,6 +263,17 @@ const CARD_OUT: V2 = [9.62, 9.96];
 /** The still: the end card, with the story sunk away. */
 const STILL = 9.3;
 
+// The live version. The story holds here, just before it would fade…
+const HOLD = STORY_END;
+// …and once the story's last unicorn has gone, a startup sets off every LIVE_GAP
+// seconds, at a calmer pace than in the story, and every LIVE_UNICORN-th leaves as a unicorn.
+const LIVE_FROM = 8.4;
+const LIVE_GAP = 1.9;
+const LIVE_TRIP = 2.5;
+const LIVE_UNICORN = 3;
+/** The live version's still: a startup on the bridge and a unicorn in the air. */
+const LIVE_STILL = LIVE_FROM + 3 * LIVE_GAP + LIVE_TRIP + 0.55;
+
 // Easing.
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const seg = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
@@ -251,9 +294,17 @@ function sunk(t: number, delay: number): number {
   return PILLAR_H * (1 - up) + (PILLAR_H + 2) * inCubic(seg(t, SINK[0], SINK[1]));
 }
 
-function camera(t: number, portrait: boolean): { x: number; zoom: number } {
+type Framing = "landscape" | "compact" | "portrait";
+
+function camera(t: number, framing: Framing): { x: number; zoom: number } {
   const push = 0.04 * (inOutSine(seg(t, 0.2, 7.6)) - inOutSine(seg(t, 7.6, 8.4)));
-  if (!portrait) return { x: 0, zoom: 1.22 * (1 + push) };
+  if (framing === "landscape") return { x: 0, zoom: 1.22 * (1 + push) };
+  if (framing === "compact") {
+    // Closer in: start on the founders' side, keep the founder with the idea in
+    // view, and settle between the pillars once they've joined the others.
+    const x = -11 + 6 * inOutCubic(seg(t, 1.45, 3.0)) + 4 * inOutSine(seg(t, 5.6, 6.3));
+    return { x, zoom: 1.45 * (1 + push) };
+  }
   // Too narrow for everything at once: follow Startups, keep the founder with the idea in
   // view until it lands, settle between the pillars, and pan back during the end card,
   // when there's nothing on the floor.
@@ -325,20 +376,53 @@ function flowDistance(u: number): number {
   return end;
 }
 
-/** Distance each startup has travelled along FLOW_PATH, or -1 if it isn't on it. */
-function flowAt(t: number, i: number): number {
-  const u = seg(t, FLOW_START + i * FLOW_GAP, arrival(i));
+/** The startups and unicorns about at a moment, and that moment. */
+interface Traffic {
+  t: number;
+  trips: Trip[];
+  flights: Flight[];
+}
+
+/** What's on the move at `t`: the story's startups and unicorns, then in the live version a steady stream. */
+function traffic(t: number, live: boolean): Traffic {
+  if (!live || t < LIVE_FROM) return { t, trips: STORY_TRIPS, flights: FLIGHTS };
+  const trips: Trip[] = [];
+  const flights: Flight[] = [];
+  const latest = Math.floor((t - LIVE_FROM) / LIVE_GAP);
+  // Anything that set off longer ago than this has arrived, flown off and faded.
+  const gone = Math.ceil((LIVE_TRIP + FLIGHT_TIME + 1.5) / LIVE_GAP);
+  for (let n = Math.max(0, latest - gone); n <= latest; n++) {
+    const start = LIVE_FROM + n * LIVE_GAP;
+    trips.push({ start, time: LIVE_TRIP });
+    if (n % LIVE_UNICORN === 0) {
+      // Take turns flying the story's three routes.
+      const k = n / LIVE_UNICORN;
+      const like = FLIGHTS[k % FLIGHTS.length]!;
+      flights.push({ ...like, id: FLIGHTS.length + k, launch: start + LIVE_TRIP + 0.08 });
+    }
+  }
+  // The story's last unicorn is still in the air when the first live startup sets off.
+  return {
+    t,
+    trips,
+    flights: t < FLIGHTS[FLIGHTS.length - 1]!.launch + FLIGHT_TIME ? [...FLIGHTS, ...flights] : flights,
+  };
+}
+
+/** Distance a startup has travelled along FLOW_PATH, or -1 if it isn't on it. */
+function flowAt(t: number, trip: Trip): number {
+  const u = seg(t, trip.start, arrivalOf(trip));
   return u <= 0 || u >= 1 ? -1 : flowDistance(u);
 }
 
 /** Light gathered on Investors' capital from arriving startups and launching unicorns. */
-function charge(t: number): number {
+function charge({ t, trips, flights }: Traffic): number {
   let c = 0;
-  for (let i = 0; i < FLOW_COUNT; i++) {
-    const dt = t - arrival(i);
+  for (const trip of trips) {
+    const dt = t - arrivalOf(trip);
     if (dt > 0) c += 0.35 * Math.exp(-dt * 5);
   }
-  for (const f of FLIGHTS) {
+  for (const f of flights) {
     const dt = t - f.launch;
     if (dt > 0) c += Math.exp(-dt * 7);
   }
@@ -398,7 +482,10 @@ const UNICORN_HAIR = [
 ];
 
 /** Draws onto `canvas`. Returns null without a 2D context. */
-export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-serif"): Scene | null {
+export function createScene(
+  canvas: HTMLCanvasElement,
+  { font = "system-ui, sans-serif", live = false }: SceneOptions = {},
+): Scene | null {
   const context = canvas.getContext("2d");
   const mirror = document.createElement("canvas");
   const mirrorContext = mirror.getContext("2d");
@@ -580,16 +667,16 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
   }
 
   /** How brightly each node is lit by passing startups. */
-  function nodeLight(t: number, n: number): number {
+  function nodeLight({ t, trips }: Traffic, n: number): number {
     let s = 0;
-    for (let i = 0; i < FLOW_COUNT; i++) {
-      const d = flowAt(t, i);
+    for (const trip of trips) {
+      const d = flowAt(t, trip);
       if (d >= 0) s += Math.exp(-(((d - NODE_AT[n]!) / 2.4) ** 2));
     }
     return Math.min(1, s);
   }
 
-  function nodes(x: Ctx, t: number, drop: number, labels: boolean) {
+  function nodes(x: Ctx, t: number, drop: number, labels: boolean, moving: Traffic) {
     const reach = BRIDGE_LEN[BRIDGE_LEN.length - 1]! * inOutCubic(seg(t, BRIDGE_DRAW[0], BRIDGE_DRAW[1]));
     const fade = 1 - seg(t, FADE[0], FADE[1]);
     NODES.forEach((node, n) => {
@@ -597,7 +684,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       const passed = reach - NODE_AT[n]!;
       if (passed <= 0) return;
       const s = outBack(clamp01(passed / 7));
-      const light = nodeLight(t, n);
+      const light = nodeLight(moving, n);
       const [nx, ny] = [node.at[0], node.at[1] + drop];
       x.globalCompositeOperation = p.glowMode;
       glowDot(x, nx, ny, 4.2 * s, 0.25 + 0.55 * light);
@@ -716,7 +803,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
   }
 
   /** Everything standing on the floor, which the floor reflects. */
-  function grounded(x: Ctx, t: number, labels: boolean) {
+  function grounded(x: Ctx, t: number, labels: boolean, moving: Traffic) {
     const sx = startupsX(t);
     const sDrop = sunk(t, 0.1);
     const iDrop = sunk(t, 0);
@@ -726,9 +813,9 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     founders(x, t);
     dreamer(x, t);
     pillar(x, sx, sDrop, landed, sweep);
-    pillar(x, INVESTORS_X, iDrop, charge(t), sweep);
+    pillar(x, INVESTORS_X, iDrop, charge(moving), sweep);
     bridge(x, t, iDrop);
-    nodes(x, t, iDrop, labels);
+    nodes(x, t, iDrop, labels, moving);
     // The bridge locks into both pillars.
     const lock = seg(t, DOCK - 0.02, DOCK + 0.4);
     if (lock > 0 && lock < 1) {
@@ -1081,9 +1168,9 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     x.restore();
   }
 
-  function flow(x: Ctx, t: number) {
-    for (let i = 0; i < FLOW_COUNT; i++) {
-      const u = seg(t, FLOW_START + i * FLOW_GAP, arrival(i));
+  function flow(x: Ctx, moving: Traffic) {
+    for (const trip of moving.trips) {
+      const u = seg(moving.t, trip.start, arrivalOf(trip));
       if (u <= 0 || u >= 1) continue;
       const d = flowDistance(u);
       const head = along(FLOW_PATH, FLOW_LEN, d);
@@ -1102,7 +1189,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       x.arc(head[0], head[1], 0.45 * size, 0, TAU);
       x.fill();
     }
-    const ch = charge(t);
+    const ch = charge(moving);
     if (ch > 0.01) {
       x.globalCompositeOperation = p.glowMode;
       glowDot(x, INVESTORS_X, -PILLAR_H, 6 + 4 * ch, 0.55 * Math.min(1, ch));
@@ -1111,13 +1198,14 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
   }
 
   /** Seed, Series A and Series B marked up Investors' shaft, each lighting as the first startup climbs past. */
-  function stages(x: Ctx, t: number) {
+  function stages(x: Ctx, t: number, moving: Traffic) {
     const fade = 1 - seg(t, FADE[0], FADE[1]);
-    const lead = flowAt(t, 0);
+    const first = STORY_TRIPS[0]!;
+    const lead = flowAt(moving.t, first);
     const reached = (y: number) => {
       // The first startup's height on the climb, or past the top once it has left.
       const climb = lead >= 0 ? along(FLOW_PATH, FLOW_LEN, lead) : null;
-      if (t >= arrival(0)) return 1;
+      if (moving.t >= arrivalOf(first)) return 1;
       if (!climb || climb[0] < INVESTORS_X - 0.01) return 0;
       return clamp01((y - climb[1]) / 1.5 + 0.2);
     };
@@ -1126,8 +1214,8 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
       if (k <= 0) return;
       const near = Math.max(
         0,
-        ...Array.from({ length: FLOW_COUNT }, (_, i) => {
-          const d = flowAt(t, i);
+        ...moving.trips.map((trip) => {
+          const d = flowAt(moving.t, trip);
           if (d < 0) return 0;
           const at = along(FLOW_PATH, FLOW_LEN, d);
           return at[0] >= INVESTORS_X - 0.01 ? Math.exp(-(((at[1] - y) / 1.4) ** 2)) : 0;
@@ -1217,8 +1305,9 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     x.restore();
   }
 
-  function unicorns(x: Ctx, t: number) {
-    FLIGHTS.forEach((f, n) => {
+  function unicorns(x: Ctx, { t, flights }: Traffic) {
+    flights.forEach((f) => {
+      const n = f.id;
       const dt = t - f.launch;
       if (dt <= 0 || dt >= FLIGHT_TIME) return;
       const now = flight(f, dt);
@@ -1313,7 +1402,10 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
 
   function draw(time: number | "still"): Overlay {
     const still = time === "still";
-    const t = still ? STILL : time;
+    const clock = still ? (live ? LIVE_STILL : STILL) : time;
+    // The live version holds the story where it would start to fade; its startups and unicorns carry on.
+    const t = live ? Math.min(clock, HOLD) : clock;
+    const moving = traffic(clock, live);
     const out = 1 - inOutSine(seg(t, CARD_OUT[0], CARD_OUT[1]));
     const g = seg(t, GLINT[0], GLINT[1]);
     const overlay: Overlay = {
@@ -1327,9 +1419,9 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     c.clearRect(0, 0, w, h);
     if (w < 2 || h < 2) return overlay;
     const unit = h / 100;
-    const portrait = h > w;
-    const floorY = h * (portrait ? 0.76 : 0.716);
-    const cam = camera(t, portrait);
+    const framing: Framing = h > w ? "portrait" : w / h < 1.6 ? "compact" : "landscape";
+    const floorY = h * { portrait: 0.76, compact: 0.73, landscape: 0.716 }[framing];
+    const cam = camera(t, framing);
     const k = unit * cam.zoom;
     const PIVOT = -20;
     const e = w / 2 - cam.x * k;
@@ -1337,7 +1429,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
 
     // The floor line swells as the logo comes in.
     floor(c, w, f, unit, Math.sin(Math.PI * seg(t, LOGO_IN[0], LOGO_IN[1] + 0.5)));
-    motes(c, t, w, h, unit);
+    motes(c, clock, w, h, unit);
 
     // The floor's reflection: the scene mirrored, fading with depth.
     if (mirror.width !== w || mirror.height !== h) {
@@ -1352,7 +1444,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     m.beginPath();
     m.rect(-500, -200, 1000, 200);
     m.clip();
-    grounded(m, t, false);
+    grounded(m, t, false, moving);
     m.restore();
     m.setTransform(1, 0, 0, 1, 0, 0);
     m.globalCompositeOperation = "destination-in";
@@ -1383,7 +1475,7 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     c.beginPath();
     c.rect(-500, -200, 1000, 200);
     c.clip();
-    grounded(c, t, true);
+    grounded(c, t, true, moving);
     c.restore();
 
     const labels = seg(t, 0.6, 1.2) * (1 - seg(t, FADE[0], FADE[1]));
@@ -1391,10 +1483,10 @@ export function createScene(canvas: HTMLCanvasElement, font = "system-ui, sans-s
     text(c, "STARTUPS", [startupsX(t), 4.4 + rise], 2.1, p.label, labels * 0.85, { weight: 700, tracking: 0.22 });
     text(c, "INVESTORS", [INVESTORS_X, 4.4 + rise], 2.1, p.label, labels * 0.85, { weight: 700, tracking: 0.22 });
 
-    stages(c, t);
-    flow(c, t);
+    stages(c, t, moving);
+    flow(c, moving);
     bubble(c, t);
-    unicorns(c, t);
+    unicorns(c, moving);
     c.setTransform(1, 0, 0, 1, 0, 0);
     return overlay;
   }
