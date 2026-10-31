@@ -10,6 +10,8 @@ export interface StatusScreenProps {
   eyebrow?: string;
   /** Buttons/links, or a progress bar while something loads. */
   children?: ReactNode;
+  /** Shown above the title in place of the logo, e.g. the animated `CinematicLoader` while something loads. */
+  illustration?: ReactNode;
   className?: string;
 }
 
@@ -18,7 +20,7 @@ export interface StatusScreenProps {
  * loading, waking the API, outages, crashes and 404s. Keeping them on one
  * component means every one of those moments looks like the same product.
  */
-export function StatusScreen({ title, description, eyebrow, children, className }: StatusScreenProps) {
+export function StatusScreen({ title, description, eyebrow, children, illustration, className }: StatusScreenProps) {
   return (
     <div
       className={cn(
@@ -26,7 +28,7 @@ export function StatusScreen({ title, description, eyebrow, children, className 
         className,
       )}
     >
-      <Logo height={36} />
+      {illustration ?? <Logo height={36} />}
       <div className="flex max-w-md flex-col items-center gap-3">
         {eyebrow && <p className="font-numeric text-6xl font-bold text-brand-primary">{eyebrow}</p>}
         <h1 className="font-heading text-2xl font-semibold text-text-primary">{title}</h1>
