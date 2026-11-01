@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { fontVariables } from "@/lib/fonts";
 
 import { JsonLd } from "./json-ld";
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={fontVariables}>
         <JsonLd />
         <Providers>{children}</Providers>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
