@@ -7,10 +7,9 @@ import { useState } from "react";
 
 import { useParallax } from "@/hooks/useParallax";
 
-import { ConnectionLines } from "./hero/ConnectionLines";
-import { DashboardMockup } from "./hero/DashboardMockup";
 import { DemoModal } from "./hero/DemoModal";
 import { GradientOrbs } from "./hero/GradientOrbs";
+import { HeroFilm } from "./hero/HeroFilm";
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -26,7 +25,10 @@ export function Hero() {
   return (
     <section className="relative overflow-hidden">
       <GradientOrbs />
-      <div aria-hidden="true" className="bg-grid-pattern pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black,transparent)]" />
+      <div
+        aria-hidden="true"
+        className="bg-grid-pattern pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black,transparent)]"
+      />
 
       <div className="mx-auto grid max-w-content items-center gap-16 px-6 pb-24 pt-16 lg:grid-cols-2 lg:pb-32 lg:pt-24">
         {/* Left column — copy + CTAs */}
@@ -55,7 +57,8 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.16 }}
             className="max-w-lg text-lg text-text-secondary"
           >
-            Build trust, showcase your journey, and connect with investors, mentors, and incubators on one verified platform.
+            Build trust, showcase your journey, and connect with investors, mentors, and incubators on one verified
+            platform.
           </motion.p>
 
           <motion.div
@@ -82,16 +85,15 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Right column — interactive dashboard mockup */}
+        {/* Right column — the brand story, played live; edge to edge on phones */}
         <motion.div
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="relative mx-auto w-full max-w-md"
+          className="relative -mx-6 sm:mx-auto sm:w-full sm:max-w-xl lg:max-w-none"
           style={{ x: parallaxX, y: parallaxY }}
         >
-          <ConnectionLines />
-          <DashboardMockup />
+          <HeroFilm />
         </motion.div>
       </div>
 
