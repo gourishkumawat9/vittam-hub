@@ -6,6 +6,7 @@ import { ToastProvider, useToast } from "@vittamhub/ui";
 import { ThemeProvider } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { ApiStatusOverlay } from "@/components/ApiStatusOverlay";
 import { setupHttpClient } from "@/lib/http-client-setup";
 
 // Runs once per client bundle load, before any component mounts — the CSRF
@@ -16,6 +17,9 @@ setupHttpClient();
 /** Turns an unknown thrown value into something worth showing a person. */
 function describeError(error: unknown): { title: string; description?: string } {
   if (error instanceof ApiClientError) {
+    if (error.apiError.code === "SERVICE_UNAVAILABLE") {
+      return { title: "VittamHub is temporarily unavailable", description: "Nothing was saved. Please try again in a minute." };
+    }
     // 401 is handled by the auth redirect, not worth a toast.
     if (error.status === 403 && error.apiError.code === "FORBIDDEN") {
       return { title: "You don't have permission to do that", description: error.apiError.message };
@@ -95,6 +99,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
       <ToastProvider>
         <QueryProvider>{children}</QueryProvider>
+        <ApiStatusOverlay />
       </ToastProvider>
     </ThemeProvider>
   );

@@ -157,6 +157,11 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @vittamhub/api db:generate
 
+      # The API imports @vittamhub/types and @vittamhub/utils from their built
+      # dist/, which only exists after they're built.
+      - name: Build workspace packages the API depends on
+        run: pnpm turbo run build --filter=@vittamhub/api^...
+
       # The e2e global-setup migrates an isolated `vittamhub_test` schema (never
       # `public`) via `prisma migrate deploy` before the suite runs — see
       # apps/api/test/support/global-setup.ts. No seed step: tests self-provision

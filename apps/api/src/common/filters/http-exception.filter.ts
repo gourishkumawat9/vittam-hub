@@ -1,7 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import { ArgumentsHost, ExceptionFilter , Catch, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { Response } from "express";
+
+/**
+ * Prisma errors that mean "no such record" rather than a server fault:
+ * P2023 is a malformed id (e.g. `/v1/mentors/abc` against a uuid column),
+ * P2025 is an update/delete/findUniqueOrThrow that matched nothing.
+ * Reporting them as 500s made every bad link look like an outage.
+ */
+const PRISMA_NOT_FOUND_CODES = new Set(["P2023", "P2025"]);
 
 /**
  * Every error response — thrown HttpException or unhandled — comes out
@@ -16,6 +25,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const requestId = randomUUID();
+
+    if (exception instanceof Prisma.PrismaClientKnownRequestError && PRISMA_NOT_FOUND_CODES.has(exception.code)) {
+      response.status(HttpStatus.NOT_FOUND).json({
+        error: { code: "NOT_FOUND", message: "Not found", requestId },
+      });
+      return;
+    }
 
     const isHttpException = exception instanceof HttpException;
     const status = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;

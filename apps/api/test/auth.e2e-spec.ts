@@ -2,7 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 
 import { buildTestApp } from "./support/app";
-import { cookieHeader, loginViaApi, normalizeSetCookie, registerViaApi } from "./support/auth";
+import { CSRF_TOKEN, cookieHeader, loginViaApi, normalizeSetCookie, registerViaApi } from "./support/auth";
 import { testDb, truncateAll } from "./support/database";
 import { createUser, TEST_PASSWORD, uniqueEmail } from "./support/factories";
 
@@ -48,7 +48,15 @@ describe("Auth (e2e)", () => {
     it("rejects an invalid payload (bad email, weak password, terms unchecked) with 400", async () => {
       const res = await request(app.getHttpServer())
         .post("/v1/auth/register")
-        .send({ email: "not-an-email", password: "weak", fullName: "", role: "FOUNDER", acceptedTerms: false });
+        .set("Cookie", cookieHeader([]))
+        .set("X-CSRF-Token", CSRF_TOKEN)
+        .send({
+          email: "not-an-email",
+          password: "weak",
+          fullName: "",
+          role: "FOUNDER",
+          acceptedTerms: false,
+        });
       expect(res.status).toBe(400);
     });
   });
@@ -97,9 +105,7 @@ describe("Auth (e2e)", () => {
     });
 
     it("returns 401 with a malformed bearer token", async () => {
-      const res = await request(app.getHttpServer())
-        .get("/v1/auth/me")
-        .set("Authorization", "Bearer not.a.real.jwt");
+      const res = await request(app.getHttpServer()).get("/v1/auth/me").set("Authorization", "Bearer not.a.real.jwt");
       expect(res.status).toBe(401);
     });
   });
@@ -110,19 +116,22 @@ describe("Auth (e2e)", () => {
 
       const refreshed = await request(app.getHttpServer())
         .post("/v1/auth/refresh")
-        .set("Cookie", cookieHeader(reg.cookies));
+        .set("Cookie", cookieHeader(reg.cookies))
+        .set("X-CSRF-Token", CSRF_TOKEN);
       expect(refreshed.status).toBe(200);
 
       // Rotation: the original refresh cookie must no longer work.
       const reused = await request(app.getHttpServer())
         .post("/v1/auth/refresh")
-        .set("Cookie", cookieHeader(reg.cookies));
+        .set("Cookie", cookieHeader(reg.cookies))
+        .set("X-CSRF-Token", CSRF_TOKEN);
       expect(reused.status).toBe(401);
 
       const rotatedCookies = normalizeSetCookie(refreshed.headers["set-cookie"]);
       const loggedOut = await request(app.getHttpServer())
         .post("/v1/auth/logout")
-        .set("Cookie", cookieHeader(rotatedCookies));
+        .set("Cookie", cookieHeader(rotatedCookies))
+        .set("X-CSRF-Token", CSRF_TOKEN);
       expect(loggedOut.status).toBe(200);
     });
   });

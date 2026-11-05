@@ -1,6 +1,10 @@
 "use client";
 
+import { Button } from "@vittamhub/ui";
+import Link from "next/link";
 import { useEffect } from "react";
+
+import { StatusScreen } from "@/components/StatusScreen";
 
 export default function RootError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -9,17 +13,16 @@ export default function RootError({ error, reset }: { error: Error & { digest?: 
   }, [error]);
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Something went wrong</h1>
-      <p className="max-w-md text-text-secondary">
-        Our team has been notified. Try again, or head back to the homepage if the problem persists.
-      </p>
-      <button
-        onClick={reset}
-        className="rounded-button bg-brand-primary px-6 py-3 font-medium text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
-      >
+    <StatusScreen
+      title="Something went wrong"
+      description="This page hit an unexpected problem. Try again, or head back to the homepage if it keeps happening."
+    >
+      <Button onClick={reset} className="w-full">
         Try again
-      </button>
-    </div>
+      </Button>
+      <Button asChild variant="ghost" className="w-full">
+        <Link href="/">Back to home</Link>
+      </Button>
+    </StatusScreen>
   );
 }
