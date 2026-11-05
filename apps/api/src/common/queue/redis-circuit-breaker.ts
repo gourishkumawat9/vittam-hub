@@ -48,7 +48,9 @@ export class RedisCircuitBreaker {
     if (this.consecutiveErrors < ERROR_THRESHOLD) return;
 
     this.tripped = true;
-    void worker.pause();
+    // pause() talks to Redis and rejects when Redis is unreachable — exactly
+    // the moment we get here. Left unhandled, that rejection kills the process.
+    worker.pause().catch(() => undefined);
     this.logger.warn(
       `${this.label}: pausing after ${this.consecutiveErrors} consecutive Redis errors — will probe again in ${Math.round(this.backoffMs / 1000)}s. Cause: ${err.message}`,
     );

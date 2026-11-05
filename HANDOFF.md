@@ -42,7 +42,7 @@ accepts do messaging, document sharing and meeting scheduling unlock.
 | Styling | Tailwind + a bespoke design system (`packages/ui`, `packages/tokens`) |
 | Email | Resend |
 | Storage | Cloudflare R2 (S3-compatible) — **not configured, see §K** |
-| Hosting | Vercel (web) · Railway (API) |
+| Hosting | Vercel (web) · Render free plan (API) — see `docs/deploy-render.md` |
 | Node | 20.11 (`.nvmrc`), pnpm 9.12 |
 
 **There is no shadcn/ui.** The design system is hand-built on Radix primitives.
@@ -362,8 +362,11 @@ Individually: `pnpm dev:api` · `pnpm dev:web`.
 Checks: `pnpm typecheck` · `pnpm lint` · `pnpm test` (API only — web has none).
 
 **Deploy gotchas that will waste your time otherwise:**
-- Railway's GitHub webhook is unreliable. Force a build with
-  `railway service source connect --repo gourishkumawat9/vittam-hub --branch main --service vittamhub-api`
+- The API runs on **Render's free plan** (`render.yaml`, setup in
+  `docs/deploy-render.md`). It sleeps after 15 minutes idle (~1 min cold
+  start) and has no pre-deploy hook, so `infra/docker/api-start.sh` runs
+  `prisma migrate deploy` before booting. Railway (`railway.json`) is the
+  previous host; its trial ended in October 2026.
 - **Vercel is not git-connected.** Deploy with `vercel --prod --yes` **from the
   repo root** — running it inside `apps/web` fails, because Vercel then tries
   `npm install` in a pnpm monorepo.
@@ -396,7 +399,7 @@ Manual sequence (works against production today):
 
 > You are taking over **VittamHub**, a production startup–investor platform for
 > India. It is deployed and working: https://vittamhub.com (Vercel) and
-> https://api.vittamhub.com (Railway). Do not rebuild it.
+> https://api.vittamhub.com (Render free plan). Do not rebuild it.
 >
 > **Read these three files first, in this order, before touching anything:**
 > `HANDOFF.md` (operational handoff), `docs/architecture/05-current-state.md`
