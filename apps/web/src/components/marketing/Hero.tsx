@@ -37,9 +37,12 @@ export function Hero() {
             initial={fadeUp.initial}
             animate={fadeUp.animate}
             transition={{ duration: 0.4 }}
-            className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-primary shadow-xs"
+            className="flex flex-col items-center gap-2 lg:items-start"
           >
-            Visibility for tomorrow&apos;s unicorns
+            <p className="rounded-full border border-border bg-surface px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-primary shadow-xs">
+              Nurturing future startups
+            </p>
+            <p className="text-sm font-medium text-text-secondary">Visibility for tomorrow&apos;s unicorns</p>
           </motion.div>
 
           <motion.h1

@@ -30,7 +30,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- next/image needs the layout that just crashed */}
-        <img src="/brand/vittamhub-logo.png" alt="VittamHub" height={36} style={{ height: 36, width: "auto" }} />
+        <img src="/brand/vittamhub-logo.svg" alt="VittamHub" height={36} style={{ height: 36, width: "auto" }} />
         <h1 style={{ fontSize: 24, margin: 0 }}>Something went wrong</h1>
         <p style={{ maxWidth: 420, margin: 0, color: "#475569" }}>
           VittamHub hit an unexpected problem. Please try again in a moment.

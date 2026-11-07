@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import styles from "./CinematicLoader.module.css";
 import { CYCLE } from "./constants";
 
-const LOGO_SRC = "/brand/vittamhub-logo.png";
+const LOGO_SRC = "/brand/vittamhub-logo.svg";
 /** Shown under the logo. The site-wide tagline is still "Visibility for Tomorrow's Unicorns". */
 const LOADER_TAGLINE = "Nurturing Future Unicorns";
 
