@@ -1,29 +1,43 @@
-import { IBM_Plex_Sans, Inter, JetBrains_Mono, Manrope } from "next/font/google";
+import localFont from "next/font/local";
 
-export const manrope = Manrope({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+/**
+ * Self-hosted, not `next/font/google`. With `next/font/google`, every build
+ * downloads the fonts from Google, and on 7 Nov 2026 Google Fonts answered
+ * GitHub's CI runners with a response Next.js 14 can't parse ("An error
+ * occurred in next/font"), failing builds on main and on every PR. Shipping
+ * the files in the repo removes that network step from the build.
+ *
+ * Each file is the family's official variable font (OFL, licences in
+ * src/fonts/licenses), cut down to the weights below and to Google's
+ * "latin" character set plus ₹ and arrows. That's the same subset the site
+ * loaded from Google before, at about the same size. Rebuild them with
+ * src/fonts/tools/make_fonts.py (see src/fonts/README.md).
+ */
+
+export const manrope = localFont({
+  src: "../fonts/Manrope-latin.woff2",
+  weight: "500 700",
   variable: "--font-heading",
   display: "swap",
 });
 
-export const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+export const inter = localFont({
+  src: "../fonts/Inter-latin.woff2",
+  weight: "400 600",
   variable: "--font-body",
   display: "swap",
 });
 
-export const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+export const ibmPlexSans = localFont({
+  src: "../fonts/IBMPlexSans-latin.woff2",
+  weight: "500 700",
   variable: "--font-numeric",
   display: "swap",
 });
 
-export const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+export const jetbrainsMono = localFont({
+  src: "../fonts/JetBrainsMono-latin.woff2",
+  weight: "400 500",
   variable: "--font-mono",
   display: "swap",
 });
@@ -37,8 +51,6 @@ export const jetbrainsMono = JetBrains_Mono({
  *
  * Once `public/fonts/HendersonSans-Regular.woff2` and `-Bold.woff2` are
  * added (see public/fonts/README.md), uncomment:
- *
- *   import localFont from "next/font/local";
  *
  *   export const hendersonSans = localFont({
  *     src: [
