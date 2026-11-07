@@ -1,26 +1,33 @@
-const SITE_URL = "https://vittamhub.com";
+import { SITE_ALTERNATE_NAMES, SITE_DESCRIPTION, SITE_NAME, SITE_URL, SOCIAL_PROFILES } from "@/lib/site";
 
 const ORGANIZATION_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "VittamHub",
+  "@id": `${SITE_URL}/#organization`,
+  name: SITE_NAME,
+  alternateName: SITE_ALTERNATE_NAMES,
   url: SITE_URL,
+  // The official 1024×1024 mark: Google wants a square logo of at least 112px.
   logo: `${SITE_URL}/brand/vittamhub-icon.png`,
-  description:
-    "VittamHub is the verified digital identity and discovery platform connecting startups with investors, mentors, incubators, universities, and strategic partners.",
-  sameAs: [],
+  description: SITE_DESCRIPTION,
+  ...(SOCIAL_PROFILES.length > 0 && { sameAs: SOCIAL_PROFILES }),
 };
 
+/**
+ * `name` + `alternateName` here is what Google uses to choose the site name
+ * shown above each result. No SearchAction: the home page has no `?q=`
+ * search, and Google retired the sitelinks search box in 2024.
+ */
 const WEBSITE_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "VittamHub",
-  url: SITE_URL,
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE_URL}/?q={search_term_string}`,
-    "query-input": "required name=search_term_string",
-  },
+  "@id": `${SITE_URL}/#website`,
+  name: SITE_NAME,
+  alternateName: SITE_ALTERNATE_NAMES,
+  url: `${SITE_URL}/`,
+  description: SITE_DESCRIPTION,
+  inLanguage: "en-IN",
+  publisher: { "@id": `${SITE_URL}/#organization` },
 };
 
 /** Server component — renders static JSON-LD, no client JS needed. */

@@ -3,11 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SectionHeading } from "@/components/marketing/SectionHeading";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "About",
-  description: "VittamHub's mission is a verified digital identity for every startup.",
-};
+  description:
+    "About VittamHub (Vittam Hub): our mission is a verified digital identity for every startup, so founders can move from idea to investment with trust built on evidence.",
+  path: "/about",
+});
 
 const PRINCIPLES = [
   {
