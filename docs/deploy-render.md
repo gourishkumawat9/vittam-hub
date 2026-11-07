@@ -133,6 +133,36 @@ the day, this stays well inside the limit at current traffic. If it is ever
 exceeded, Redis requests are throttled, queue features degrade, and `/health`
 still passes.
 
+## Keeping it awake (cron-job.org)
+
+Do this only after `api.vittamhub.com/ping` answers `{"data":{"status":"ok"},…}`.
+
+1. Sign up at https://cron-job.org (free) and click **Create cronjob**.
+2. Title `VittamHub keep-alive`, URL `https://api.vittamhub.com/ping`.
+3. Schedule: every **10 minutes** (anything under 15 works).
+4. Under **Notifications**, tick "the execution of the cronjob fails" and
+   "the cronjob will be disabled because of too many failures".
+5. **Create**.
+
+Why these settings:
+
+- **`/ping`, not `/health` or `/robots.txt`.** `/ping` touches neither Postgres
+  nor Redis, so the database can still sleep between real visits. `/health`
+  queries both on every call. Render answers `/robots.txt` itself while the
+  service sleeps, so pinging it never wakes anything.
+- **One free service only.** Running all month uses up to 744 of the
+  workspace's 750 free hours. A second free service in the same workspace
+  would exhaust them mid-month, and Render then suspends every free service
+  until the 1st.
+- **Watch Upstash.** An always-awake API keeps the BullMQ workers polling Redis
+  all day, which the "sleeps most of the day" estimate above no longer covers.
+  Check the Upstash usage graph after the first week against the free
+  500K commands/month.
+- cron-job.org disables a job after 25 failures in a row, which is why the
+  failure emails matter: without them pinging stops silently after an outage.
+- Render can still restart a free service at any time, so an occasional
+  one-minute wake-up can still happen.
+
 ## Deploying changes
 
 `autoDeployTrigger: commit` deploys every push to `main`. To redeploy by hand:

@@ -57,6 +57,20 @@ export class AppController {
     };
   }
 
+  /**
+   * Keep-alive target for an external pinger (cron-job.org) while the API runs
+   * on Render's free plan, which sleeps after 15 idle minutes. Unlike /health
+   * it touches neither Postgres nor Redis, so pinging it every few minutes
+   * keeps the API awake without keeping the database awake all day or
+   * spending the Redis command quota. See docs/deploy-render.md.
+   */
+  @Public()
+  @Get("ping")
+  @ApiExcludeEndpoint()
+  ping() {
+    return { status: "ok" };
+  }
+
   /** Never throws and never hangs — a degraded Redis is reported, not fatal. */
   private async probeRedis(): Promise<"ok" | "degraded"> {
     try {
