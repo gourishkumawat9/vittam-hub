@@ -5,6 +5,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["GOOGLE_SITE_VERIFICATION", "BING_SITE_VERIFICATION"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {

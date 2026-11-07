@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
+
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Topbar } from "@/components/dashboard/Topbar";
+import { NO_INDEX } from "@/lib/seo";
+
+/** Signed-in app screens: nothing here belongs in search results. */
+export const metadata: Metadata = { robots: NO_INDEX };
 
 /**
  * Authenticated shell shared by founder/investor/admin surfaces: persistent
