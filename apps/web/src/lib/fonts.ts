@@ -33,6 +33,8 @@ export const ibmPlexSans = localFont({
   weight: "500 700",
   variable: "--font-numeric",
   display: "swap",
+  // Only used for small figures below the fold; not worth a preload competing with the hero.
+  preload: false,
 });
 
 export const jetbrainsMono = localFont({
@@ -40,6 +42,8 @@ export const jetbrainsMono = localFont({
   weight: "400 500",
   variable: "--font-mono",
   display: "swap",
+  // Dashboard-only (code/IDs); not worth a preload on every page.
+  preload: false,
 });
 
 /**
