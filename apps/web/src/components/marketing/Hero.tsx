@@ -11,10 +11,17 @@ import { DemoModal } from "./hero/DemoModal";
 import { GradientOrbs } from "./hero/GradientOrbs";
 import { HeroFilm } from "./hero/HeroFilm";
 
-const fadeUp = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-};
+/**
+ * The copy column fades up with a CSS animation (`.hero-fade-up` in
+ * globals.css), not framer-motion: framer-motion server-renders its
+ * starting state (`opacity: 0`) and only animates after the page's
+ * JavaScript loads, which left the headline, the page's largest text,
+ * invisible until hydration and hurt Largest Contentful Paint. CSS starts
+ * on first paint.
+ */
+function fadeUpDelay(seconds: number) {
+  return { animationDelay: `${seconds}s` };
+}
 
 export function Hero() {
   const [demoOpen, setDemoOpen] = useState(false);
@@ -33,42 +40,28 @@ export function Hero() {
       <div className="mx-auto grid max-w-content items-center gap-16 px-6 pb-24 pt-16 lg:grid-cols-2 lg:pb-32 lg:pt-24">
         {/* Left column — copy + CTAs */}
         <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-left">
-          <motion.div
-            initial={fadeUp.initial}
-            animate={fadeUp.animate}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col items-center gap-2 lg:items-start"
-          >
+          <div className="hero-fade-up flex flex-col items-center gap-2 lg:items-start">
             <p className="rounded-full border border-border bg-surface px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-primary shadow-xs">
               Nurturing future startups
             </p>
             <p className="text-sm font-medium text-text-secondary">Visibility for tomorrow&apos;s unicorns</p>
-          </motion.div>
+          </div>
 
-          <motion.h1
-            initial={fadeUp.initial}
-            animate={fadeUp.animate}
-            transition={{ duration: 0.5, delay: 0.08 }}
-            className="max-w-xl font-heading text-4xl font-bold tracking-tight text-text-primary sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]"
+          <h1
+            style={fadeUpDelay(0.08)}
+            className="hero-fade-up max-w-xl font-heading text-4xl font-bold tracking-tight text-text-primary sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]"
           >
             The digital identity for every startup.
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial={fadeUp.initial}
-            animate={fadeUp.animate}
-            transition={{ duration: 0.5, delay: 0.16 }}
-            className="max-w-lg text-lg text-text-secondary"
-          >
+          <p style={fadeUpDelay(0.16)} className="hero-fade-up max-w-lg text-lg text-text-secondary">
             Build trust, showcase your journey, and connect with investors, mentors, and incubators on one verified
             platform.
-          </motion.p>
+          </p>
 
-          <motion.div
-            initial={fadeUp.initial}
-            animate={fadeUp.animate}
-            transition={{ duration: 0.5, delay: 0.24 }}
-            className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start"
+          <div
+            style={fadeUpDelay(0.24)}
+            className="hero-fade-up flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start"
           >
             <Link
               href="/register"
@@ -85,7 +78,7 @@ export function Hero() {
               <PlayCircle className="h-4 w-4" />
               Watch demo
             </button>
-          </motion.div>
+          </div>
         </div>
 
         {/* Right column — the brand story, played live; edge to edge on phones */}

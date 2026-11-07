@@ -84,6 +84,22 @@
 }
 
 @layer components {
+  /* Landing hero copy entrance. Pure CSS so it runs on first paint, before any JS (see Hero.tsx). */
+  .hero-fade-up {
+    animation: hero-fade-up 0.5s cubic-bezier(0, 0, 0.2, 1) both;
+  }
+
+  @keyframes hero-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   /* Blurred sticky nav-on-scroll, applied via a `scrolled` data attribute toggled in NavBar */
   .nav-blur {
     @apply backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-200;

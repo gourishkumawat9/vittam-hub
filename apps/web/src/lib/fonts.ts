@@ -19,6 +19,8 @@ export const ibmPlexSans = IBM_Plex_Sans({
   weight: ["500", "600", "700"],
   variable: "--font-numeric",
   display: "swap",
+  // Only used for small figures below the fold; not worth a preload competing with the hero.
+  preload: false,
 });
 
 export const jetbrainsMono = JetBrains_Mono({
@@ -26,6 +28,8 @@ export const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
   variable: "--font-mono",
   display: "swap",
+  // Dashboard-only (code/IDs); not worth a preload on every page.
+  preload: false,
 });
 
 /**
