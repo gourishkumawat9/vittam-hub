@@ -4,14 +4,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SectionHeading } from "@/components/marketing/SectionHeading";
-import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = pageMetadata({
+export const metadata: Metadata = {
   title: "Pricing",
-  description:
-    "VittamHub pricing for founders and investors. The free plan is live today: a public startup profile, discovery search, a monthly allotment of investor connect requests, and a Trust Score.",
-  path: "/pricing",
-});
+  description: "VittamHub pricing plans for startups and investors.",
+};
 
 const FREE_FEATURES = [
   "A verified public profile, live immediately after signup",

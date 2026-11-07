@@ -2,63 +2,57 @@ import type { Metadata, Viewport } from "next";
 
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { fontVariables } from "@/lib/fonts";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
 import { JsonLd } from "./json-ld";
 import { Providers } from "./providers";
 
 import "@/styles/globals.css";
 
-/** Search-engine ownership checks, set in the host's env (Vercel → Settings → Environment Variables). */
-const verification: Metadata["verification"] = {
-  ...(process.env.GOOGLE_SITE_VERIFICATION && { google: process.env.GOOGLE_SITE_VERIFICATION }),
-  ...(process.env.BING_SITE_VERIFICATION && { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } }),
-};
+const SITE_URL = "https://vittamhub.com";
+const SITE_NAME = "VittamHub";
+const SITE_DESCRIPTION =
+  "VittamHub is the verified digital identity and discovery platform connecting startups with investors, mentors, incubators, universities, and strategic partners.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: SITE_TITLE,
-    template: `%s | ${SITE_NAME}`,
+    default: "VittamHub: Visibility for Tomorrow's Unicorns",
+    template: "%s · VittamHub",
   },
   description: SITE_DESCRIPTION,
-  applicationName: SITE_NAME,
   keywords: [
-    "VittamHub",
-    "Vittam Hub",
-    "startup platform India",
-    "idea stage startup",
+    "startup platform",
     "startup investor discovery",
-    "find mentors for startups",
-    "startup incubators India",
     "startup digital identity",
     "startup verification",
+    "investor matching",
+    "startup ecosystem",
+    "fundraising platform",
   ],
-  authors: [{ name: SITE_NAME, url: SITE_URL }],
-  creator: SITE_NAME,
-  publisher: SITE_NAME,
-  // No site-wide canonical: a canonical set here is inherited by every page
-  // that doesn't set its own, which told Google /about and /pricing were
-  // copies of the home page. Each indexable page declares its own instead.
+  authors: [{ name: SITE_NAME }],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: SITE_TITLE,
+    title: "VittamHub: Visibility for Tomorrow's Unicorns",
     description: SITE_DESCRIPTION,
-    locale: "en_IN",
+    locale: "en_US",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_TITLE,
+    title: "VittamHub: Visibility for Tomorrow's Unicorns",
     description: SITE_DESCRIPTION,
+    images: ["/twitter-image"],
   },
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
-  verification,
 };
 
 export const viewport: Viewport = {
