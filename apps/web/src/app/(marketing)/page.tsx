@@ -8,6 +8,9 @@ import { HowItWorks } from "@/components/marketing/HowItWorks";
 import { SectionSkeleton } from "@/components/marketing/SectionSkeleton";
 import { StartupJourney } from "@/components/marketing/StartupJourney";
 import { WhyVittamHub } from "@/components/marketing/WhyVittamHub";
+import { HOME_TITLE, SITE_DESCRIPTION, pageMetadata } from "@/lib/seo";
+
+import { JsonLd } from "../json-ld";
 
 // Below-the-fold sections are dynamically imported so the initial bundle stays
 // lean — see docs/10-deployment-infrastructure.md's performance section.
@@ -32,15 +35,17 @@ const TeamBuilder = dynamic(() => import("@/components/marketing/TeamBuilder").t
 const OfficeMarketplace = dynamic(() => import("@/components/marketing/OfficeMarketplace").then((m) => m.OfficeMarketplace), {
   loading: () => <SectionSkeleton />,
 });
-export const metadata: Metadata = {
-  title: "Visibility for Tomorrow's Unicorns",
-  description:
-    "VittamHub is the digital identity platform for startups. Build trust, showcase your journey, and connect with investors, mentors, incubators, and strategic partners in one ecosystem.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: HOME_TITLE,
+  description: SITE_DESCRIPTION,
+  path: "/",
+  absoluteTitle: true,
+});
 
 export default function HomePage() {
   return (
     <>
+      <JsonLd />
       <Hero />
       <AudienceSection />
       <StartupJourney />
