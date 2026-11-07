@@ -128,11 +128,11 @@ export default function RegisterPage() {
               label={
                 <>
                   I agree to the{" "}
-                  <a href="#" className="text-brand-primary underline">
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-primary underline">
                     Terms of Service
                   </a>{" "}
                   and{" "}
-                  <a href="#" className="text-brand-primary underline">
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand-primary underline">
                     Privacy Policy
                   </a>
                 </>

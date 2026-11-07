@@ -12,29 +12,35 @@ import { cn } from "@/lib/utils";
 import { NavDropdown, type NavDropdownItem } from "./NavDropdown";
 
 const DISCOVER_ITEMS: NavDropdownItem[] = [
-  { label: "Discover startups", href: "#discover-startups", description: "Browse verified startup profiles" },
-  { label: "Featured investors", href: "#investors", description: "See who's actively deploying capital" },
-  { label: "Platform ecosystem", href: "#ecosystem", description: "Everyone VittamHub connects" },
+  { label: "Discover startups", href: "/#discover-startups", description: "Browse verified startup profiles" },
+  { label: "Featured investors", href: "/#investors", description: "See who's actively deploying capital" },
+  { label: "Platform ecosystem", href: "/#ecosystem", description: "Everyone VittamHub connects" },
 ];
 
 const STARTUP_ITEMS: NavDropdownItem[] = [
-  { label: "For startups", href: "#founders", description: "Build your verified Startup Passport" },
-  { label: "The startup journey", href: "#journey", description: "From idea to unicorn" },
+  { label: "For startups", href: "/#founders", description: "Build your verified Startup Passport" },
+  { label: "The startup journey", href: "/#journey", description: "From idea to unicorn" },
   { label: "Register your startup", href: "/register?role=founder" },
 ];
 
 const INVESTOR_ITEMS: NavDropdownItem[] = [
-  { label: "For investors", href: "#investors-audience", description: "Discover deal flow through transparency" },
-  { label: "Featured investors", href: "#investors", description: "Meet active investors on the platform" },
+  { label: "For investors", href: "/#investors-audience", description: "Discover deal flow through transparency" },
+  { label: "Featured investors", href: "/#investors", description: "Meet active investors on the platform" },
   { label: "Register as investor", href: "/register?role=investor" },
 ];
 
 const SIMPLE_LINKS = [
-  { href: "#community", label: "Community" },
-  { href: "#learning", label: "Learning Hub" },
+  { href: "/#community", label: "Community" },
+  { href: "/#learning", label: "Learning Hub" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
 ];
+
+// "Featured investors" sits in both Discover and Investors; the flat mobile
+// list keeps one copy so each href (and React key) appears once.
+const MOBILE_LINKS = [...DISCOVER_ITEMS, ...STARTUP_ITEMS.slice(0, 2), ...INVESTOR_ITEMS.slice(0, 2), ...SIMPLE_LINKS].filter(
+  (link, index, all) => all.findIndex((other) => other.href === link.href) === index,
+);
 
 export function NavBar() {
   const scrolled = useScrolled();
@@ -105,7 +111,7 @@ export function NavBar() {
       {mobileOpen && (
         <nav className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-border bg-background px-6 py-4 lg:hidden" aria-label="Mobile">
           <ul className="flex flex-col gap-4">
-            {[...DISCOVER_ITEMS, ...STARTUP_ITEMS.slice(0, 2), ...INVESTOR_ITEMS.slice(0, 2), ...SIMPLE_LINKS].map((link) => (
+            {MOBILE_LINKS.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}

@@ -16,6 +16,7 @@ export * from "./domain/connection";
 export * from "./domain/mentor-booking";
 export * from "./domain/hiring";
 export * from "./domain/community";
+export * from "./domain/communities";
 export * from "./domain/learning-topics";
 export * from "./domain/founder-activity";
 export * from "./domain/investor-metrics";

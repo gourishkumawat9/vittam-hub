@@ -285,6 +285,12 @@ export const PostType = {
 } as const;
 export type PostType = (typeof PostType)[keyof typeof PostType];
 
+export const DiscussionKind = {
+  QUESTION: "QUESTION",
+  DISCUSSION: "DISCUSSION",
+} as const;
+export type DiscussionKind = (typeof DiscussionKind)[keyof typeof DiscussionKind];
+
 export const NotificationType = {
   CONNECTION_REQUEST: "CONNECTION_REQUEST",
   CONNECTION_ACCEPTED: "CONNECTION_ACCEPTED",

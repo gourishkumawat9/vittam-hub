@@ -9,7 +9,7 @@ import { roleHome } from "@/lib/role-home";
  * Full session validation (signature + expiry) happens in the API; this is
  * a cheap, edge-fast redirect layer, not the source of truth for access control.
  */
-const PROTECTED_PREFIXES = ["/founder", "/investor", "/admin"];
+const PROTECTED_PREFIXES = ["/founder", "/investor", "/admin", "/community", "/communities"];
 const AUTH_ROUTES = ["/login", "/register"];
 const REFRESH_COOKIE_NAME = "vh_refresh";
 
@@ -68,5 +68,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/founder/:path*", "/investor/:path*", "/admin/:path*", "/login", "/register"],
+  matcher: ["/founder/:path*", "/investor/:path*", "/admin/:path*", "/community/:path*", "/communities/:path*", "/login", "/register"],
 };

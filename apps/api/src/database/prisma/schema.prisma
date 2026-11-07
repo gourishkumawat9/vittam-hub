@@ -299,6 +299,11 @@ enum PostType {
   EVENT
 }
 
+enum DiscussionKind {
+  QUESTION
+  DISCUSSION
+}
+
 enum SubscriptionPlan {
   FREE
   FOUNDER_PRO
@@ -522,6 +527,10 @@ model User {
   pollVotes              PollVote[]
   eventRsvps             EventRsvp[]
   postBookmarks          PostBookmark[]
+  communityMemberships   CommunityMembership[]
+  discussions            Discussion[]
+  discussionReplies      DiscussionReply[]
+  discussionVotes        DiscussionVote[]
   sentFollows            Follow[] @relation("Follower")
   receivedFollows        Follow[] @relation("Following")
   founderReviewsGiven    FounderReview[] @relation("FounderReviewMentor")
@@ -1826,4 +1835,93 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorId])
   @@map("audit_logs")
+}
+
+// ─── Domain communities ─────────────────────────────────────────────────
+
+// Reddit-style spaces, one per startup domain. A community *is* an Industry
+// value rather than a row: the domain list is already a closed enum shared
+// with startup profiles, so there is nothing to seed and a startup's industry
+// maps straight to its community. Display names/descriptions live in
+// packages/types (COMMUNITY_DOMAINS).
+model CommunityMembership {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  industry  Industry
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, industry])
+  @@index([industry])
+  @@map("community_memberships")
+}
+
+// A question or discussion inside one domain community. `score` and
+// `replyCount` are denormalised counters maintained in the same transaction
+// as the vote/reply write, so listing never aggregates votes per row.
+model Discussion {
+  id              String         @id @default(uuid()) @db.Uuid
+  industry        Industry
+  authorId        String         @db.Uuid
+  kind            DiscussionKind @default(QUESTION)
+  title           String
+  body            String
+  score           Int            @default(0)
+  replyCount      Int            @default(0)
+  solutionReplyId String?        @unique @db.Uuid
+  lastActivityAt  DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies       DiscussionReply[] @relation("DiscussionReplies")
+  solutionReply DiscussionReply?  @relation("DiscussionSolution", fields: [solutionReplyId], references: [id], onDelete: SetNull)
+  votes         DiscussionVote[]
+
+  @@index([industry, lastActivityAt])
+  @@index([industry, createdAt])
+  @@index([industry, score])
+  @@index([authorId])
+  @@map("discussions")
+}
+
+model DiscussionReply {
+  id           String   @id @default(uuid()) @db.Uuid
+  discussionId String   @db.Uuid
+  authorId     String   @db.Uuid
+  body         String
+  score        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  discussion  Discussion       @relation("DiscussionReplies", fields: [discussionId], references: [id], onDelete: Cascade)
+  solutionFor Discussion?      @relation("DiscussionSolution")
+  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes       DiscussionVote[]
+
+  @@index([discussionId, createdAt])
+  @@index([authorId])
+  @@map("discussion_replies")
+}
+
+// One vote per user per target; `value` is +1 or -1 (removing a vote deletes
+// the row). Exactly one of discussionId/replyId is set, enforced in the
+// service like Like. Postgres treats NULLs as distinct, so the two unique
+// constraints never collide.
+model DiscussionVote {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  discussionId String?  @db.Uuid
+  replyId      String?  @db.Uuid
+  value        Int
+  createdAt    DateTime @default(now())
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discussion Discussion?      @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  reply      DiscussionReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, discussionId])
+  @@unique([userId, replyId])
+  @@map("discussion_votes")
 }
