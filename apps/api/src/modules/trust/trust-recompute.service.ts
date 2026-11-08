@@ -24,7 +24,7 @@ export class TrustRecomputeService implements OnModuleInit {
     private readonly configService: ConfigService,
   ) {}
 
-  async onModuleInit() {
+  onModuleInit() {
     const enabled = this.configService.get<boolean>("ENABLE_JOB_SCHEDULERS") ?? this.configService.get("NODE_ENV") === "production";
     if (!enabled) {
       this.logger.log("Trust-recompute scheduler disabled (set ENABLE_JOB_SCHEDULERS=true to enable outside production).");
@@ -34,17 +34,19 @@ export class TrustRecomputeService implements OnModuleInit {
     // Redis being unreachable/over-quota must never block the HTTP server
     // from starting — trust-score auto-recompute degrades to "not scheduled"
     // instead of taking the whole API down.
-    try {
-      await this.queue.upsertJobScheduler(
-        DAILY_SCHEDULER_ID,
-        { pattern: "0 3 * * *" }, // 03:00 UTC daily
-        { name: TRUST_RECOMPUTE_JOB.RECOMPUTE_ALL_STARTUPS, data: {} },
-      );
-    } catch (err) {
+    // Not awaited: while Redis is unreachable BullMQ queues the command
+    // instead of rejecting, so awaiting it here held up onModuleInit and the
+    // server never started listening. The scheduler registers whenever Redis
+    // answers; until then the API serves requests without it.
+    void this.queue.upsertJobScheduler(
+      DAILY_SCHEDULER_ID,
+      { pattern: "0 3 * * *" }, // 03:00 UTC daily
+      { name: TRUST_RECOMPUTE_JOB.RECOMPUTE_ALL_STARTUPS, data: {} },
+    ).catch((err: unknown) => {
       this.logger.warn(
         `Could not register the trust-recompute scheduler — Redis appears to be unavailable or over quota. Daily trust-score recompute will not run until this is resolved and the service restarts. Cause: ${err instanceof Error ? err.message : String(err)}`,
       );
-    }
+    });
   }
 
   /** Manual trigger — e.g. an admin "recompute now" action. */

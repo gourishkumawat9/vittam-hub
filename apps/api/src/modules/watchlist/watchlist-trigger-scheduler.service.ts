@@ -22,7 +22,7 @@ export class WatchlistTriggerSchedulerService implements OnModuleInit {
     private readonly configService: ConfigService,
   ) {}
 
-  async onModuleInit() {
+  onModuleInit() {
     const enabled = this.configService.get<boolean>("ENABLE_JOB_SCHEDULERS") ?? this.configService.get("NODE_ENV") === "production";
     if (!enabled) {
       this.logger.log("Watchlist-trigger scheduler disabled (set ENABLE_JOB_SCHEDULERS=true to enable outside production).");
@@ -31,17 +31,19 @@ export class WatchlistTriggerSchedulerService implements OnModuleInit {
 
     // Same resilience contract as TrustRecomputeService: a Redis outage
     // disables watchlist-trigger evaluation, never the whole API.
-    try {
-      await this.queue.upsertJobScheduler(
-        SCHEDULER_ID,
-        { pattern: "0 * * * *" }, // hourly
-        { name: WATCHLIST_TRIGGER_JOB.EVALUATE_ALL, data: {} },
-      );
-    } catch (err) {
+    // Not awaited: while Redis is unreachable BullMQ queues the command
+    // instead of rejecting, so awaiting it here held up onModuleInit and the
+    // server never started listening. The scheduler registers whenever Redis
+    // answers; until then the API serves requests without it.
+    void this.queue.upsertJobScheduler(
+      SCHEDULER_ID,
+      { pattern: "0 * * * *" }, // hourly
+      { name: WATCHLIST_TRIGGER_JOB.EVALUATE_ALL, data: {} },
+    ).catch((err: unknown) => {
       this.logger.warn(
         `Could not register the watchlist-trigger scheduler — Redis appears to be unavailable or over quota. Hourly watchlist alerts will not run until this is resolved and the service restarts. Cause: ${err instanceof Error ? err.message : String(err)}`,
       );
-    }
+    });
   }
 
   enqueueEvaluateNow() {
