@@ -65,9 +65,15 @@ export class AppController {
       // implements it. Deliberately a real round-trip rather than reading
       // `client.status`: a connection can sit in "ready" while Redis rejects
       // every command (exactly what an exceeded Upstash quota looked like).
-      const client = (await this.emailQueue.client) as unknown as { ping: () => Promise<string> };
+      // `queue.client` itself waits for the connection to become ready, which
+      // never happens while Redis is unreachable — so it sits inside the
+      // timeout race too, not just the PING.
+      const ping = async () => {
+        const client = (await this.emailQueue.client) as unknown as { ping: () => Promise<string> };
+        return client.ping();
+      };
       await Promise.race([
-        client.ping(),
+        ping(),
         new Promise((_resolve, reject) => setTimeout(() => reject(new Error("redis ping timed out")), REDIS_PROBE_TIMEOUT_MS)),
       ]);
       return "ok";

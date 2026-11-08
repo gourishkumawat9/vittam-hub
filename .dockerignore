@@ -9,3 +9,4 @@ node_modules
 .env.local
 apps/web/.vercel
 graphify-out
+**/*.tsbuildinfo
