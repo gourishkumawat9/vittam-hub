@@ -30,7 +30,7 @@ Founders can never message an investor directly. A founder must first send a **C
 
 ## 5. Free plan limits, admin-configurable
 
-Default Free Founder plan: 5 investor connect requests per month. This limit must be configurable from an Admin Panel at runtime, not hardcoded — plan/limit data belongs in the database, not a constant.
+Default Free Founder plan: 2 investor connect requests per month (lowered from 5 in November 2026). This limit must be configurable from an Admin Panel at runtime, not hardcoded — plan/limit data belongs in the database, not a constant.
 
 Do **not** implement payment/billing logic for this yet — only build the plan/limit architecture so pricing tiers (more requests, unlimited discovery, advanced AI recommendations, higher visibility, priority listing, premium analytics, Startup Passport, verified badge, investor CRM tools) can be layered in later without a schema rewrite.
 

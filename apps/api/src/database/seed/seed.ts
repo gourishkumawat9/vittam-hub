@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 /** Default monthly Connect Request quota per plan — admin-editable afterward via PATCH /v1/admin/plan-limits/:plan. */
 const DEFAULT_PLAN_LIMITS: Record<SubscriptionPlan, number | null> = {
-  FREE: 5,
+  FREE: 2,
   FOUNDER_PRO: null,
   INVESTOR_PRO: null,
   ENTERPRISE: null,
