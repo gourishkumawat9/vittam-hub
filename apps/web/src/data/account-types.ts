@@ -1,5 +1,5 @@
 import { UserRole, type RegisterableRole } from "@vittamhub/types";
-import { Briefcase, Building2, GraduationCap, Handshake, Rocket, School, Wrench } from "lucide-react";
+import { Building2, GraduationCap, Handshake, Rocket, School } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface AccountTypeOption {
@@ -45,19 +45,5 @@ export const ACCOUNT_TYPES: AccountTypeOption[] = [
     title: "University / Institution",
     description: "Connect your students and incubation cell to the ecosystem.",
     benefits: ["Promote your incubation cell", "Connect students to opportunities", "Showcase academic programs"],
-  },
-  {
-    role: UserRole.SERVICE_PROVIDER,
-    icon: Wrench,
-    title: "Service Provider",
-    description: "Offer legal, finance, marketing, and more to startups.",
-    benefits: ["List your service categories", "Reach startups actively seeking help", "Build client credibility"],
-  },
-  {
-    role: UserRole.JOB_SEEKER,
-    icon: Briefcase,
-    title: "Job Seeker",
-    description: "Find your next role at a verified, high-growth startup.",
-    benefits: ["Showcase skills & experience", "Get matched to relevant roles", "Direct visibility to founders"],
   },
 ];

@@ -6,7 +6,7 @@ import { AuditLogService } from "../audit-log/audit-log.service";
 
 /** Falls back to this when a plan has no PlanLimit row yet (e.g. right after a fresh migration, before the admin has configured anything). */
 const DEFAULT_MONTHLY_CONNECT_REQUEST_LIMIT: Record<SubscriptionPlan, number | null> = {
-  FREE: 5,
+  FREE: 2,
   FOUNDER_PRO: null,
   INVESTOR_PRO: null,
   ENTERPRISE: null,

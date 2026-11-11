@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import type { Prisma, TrustBand } from "@prisma/client";
 import type { CreateMandateInput, UpdateMandateInput } from "@vittamhub/types";
 
+import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 import { MatchScoreService } from "./match-score.service";
@@ -55,6 +56,7 @@ export class MandatesService {
     const where: Prisma.StartupWhereInput = {
       isPublic: true,
       visibility: { notIn: ["PRIVATE", "STEALTH"] },
+      ...sameSandbox(await isDemoViewer(this.prisma, investorOwnerId)),
       ...(mandate.industries.length ? { industry: { in: mandate.industries } } : {}),
       ...(mandate.stages.length ? { stage: { in: mandate.stages } } : {}),
       ...(mandate.raisingOnly ? { isFundraising: true } : {}),

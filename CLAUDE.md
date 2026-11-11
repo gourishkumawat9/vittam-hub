@@ -30,7 +30,7 @@ Founders can never message an investor directly. A founder must first send a **C
 
 ## 5. Free plan limits, admin-configurable
 
-Default Free Founder plan: 5 investor connect requests per month. This limit must be configurable from an Admin Panel at runtime, not hardcoded — plan/limit data belongs in the database, not a constant.
+Default Free Founder plan: 2 investor connect requests per month (lowered from 5 in November 2026). This limit must be configurable from an Admin Panel at runtime, not hardcoded — plan/limit data belongs in the database, not a constant.
 
 Do **not** implement payment/billing logic for this yet — only build the plan/limit architecture so pricing tiers (more requests, unlimited discovery, advanced AI recommendations, higher visibility, priority listing, premium analytics, Startup Passport, verified badge, investor CRM tools) can be layered in later without a schema rewrite.
 
@@ -53,6 +53,16 @@ The product should read as trustworthy, transparent, innovative, professional, a
 ## 10. North star
 
 VittamHub is the digital identity and discovery platform for startups — investors, mentors, incubators, universities, service providers, talent, and grants in one ecosystem, taking founders from Idea to Unicorn. Every feature decision should weigh trust, transparency, automation, scalability, security, performance, and premium UX.
+
+## 11. Current scope (November 2026)
+
+Until after the growth stage, the live platform covers six areas only: **founders, investors, mentors, incubators (and accelerators), universities, and community**. Everything else is paused, not abandoned:
+
+- **Service providers and job seekers / jobs / founder hiring**: sign-up for both roles is closed (`REGISTERABLE_ROLES`), their pages are removed from the website, and `HiringModule` / `ServiceProvidersModule` are unregistered in `app.module.ts`. Their code and database tables stay, so bringing one back is re-registering its module and restoring its pages from git history.
+- **Learning Hub**: removed. It will be rebuilt from the owner's own notes as a learning hub for entrepreneurs; don't restore the old placeholder tracks.
+- **"Coming soon" modules list** (Startup Passport as a module, AI tools, marketplaces, grants, government schemes, office space and the rest of `FUTURE_MODULES`): removed from the dashboard. `FUTURE_MODULES` stays in `packages/types` as the roadmap.
+
+Don't add new features outside the six areas without the owner asking.
 
 ## graphify
 

@@ -13,7 +13,7 @@ export class DiscoveryService {
    * §Discovery) once relevance ranking needs typo-tolerance and vector
    * similarity ("startups like this one") beyond what SQL LIKE can do.
    */
-  feedFor(_userId: string, filters: StartupSearchFilters) {
-    return this.startupsService.search(filters);
+  feedFor(userId: string, filters: StartupSearchFilters) {
+    return this.startupsService.search(filters, userId);
   }
 }

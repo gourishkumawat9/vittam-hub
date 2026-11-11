@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 
-import { HiringModule } from "../hiring/hiring.module";
 import { IncubatorsModule } from "../incubators/incubators.module";
 import { InvestorsModule } from "../investors/investors.module";
 import { MentorsModule } from "../mentors/mentors.module";
@@ -10,7 +9,7 @@ import { SearchController } from "./search.controller";
 import { SearchService } from "./search.service";
 
 @Module({
-  imports: [StartupsModule, InvestorsModule, MentorsModule, IncubatorsModule, HiringModule],
+  imports: [StartupsModule, InvestorsModule, MentorsModule, IncubatorsModule],
   controllers: [SearchController],
   providers: [SearchService],
 })

@@ -2,6 +2,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import type { CreateMentorBookingInput, MentorBookingResponseAction } from "@vittamhub/types";
 
+import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 const RESPONSE_ACTION_TO_STATUS: Record<MentorBookingResponseAction, "ACCEPTED" | "DECLINED"> = {
@@ -23,7 +24,8 @@ export class MentorBookingService {
 
   async book(founderId: string, mentorProfileId: string, input: CreateMentorBookingInput) {
     const mentorProfile = await this.prisma.mentorProfile.findUnique({ where: { id: mentorProfileId } });
-    if (!mentorProfile) throw new NotFoundException("Mentor not found");
+    // Demo and real accounts never interact (common/demo/demo-scope.ts).
+    if (!mentorProfile || !(await inSameSandbox(this.prisma, founderId, mentorProfile.ownerId))) throw new NotFoundException("Mentor not found");
 
     const startup = await this.prisma.startup.findUnique({ where: { ownerId: founderId } });
 

@@ -488,6 +488,7 @@ model User {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   deletedAt          DateTime? // soft delete — preserves FK history for audit logs
+  isDemo             Boolean             @default(false) // demo sandbox account (modules/demo): sees only other demo accounts, never shown to real users
 
   profile             UserProfile?
   startup             Startup?
@@ -536,6 +537,7 @@ model User {
   savedSearches          SavedSearch[]
 
   @@index([role])
+  @@index([isDemo])
   @@map("users")
 }
 

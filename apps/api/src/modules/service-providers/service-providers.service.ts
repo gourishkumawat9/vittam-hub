@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import type { ServiceProviderSearchFilters } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
+import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Mirrors MentorsService's shape (search + get-by-id) — see docs/07-backend-architecture.md. */
@@ -10,9 +11,12 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 export class ServiceProvidersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(filters: ServiceProviderSearchFilters) {
+  /** `callerId` keeps demo and real accounts apart — see common/demo/demo-scope.ts. */
+  async list(filters: ServiceProviderSearchFilters, callerId?: string | null) {
+    const viewerIsDemo = await isDemoViewer(this.prisma, callerId);
     const where: Prisma.ServiceProviderProfileWhereInput = {
       isPublic: true,
+      AND: [sameSandbox(viewerIsDemo)],
       verificationStatus: "VERIFIED",
       ...(filters.categories?.length ? { categories: { hasSome: filters.categories } } : {}),
     };

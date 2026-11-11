@@ -26,4 +26,13 @@ describe("Health (e2e)", () => {
         expect(res.body.data.status).toBe("ok");
       });
   });
+
+  it("/ping (GET) returns ok without auth", () => {
+    return request(app.getHttpServer())
+      .get("/ping")
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ status: "ok" });
+      });
+  });
 });

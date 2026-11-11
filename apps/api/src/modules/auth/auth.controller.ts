@@ -41,6 +41,7 @@ import { CookieOptions, Request, Response } from "express";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
+import { NotDemoGuard } from "../../common/demo/not-demo.guard";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { UsersService } from "../users/users.service";
@@ -197,6 +198,7 @@ export class AuthController {
   }
 
   @Post("password/change")
+  @UseGuards(NotDemoGuard)
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(changePasswordInputSchema))
   @ApiOperation({ summary: "Change password while logged in" })
@@ -208,6 +210,7 @@ export class AuthController {
   // ─── MFA enrollment ────────────────────────────────────────────────────
 
   @Post("mfa/enroll")
+  @UseGuards(NotDemoGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Begin TOTP enrollment — returns a QR code to scan" })
   async beginMfaEnrollment(@CurrentUser() user: AuthenticatedUser) {
@@ -215,6 +218,7 @@ export class AuthController {
   }
 
   @Post("mfa/enroll/confirm")
+  @UseGuards(NotDemoGuard)
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(mfaVerifyInputSchema))
   @ApiOperation({ summary: "Confirm TOTP enrollment with a code from the authenticator app" })

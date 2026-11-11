@@ -1,17 +1,14 @@
 "use client";
 
 import { useCurrentUser } from "@vittamhub/api-client";
-import { FUTURE_MODULES } from "@vittamhub/types";
 import {
   BarChart3,
   Bell,
   Bookmark,
-  BookOpen,
   Briefcase,
   Building2,
   Calendar,
   CalendarClock,
-  ChevronDown,
   Compass,
   FolderLock,
   GraduationCap,
@@ -30,9 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
-import { FUTURE_MODULE_ICONS } from "@/data/future-modules";
 import { cn } from "@/lib/utils";
 
 const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof LayoutDashboard }[]> = {
@@ -40,21 +35,14 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/founder", label: "Dashboard", icon: LayoutDashboard },
     { href: "/founder/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/founder/documents", label: "Documents", icon: FolderLock },
-    { href: "/founder/hiring", label: "Hiring", icon: Briefcase },
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/mentors/bookings", label: "Session Requests", icon: CalendarClock },
     { href: "/incubators", label: "Incubators", icon: Building2 },
-    { href: "/learning", label: "Learning", icon: BookOpen },
+    { href: "/universities", label: "Universities", icon: GraduationCap },
     { href: "/community", label: "Community", icon: Users },
   ],
   MENTOR: [
     { href: "/mentors/bookings", label: "Session Requests", icon: CalendarClock },
-    { href: "/learning", label: "Learning", icon: BookOpen },
-    { href: "/community", label: "Community", icon: Users },
-  ],
-  JOB_SEEKER: [
-    { href: "/jobs", label: "Browse Jobs", icon: Briefcase },
-    { href: "/learning", label: "Learning", icon: BookOpen },
     { href: "/community", label: "Community", icon: Users },
   ],
   INVESTOR: [
@@ -83,24 +71,18 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/incubators", label: "Incubators", icon: Building2 },
     { href: "/universities", label: "Universities", icon: GraduationCap },
-    { href: "/service-providers", label: "Service Providers", icon: Briefcase },
     { href: "/community", label: "Community", icon: Users },
   ],
   UNIVERSITY: [
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/incubators", label: "Incubators", icon: Building2 },
     { href: "/universities", label: "Universities", icon: GraduationCap },
-    { href: "/service-providers", label: "Service Providers", icon: Briefcase },
-    { href: "/community", label: "Community", icon: Users },
-  ],
-  SERVICE_PROVIDER: [
-    { href: "/mentors", label: "Mentors", icon: GraduationCap },
-    { href: "/incubators", label: "Incubators", icon: Building2 },
-    { href: "/universities", label: "Universities", icon: GraduationCap },
-    { href: "/service-providers", label: "Service Providers", icon: Briefcase },
     { href: "/community", label: "Community", icon: Users },
   ],
 };
+
+/** Roles paused until after the growth stage (service providers, job seekers) keep a way into the community. */
+const FALLBACK_NAV = [{ href: "/community", label: "Community", icon: Users }];
 
 /**
  * Nav content shared by the persistent desktop `<aside>` and the mobile
@@ -110,9 +92,8 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { data: user } = useCurrentUser();
   const pathname = usePathname();
-  const [showFuture, setShowFuture] = useState(false);
 
-  const primaryNav = user ? (ROLE_NAV[user.role] ?? []) : [];
+  const primaryNav = user ? (ROLE_NAV[user.role] ?? FALLBACK_NAV) : [];
 
   return (
     <nav className="flex h-full flex-col gap-1 overflow-y-auto p-4" aria-label="Dashboard">
@@ -133,33 +114,6 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           </Link>
         );
       })}
-
-      <button
-        type="button"
-        onClick={() => setShowFuture((v) => !v)}
-        className="mt-4 flex items-center justify-between rounded-button px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-secondary hover:bg-background-secondary"
-      >
-        Coming soon
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showFuture && "rotate-180")} />
-      </button>
-      {showFuture && (
-        <div className="flex flex-col gap-0.5 pl-1">
-          {FUTURE_MODULES.map((module) => {
-            const Icon = FUTURE_MODULE_ICONS[module.slug]!;
-            return (
-              <Link
-                key={module.slug}
-                href={`/modules/${module.slug}`}
-                onClick={onNavigate}
-                className="flex items-center gap-2.5 rounded-button px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-background-secondary hover:text-text-primary"
-              >
-                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{module.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
     </nav>
   );
 }

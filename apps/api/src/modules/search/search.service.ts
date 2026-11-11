@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { GlobalSearchFilters } from "@vittamhub/types";
 
-import { HiringService } from "../hiring/hiring.service";
 import { IncubatorsService } from "../incubators/incubators.service";
 import { InvestorsService } from "../investors/investors.service";
 import { MentorsService } from "../mentors/mentors.service";
@@ -22,18 +21,16 @@ export class SearchService {
     private readonly investorsService: InvestorsService,
     private readonly mentorsService: MentorsService,
     private readonly incubatorsService: IncubatorsService,
-    private readonly hiringService: HiringService,
   ) {}
 
   async search(filters: GlobalSearchFilters, callerId: string) {
     const paged = { query: filters.query, page: 1, pageSize: RESULTS_PER_GROUP };
 
-    const [startups, investors, mentors, incubators, jobs] = await Promise.all([
+    const [startups, investors, mentors, incubators] = await Promise.all([
       this.startupsService.search(paged, callerId),
       this.investorsService.list(paged, callerId),
-      this.mentorsService.list(paged),
-      this.incubatorsService.list(paged),
-      this.hiringService.search(paged),
+      this.mentorsService.list(paged, callerId),
+      this.incubatorsService.list(paged, callerId),
     ]);
 
     return {
@@ -41,7 +38,6 @@ export class SearchService {
       investors: investors.items,
       mentors: mentors.items,
       incubators: incubators.items,
-      jobs: jobs.items,
     };
   }
 }

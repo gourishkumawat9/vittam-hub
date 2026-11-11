@@ -16,16 +16,12 @@ export const userSchema = z.object({
 });
 export type User = z.infer<typeof userSchema>;
 
-/** ADMIN is provisioned internally, never self-registered through the public signup flow. */
-export const REGISTERABLE_ROLES = [
-  UserRole.FOUNDER,
-  UserRole.INVESTOR,
-  UserRole.MENTOR,
-  UserRole.INCUBATOR,
-  UserRole.UNIVERSITY,
-  UserRole.SERVICE_PROVIDER,
-  UserRole.JOB_SEEKER,
-] as const;
+/**
+ * ADMIN is provisioned internally, never self-registered through the public signup flow.
+ * SERVICE_PROVIDER and JOB_SEEKER stay in UserRole (existing rows, schema) but sign-up for
+ * them is paused until after the growth stage — see CLAUDE.md "Current scope".
+ */
+export const REGISTERABLE_ROLES = [UserRole.FOUNDER, UserRole.INVESTOR, UserRole.MENTOR, UserRole.INCUBATOR, UserRole.UNIVERSITY] as const;
 export type RegisterableRole = (typeof REGISTERABLE_ROLES)[number];
 
 /**

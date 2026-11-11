@@ -16,13 +16,13 @@ export const JOURNEY_STAGES: JourneyStage[] = [
     id: "validation",
     label: "Validation",
     description: "Talking to users and confirming the problem is real and worth solving.",
-    howVittamHelps: "Access validation frameworks in the Learning Hub and connect with founders one stage ahead.",
+    howVittamHelps: "Get early feedback from mentors and connect with founders one stage ahead in the community.",
   },
   {
     id: "prototype",
     label: "Prototype",
     description: "Building the first tangible version to test with real users.",
-    howVittamHelps: "Find a co-founder or freelance designer/developer through Team Builder to ship faster.",
+    howVittamHelps: "Get product feedback from mentors and apply to incubation programmes that take MVP-stage startups.",
   },
   {
     id: "mvp",
@@ -52,7 +52,7 @@ export const JOURNEY_STAGES: JourneyStage[] = [
     id: "scale",
     label: "Scale",
     description: "Expanding into new markets, teams, and product lines.",
-    howVittamHelps: "Tap the Office Marketplace and Team Builder to expand into new cities without the friction.",
+    howVittamHelps: "Keep investors and your network updated on every new market through milestones and community posts.",
   },
   {
     id: "unicorn",

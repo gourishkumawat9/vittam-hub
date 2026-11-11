@@ -2,7 +2,7 @@
 
 import { useGlobalSearch } from "@vittamhub/api-client";
 import { Badge, Card, EmptyState, ErrorState } from "@vittamhub/ui";
-import { Building2, Compass, GraduationCap, Search, TrendingUp, Users } from "lucide-react";
+import { Building2, Compass, GraduationCap, Search, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -15,7 +15,7 @@ function SearchContent() {
   const { data, isLoading, isError } = useGlobalSearch({ query }, query.trim().length > 0);
 
   const hasResults =
-    !!data && (data.startups.length > 0 || data.investors.length > 0 || data.mentors.length > 0 || data.incubators.length > 0 || data.jobs.length > 0);
+    !!data && (data.startups.length > 0 || data.investors.length > 0 || data.mentors.length > 0 || data.incubators.length > 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,21 +84,6 @@ function SearchContent() {
                     <Card interactive className="flex flex-col gap-2">
                       <h3 className="font-heading text-sm font-semibold text-text-primary">{incubator.organizationName}</h3>
                       <p className="line-clamp-2 text-xs text-text-secondary">{incubator.description}</p>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </SearchSection>
-          )}
-
-          {data!.jobs.length > 0 && (
-            <SearchSection icon={Users} title="Jobs">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {data!.jobs.map((job) => (
-                  <Link key={job.id} href="/jobs">
-                    <Card interactive className="flex flex-col gap-2">
-                      <h3 className="font-heading text-sm font-semibold text-text-primary">{job.title}</h3>
-                      <p className="text-xs text-text-secondary">{job.startup.name}</p>
                     </Card>
                   </Link>
                 ))}

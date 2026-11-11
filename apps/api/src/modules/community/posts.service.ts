@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import type { CommunityFeedFilters, CreatePostInput, UserRole } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
+import { isDemoViewer } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /**
@@ -51,6 +52,8 @@ export class PostsService {
 
   async feed(filters: CommunityFeedFilters, userId: string) {
     const where: Prisma.PostWhereInput = {
+      // Demo accounts post into their own feed; real users never see demo posts (common/demo/demo-scope.ts).
+      author: { isDemo: await isDemoViewer(this.prisma, userId) },
       ...(filters.type?.length ? { type: { in: filters.type } } : {}),
       ...(filters.startupId ? { startupId: filters.startupId } : {}),
       ...(filters.bookmarkedOnly ? { bookmarks: { some: { userId } } } : {}),

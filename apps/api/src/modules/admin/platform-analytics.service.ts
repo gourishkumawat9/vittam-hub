@@ -5,6 +5,9 @@ import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
 
+/** Demo logins (modules/demo) are left out of every platform number, so they never inflate the real counts (CLAUDE.md §2). */
+const REAL_USER = { isDemo: false } as const;
+
 /**
  * Platform-wide, read-only metrics for the admin panel — no PII beyond what
  * the existing verification-overview lists already expose, no ban/edit/
@@ -16,10 +19,10 @@ export class PlatformAnalyticsService {
 
   async getTotals() {
     const [users, startups, investors, connections] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.startup.count(),
-      this.prisma.investor.count(),
-      this.prisma.connection.count(),
+      this.prisma.user.count({ where: REAL_USER }),
+      this.prisma.startup.count({ where: { owner: REAL_USER } }),
+      this.prisma.investor.count({ where: { owner: REAL_USER } }),
+      this.prisma.connection.count({ where: { requester: REAL_USER } }),
     ]);
     return { users, startups, investors, connections };
   }
@@ -29,6 +32,7 @@ export class PlatformAnalyticsService {
     const rows = await this.prisma.$queryRaw<{ bucket: Date; count: bigint }[]>`
       SELECT date_trunc(${filters.bucket}, "createdAt") AS bucket, COUNT(*) AS count
       FROM "users"
+      WHERE "isDemo" = false
       GROUP BY bucket
       ORDER BY bucket DESC
       LIMIT ${filters.limit}
@@ -38,15 +42,15 @@ export class PlatformAnalyticsService {
 
   async getConnectionAcceptanceRate() {
     const [accepted, declined] = await Promise.all([
-      this.prisma.connection.count({ where: { status: "ACCEPTED" } }),
-      this.prisma.connection.count({ where: { status: "DECLINED" } }),
+      this.prisma.connection.count({ where: { status: "ACCEPTED", requester: REAL_USER } }),
+      this.prisma.connection.count({ where: { status: "DECLINED", requester: REAL_USER } }),
     ]);
     const total = accepted + declined;
     return { rate: total > 0 ? accepted / total : null, accepted, declined };
   }
 
   async getVerificationFunnel() {
-    const counts = await this.prisma.startup.groupBy({ by: ["verificationStatus"], _count: true });
+    const counts = await this.prisma.startup.groupBy({ by: ["verificationStatus"], where: { owner: REAL_USER }, _count: true });
     const byStatus = new Map(counts.map((c) => [c.verificationStatus, c._count]));
     return (["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"] as const).map((stage) => ({
       stage,
@@ -74,7 +78,7 @@ export class PlatformAnalyticsService {
         skip,
         take,
         orderBy: { createdAt: "desc" },
-        select: { id: true, email: true, fullName: true, role: true, verificationStatus: true, createdAt: true },
+        select: { id: true, email: true, fullName: true, role: true, verificationStatus: true, isDemo: true, createdAt: true },
       }),
       this.prisma.user.count({ where }),
     ]);
