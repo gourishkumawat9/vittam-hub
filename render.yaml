@@ -22,3 +22,5 @@ services:
       # Every other variable (DATABASE_URL, REDIS_URL, JWT_*, APP_URL, API_URL,
       # RESEND_API_KEY, EMAIL_FROM, GOOGLE_*, ...) is pasted in the dashboard
       # from the old Railway service. Never commit real values.
+      # Optional: DEMO_ACCOUNTS_PASSWORD (12+ characters) turns on the demo
+      # logins; delete it to turn them off. See docs/demo-accounts.md.

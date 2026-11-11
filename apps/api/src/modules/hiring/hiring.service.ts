@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import type { CreateJobInput, JobSearchFilters, RespondToApplicationInput, ApplyToJobInput, UpdateJobInput } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
+import { inSameSandbox, isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Named `hiring` internally to avoid the existing BullMQ `jobs/` (email queue) module — the HTTP path `v1/jobs` is free since that module has no controller. */
@@ -34,9 +35,10 @@ export class HiringService {
     return this.prisma.job.findMany({ where: { startup: { ownerId: founderId } }, orderBy: { createdAt: "desc" } });
   }
 
-  async search(filters: JobSearchFilters) {
+  async search(filters: JobSearchFilters, callerId?: string | null) {
     const where: Prisma.JobWhereInput = {
       status: "OPEN",
+      startup: sameSandbox(await isDemoViewer(this.prisma, callerId)),
       ...(filters.employmentType?.length ? { employmentType: { in: filters.employmentType } } : {}),
       ...(filters.location ? { location: { contains: filters.location, mode: "insensitive" } } : {}),
       ...(filters.isRemote !== undefined ? { isRemote: filters.isRemote } : {}),
@@ -69,6 +71,9 @@ export class HiringService {
   async apply(applicantId: string, jobId: string, input: ApplyToJobInput) {
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
     if (!job || job.status !== "OPEN") throw new NotFoundException("Job not found or no longer open");
+    const jobOwner = await this.prisma.startup.findUniqueOrThrow({ where: { id: job.startupId }, select: { ownerId: true } });
+    // Demo and real accounts never interact (common/demo/demo-scope.ts).
+    if (!(await inSameSandbox(this.prisma, applicantId, jobOwner.ownerId))) throw new NotFoundException("Job not found or no longer open");
 
     try {
       const application = await this.prisma.jobApplication.create({

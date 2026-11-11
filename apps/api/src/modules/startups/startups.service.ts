@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import type { CreateStartupInput, Industry, StartupSearchFilters, UpdateStartupVisibilityInput } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset, slugify } from "@vittamhub/utils";
 
+import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 @Injectable()
@@ -42,8 +43,10 @@ export class StartupsService {
       ...(filters.growthRateMin !== undefined ? { growthRatePercent: { gte: filters.growthRateMin } } : {}),
     };
 
+    const viewerIsDemo = await isDemoViewer(this.prisma, callerId);
     const where: Prisma.StartupWhereInput = {
       isPublic: true,
+      AND: [sameSandbox(viewerIsDemo)], // demo and real accounts never see each other
       visibility: { notIn: ["PRIVATE", "STEALTH"] }, // INVESTOR_ONLY still needs the per-viewer check in the controller (role isn't known to a shared query)
       verificationStatus,
       ...(industry?.length ? { industry: { in: industry } } : {}),

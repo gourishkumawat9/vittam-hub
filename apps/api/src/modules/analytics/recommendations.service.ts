@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Industry } from "@vittamhub/types";
 
+import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { InvestorMetricsService } from "../investors/investor-metrics.service";
 import { MatchScoreService } from "../investors/match-score.service";
@@ -25,7 +26,11 @@ export class RecommendationsService {
   async getForInvestor(investorId: string) {
     const investor = await this.prisma.investor.findUnique({ where: { ownerId: investorId } });
 
-    const baseWhere = { isPublic: true, verificationStatus: "VERIFIED" as const };
+    const baseWhere = {
+      isPublic: true,
+      verificationStatus: "VERIFIED" as const,
+      ...sameSandbox(await isDemoViewer(this.prisma, investorId)),
+    };
 
     const [highPotential, fastestGrowing, recentlyFundraising, portfolio, recentlyVerified, recentlyActiveIds] = await Promise.all([
       this.prisma.startup.findMany({
@@ -110,6 +115,7 @@ export class RecommendationsService {
         isPublic: true,
         verificationStatus: "VERIFIED",
         openForPitches: true,
+        ...sameSandbox(await isDemoViewer(this.prisma, founderId)),
         OR: [{ preferredIndustries: { has: startup.industry } }, { preferredStages: { has: startup.stage } }],
       },
       take: 25,

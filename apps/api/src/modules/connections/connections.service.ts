@@ -16,6 +16,7 @@ import type {
 } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
+import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
 import { PlanLimitsService } from "../plan-limits/plan-limits.service";
@@ -52,7 +53,8 @@ export class ConnectionsService {
     }
 
     const recipient = await this.prisma.user.findUnique({ where: { id: input.recipientId } });
-    if (!recipient) throw new NotFoundException("Investor not found");
+    // A demo account and a real one never interact (common/demo/demo-scope.ts); "not found" so neither side can probe the other.
+    if (!recipient || !(await inSameSandbox(this.prisma, requesterId, recipient.id))) throw new NotFoundException("Investor not found");
     if (recipient.role !== "INVESTOR") {
       throw new BadRequestException("Connect requests can only be sent to investors.");
     }

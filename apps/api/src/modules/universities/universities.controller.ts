@@ -2,8 +2,10 @@ import { Controller, Get, Param, Query, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { universitySearchFiltersSchema, type UniversitySearchFilters } from "@vittamhub/types";
 
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
+import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { UniversitiesService } from "./universities.service";
 
@@ -16,8 +18,8 @@ export class UniversitiesController {
   @Get()
   @UsePipes(new ZodValidationPipe(universitySearchFiltersSchema))
   @ApiOperation({ summary: "Browse university/incubation-cell profiles, filterable by department/program" })
-  list(@Query() filters: UniversitySearchFilters) {
-    return this.universitiesService.list(filters);
+  list(@CurrentUser() user: AuthenticatedUser | null, @Query() filters: UniversitySearchFilters) {
+    return this.universitiesService.list(filters, user?.sub);
   }
 
   @Get(":id")

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { StartupStage } from "@prisma/client";
 
+import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /**
@@ -85,6 +86,7 @@ export class CoInvestorGraphService {
       where: {
         ownerId: { not: investorOwnerId },
         isPublic: true,
+        ...sameSandbox(await isDemoViewer(this.prisma, investorOwnerId)),
         OR: [
           myInvestorProfile.preferredIndustries.length ? { preferredIndustries: { hasSome: myInvestorProfile.preferredIndustries } } : undefined,
           myInvestorProfile.preferredStages.length ? { preferredStages: { hasSome: myInvestorProfile.preferredStages } } : undefined,

@@ -31,9 +31,9 @@ export class SearchService {
     const [startups, investors, mentors, incubators, jobs] = await Promise.all([
       this.startupsService.search(paged, callerId),
       this.investorsService.list(paged, callerId),
-      this.mentorsService.list(paged),
-      this.incubatorsService.list(paged),
-      this.hiringService.search(paged),
+      this.mentorsService.list(paged, callerId),
+      this.incubatorsService.list(paged, callerId),
+      this.hiringService.search(paged, callerId),
     ]);
 
     return {

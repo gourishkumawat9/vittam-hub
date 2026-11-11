@@ -30,8 +30,8 @@ export class HiringController {
   @Get()
   @UsePipes(new ZodValidationPipe(jobSearchFiltersSchema))
   @ApiOperation({ summary: "Browse open job postings across every startup" })
-  search(@Query() filters: JobSearchFilters) {
-    return this.hiringService.search(filters);
+  search(@CurrentUser() user: AuthenticatedUser | null, @Query() filters: JobSearchFilters) {
+    return this.hiringService.search(filters, user?.sub);
   }
 
   @Get("mine")

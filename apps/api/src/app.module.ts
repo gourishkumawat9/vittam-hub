@@ -21,6 +21,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { CommunityModule } from "./modules/community/community.module";
 import { ConnectionsModule } from "./modules/connections/connections.module";
+import { DemoModule } from "./modules/demo/demo.module";
 import { DiscoveryModule } from "./modules/discovery/discovery.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { FollowsModule } from "./modules/follows/follows.module";
@@ -96,6 +97,7 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
     ServiceProvidersModule,
     FollowsModule,
     SearchModule,
+    DemoModule,
   ],
   controllers: [AppController],
   providers: [

@@ -2,8 +2,10 @@ import { Controller, Get, Param, Query, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { serviceProviderSearchFiltersSchema, type ServiceProviderSearchFilters } from "@vittamhub/types";
 
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
+import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { ServiceProvidersService } from "./service-providers.service";
 
@@ -16,8 +18,8 @@ export class ServiceProvidersController {
   @Get()
   @UsePipes(new ZodValidationPipe(serviceProviderSearchFiltersSchema))
   @ApiOperation({ summary: "Browse service-provider profiles, filterable by category" })
-  list(@Query() filters: ServiceProviderSearchFilters) {
-    return this.serviceProvidersService.list(filters);
+  list(@CurrentUser() user: AuthenticatedUser | null, @Query() filters: ServiceProviderSearchFilters) {
+    return this.serviceProvidersService.list(filters, user?.sub);
   }
 
   @Get(":id")

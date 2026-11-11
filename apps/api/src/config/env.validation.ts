@@ -35,6 +35,8 @@ export const envSchema = z.object({
   // "undefined/". Validated as a URL so a malformed value fails at boot.
   STORAGE_PUBLIC_CDN_URL: z.string().url().optional(),
   RESEND_API_KEY: z.string().optional(),
+  // Turns on demo logins for every stakeholder (modules/demo). Unset = demo logins off.
+  DEMO_ACCOUNTS_PASSWORD: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),

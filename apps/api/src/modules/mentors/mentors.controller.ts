@@ -40,8 +40,8 @@ export class MentorsController {
   @Get()
   @UsePipes(new ZodValidationPipe(mentorSearchFiltersSchema))
   @ApiOperation({ summary: "Browse mentor profiles, filterable by expertise/industry/session type" })
-  async list(@Query() filters: MentorSearchFilters) {
-    const result = await this.mentorsService.list(filters);
+  async list(@CurrentUser() user: AuthenticatedUser | null, @Query() filters: MentorSearchFilters) {
+    const result = await this.mentorsService.list(filters, user?.sub);
     const reputationById = await this.mentorReputationService.calculateMany(result.items.map((mentor) => mentor.ownerId));
     const items = result.items.map((mentor) => ({ ...mentor, reputation: reputationById.get(mentor.ownerId) ?? null }));
     return { ...result, items };

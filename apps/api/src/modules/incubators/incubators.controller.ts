@@ -2,8 +2,10 @@ import { Controller, Get, Param, Query, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { incubatorSearchFiltersSchema, type IncubatorSearchFilters } from "@vittamhub/types";
 
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
+import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { IncubatorsService } from "./incubators.service";
 
@@ -16,8 +18,8 @@ export class IncubatorsController {
   @Get()
   @UsePipes(new ZodValidationPipe(incubatorSearchFiltersSchema))
   @ApiOperation({ summary: "Browse incubator profiles and their programs, filterable by industry" })
-  list(@Query() filters: IncubatorSearchFilters) {
-    return this.incubatorsService.list(filters);
+  list(@CurrentUser() user: AuthenticatedUser | null, @Query() filters: IncubatorSearchFilters) {
+    return this.incubatorsService.list(filters, user?.sub);
   }
 
   @Get(":id")

@@ -15,10 +15,10 @@ export class AdminService {
   async getVerificationOverview() {
     const [startupCounts, investorCounts, mentorCounts, incubatorCounts, pendingStartups, pendingInvestors, pendingMentors, pendingIncubators] =
       await Promise.all([
-        this.prisma.startup.groupBy({ by: ["verificationStatus"], _count: true }),
-        this.prisma.investor.groupBy({ by: ["verificationStatus"], _count: true }),
-        this.prisma.mentorProfile.groupBy({ by: ["verificationStatus"], _count: true }),
-        this.prisma.incubatorProfile.groupBy({ by: ["verificationStatus"], _count: true }),
+        this.prisma.startup.groupBy({ by: ["verificationStatus"], where: { owner: { isDemo: false } }, _count: true }),
+        this.prisma.investor.groupBy({ by: ["verificationStatus"], where: { owner: { isDemo: false } }, _count: true }),
+        this.prisma.mentorProfile.groupBy({ by: ["verificationStatus"], where: { owner: { isDemo: false } }, _count: true }),
+        this.prisma.incubatorProfile.groupBy({ by: ["verificationStatus"], where: { owner: { isDemo: false } }, _count: true }),
         this.prisma.startup.findMany({ where: { verificationStatus: "PENDING" }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, createdAt: true } }),
         this.prisma.investor.findMany({ where: { verificationStatus: "PENDING" }, orderBy: { createdAt: "asc" }, select: { id: true, firmName: true, createdAt: true } }),
         this.prisma.mentorProfile.findMany({ where: { verificationStatus: "PENDING" }, orderBy: { createdAt: "asc" }, select: { id: true, headline: true, createdAt: true } }),

@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import type { CreateInvestorInput, InvestorSearchFilters } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
+import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 @Injectable()
@@ -56,8 +57,10 @@ export class InvestorsService {
       }
     }
 
+    const viewerIsDemo = await isDemoViewer(this.prisma, callerId);
     const where: Prisma.InvestorWhereInput = {
       isPublic: true,
+      AND: [sameSandbox(viewerIsDemo)], // demo and real accounts never see each other
       ...(industry?.length ? { preferredIndustries: { hasSome: industry } } : {}),
       ...(filters.country?.length ? { preferredGeography: { hasSome: filters.country } } : {}),
       ...(stage?.length ? { preferredStages: { hasSome: stage } } : {}),

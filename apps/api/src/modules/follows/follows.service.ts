@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
+import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Generic user-to-user follow — separate from StartupFollow (investor→startup watchlist). */
@@ -15,7 +16,8 @@ export class FollowsService {
     if (followerId === followingId) throw new BadRequestException("You cannot follow yourself");
 
     const following = await this.prisma.user.findUnique({ where: { id: followingId } });
-    if (!following) throw new NotFoundException("User not found");
+    // Demo and real accounts never interact (common/demo/demo-scope.ts).
+    if (!following || !(await inSameSandbox(this.prisma, followerId, followingId))) throw new NotFoundException("User not found");
 
     const follower = await this.prisma.user.findUnique({ where: { id: followerId } });
 

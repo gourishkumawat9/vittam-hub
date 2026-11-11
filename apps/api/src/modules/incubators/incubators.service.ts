@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import type { IncubatorSearchFilters } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
+import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /**
@@ -14,9 +15,12 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 export class IncubatorsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(filters: IncubatorSearchFilters) {
+  /** `callerId` keeps demo and real accounts apart — see common/demo/demo-scope.ts. */
+  async list(filters: IncubatorSearchFilters, callerId?: string | null) {
+    const viewerIsDemo = await isDemoViewer(this.prisma, callerId);
     const where: Prisma.IncubatorProfileWhereInput = {
       isPublic: true,
+      AND: [sameSandbox(viewerIsDemo)],
       verificationStatus: "VERIFIED",
       ...(filters.industries?.length ? { industries: { hasSome: filters.industries } } : {}),
       ...(filters.kind?.length ? { kind: { in: filters.kind } } : {}),
