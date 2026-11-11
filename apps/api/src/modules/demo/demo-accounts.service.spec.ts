@@ -36,11 +36,10 @@ function setup(password?: string) {
 }
 
 describe("DemoAccountsService", () => {
-  it("offers one clearly labelled demo login per stakeholder, and no admin", () => {
+  it("offers one clearly labelled demo login per live stakeholder, and no admin", () => {
     const roles = DEMO_ACCOUNTS.map((a) => a.role);
-    expect(new Set(roles)).toEqual(
-      new Set(["FOUNDER", "INVESTOR", "MENTOR", "INCUBATOR", "UNIVERSITY", "SERVICE_PROVIDER", "JOB_SEEKER"]),
-    );
+    // Service providers and job seekers are paused until after the growth stage (CLAUDE.md "Current scope").
+    expect(new Set(roles)).toEqual(new Set(["FOUNDER", "INVESTOR", "MENTOR", "INCUBATOR", "UNIVERSITY"]));
     expect(roles).not.toContain("ADMIN");
     for (const account of DEMO_ACCOUNTS) {
       expect(account.email.endsWith(`@${DEMO_EMAIL_DOMAIN}`)).toBe(true);
@@ -79,8 +78,19 @@ describe("DemoAccountsService", () => {
       }
     }
     expect(tx.startup.upsert).toHaveBeenCalledTimes(2);
+    expect(tx.serviceProviderProfile.upsert).not.toHaveBeenCalled();
+    expect(tx.jobSeekerProfile.upsert).not.toHaveBeenCalled();
     expect(tx.investor.upsert).toHaveBeenCalledTimes(1);
     expect(tx.incubatorProgram.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches off a demo login that was dropped from the list", async () => {
+    const { service, prisma } = setup();
+    await service.sync(PASSWORD);
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({
+      where: { isDemo: true, email: { notIn: DEMO_ACCOUNTS.map((a) => a.email) }, passwordHash: { not: null } },
+      data: { passwordHash: null },
+    });
   });
 
   it("never stops the API from booting when the database call fails", async () => {

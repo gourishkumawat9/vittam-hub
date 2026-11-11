@@ -8,7 +8,6 @@ export const ROLE_HOME: Record<string, string> = {
   INVESTOR: "/investor",
   ADMIN: "/admin",
   MENTOR: "/mentors/bookings",
-  JOB_SEEKER: "/jobs",
 };
 
 export function roleHome(role: string): string {

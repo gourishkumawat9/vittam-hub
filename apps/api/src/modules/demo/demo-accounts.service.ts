@@ -27,7 +27,8 @@ const now = () => new Date();
  * demo accounts only see each other and real users never see them.
  *
  * Deliberately no demo ADMIN: an admin login guarded by a shared password
- * would be a real hole, demo sandbox or not.
+ * would be a real hole, demo sandbox or not. No service-provider or job-seeker
+ * login either while those roles are paused (CLAUDE.md "Current scope").
  */
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
@@ -166,33 +167,6 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
       return tx.universityProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
     },
   },
-  {
-    email: `services@${DEMO_EMAIL_DOMAIN}`,
-    fullName: "Demo Service Provider",
-    role: UserRole.SERVICE_PROVIDER,
-    profile: (tx, ownerId) => {
-      const data = {
-        companyName: "Demo Legal and CA Services",
-        categories: ["LEGAL" as const, "CA" as const],
-        description: "Demo service provider profile for trying VittamHub.",
-        verificationStatus: "VERIFIED" as const,
-      };
-      return tx.serviceProviderProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
-    },
-  },
-  {
-    email: `talent@${DEMO_EMAIL_DOMAIN}`,
-    fullName: "Demo Job Seeker",
-    role: UserRole.JOB_SEEKER,
-    profile: (tx, ownerId) => {
-      const data = {
-        headline: "Demo job seeker · Product design",
-        skills: ["Figma", "User research"],
-        preferredRoles: ["Product designer"],
-      };
-      return tx.jobSeekerProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
-    },
-  },
 ];
 
 /**
@@ -261,6 +235,12 @@ export class DemoAccountsService implements OnApplicationBootstrap {
         await account.profile?.(tx, user.id);
       });
     }
+    // A login dropped from DEMO_ACCOUNTS (or a renamed one) stops working instead of lingering with the shared password.
+    const { count: retired } = await this.prisma.user.updateMany({
+      where: { isDemo: true, email: { notIn: DEMO_ACCOUNTS.map((a) => a.email) }, passwordHash: { not: null } },
+      data: { passwordHash: null },
+    });
+    if (retired > 0) this.logger.log(`Switched off ${retired} demo logins no longer in DEMO_ACCOUNTS`);
     this.logger.log(`Demo accounts ready: ${DEMO_ACCOUNTS.map((a) => a.email).join(", ")}`);
     return "enabled";
   }

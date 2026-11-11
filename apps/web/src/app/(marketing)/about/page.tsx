@@ -18,7 +18,7 @@ const PRINCIPLES = [
   {
     icon: Blocks,
     title: "Every entity gets verified",
-    description: "Startups, investors, mentors, incubators, universities, and service providers all go through the same verification model. Protecting founders from fake investors matters as much as verifying startups.",
+    description: "Startups, investors, mentors, incubators, and universities all go through the same verification model. Protecting founders from fake investors matters as much as verifying startups.",
   },
   {
     icon: Compass,
@@ -63,7 +63,7 @@ export default function AboutPage() {
       <div className="mt-16 flex flex-col items-center gap-4 rounded-card border border-border bg-background-secondary px-8 py-12 text-center">
         <h2 className="font-heading text-2xl font-semibold text-text-primary">See how the ecosystem connects</h2>
         <p className="max-w-lg text-sm text-text-secondary">
-          Founders, investors, mentors, incubators, universities, and service providers, all in one hub.
+          Founders, investors, mentors, incubators, and universities, all in one hub.
         </p>
         <Link href="/#ecosystem" className="text-sm font-medium text-brand-primary hover:underline">
           View the ecosystem diagram →

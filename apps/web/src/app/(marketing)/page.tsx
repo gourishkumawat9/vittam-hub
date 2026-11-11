@@ -23,15 +23,6 @@ const FeaturedInvestors = dynamic(() => import("@/components/marketing/FeaturedI
 const CommunitySection = dynamic(() => import("@/components/marketing/CommunitySection").then((m) => m.CommunitySection), {
   loading: () => <SectionSkeleton />,
 });
-const LearningHub = dynamic(() => import("@/components/marketing/LearningHub").then((m) => m.LearningHub), {
-  loading: () => <SectionSkeleton />,
-});
-const TeamBuilder = dynamic(() => import("@/components/marketing/TeamBuilder").then((m) => m.TeamBuilder), {
-  loading: () => <SectionSkeleton />,
-});
-const OfficeMarketplace = dynamic(() => import("@/components/marketing/OfficeMarketplace").then((m) => m.OfficeMarketplace), {
-  loading: () => <SectionSkeleton />,
-});
 export const metadata: Metadata = {
   title: "Visibility for Tomorrow's Unicorns",
   description:
@@ -50,9 +41,6 @@ export default function HomePage() {
       <DiscoverStartups />
       <FeaturedInvestors />
       <CommunitySection />
-      <LearningHub />
-      <TeamBuilder />
-      <OfficeMarketplace />
       <CtaSection />
     </>
   );

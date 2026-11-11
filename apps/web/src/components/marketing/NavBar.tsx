@@ -31,7 +31,6 @@ const INVESTOR_ITEMS: NavDropdownItem[] = [
 
 const SIMPLE_LINKS = [
   { href: "#community", label: "Community" },
-  { href: "#learning", label: "Learning Hub" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
 ];

@@ -3,16 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LookingForType, preferencesStepSchema, type PreferencesStepInput } from "@vittamhub/types";
 import {
-  Banknote,
-  Briefcase,
   Building,
   Building2,
   Handshake,
-  Landmark,
-  MapPin,
-  UserSearch,
   Users,
-  Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -27,13 +21,6 @@ const OPTIONS: { value: LookingForType; label: string; icon: LucideIcon }[] = [
   { value: LookingForType.MENTORS, label: "Mentors", icon: Users },
   { value: LookingForType.INCUBATORS, label: "Incubators", icon: Building },
   { value: LookingForType.ACCELERATORS, label: "Accelerators", icon: Building2 },
-  { value: LookingForType.SERVICE_PROVIDERS, label: "Service providers", icon: Wrench },
-  { value: LookingForType.OFFICE_SPACE, label: "Office space", icon: MapPin },
-  { value: LookingForType.COFOUNDER, label: "Co-founder", icon: UserSearch },
-  { value: LookingForType.EMPLOYEES, label: "Employees", icon: Briefcase },
-  { value: LookingForType.GRANTS, label: "Grants", icon: Banknote },
-  { value: LookingForType.GOVERNMENT_SCHEMES, label: "Government schemes", icon: Landmark },
-  { value: LookingForType.CORPORATE_PARTNERSHIPS, label: "Corporate partnerships", icon: Handshake },
 ];
 
 interface StepProps {

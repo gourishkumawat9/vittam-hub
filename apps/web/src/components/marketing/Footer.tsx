@@ -15,7 +15,6 @@ const FOOTER_LINKS = {
   Community: [
     { label: "Discover startups", href: "#discover-startups" },
     { label: "Featured investors", href: "#investors" },
-    { label: "Learning Hub", href: "#learning" },
     { label: "Events", href: "#community" },
   ],
   Support: [

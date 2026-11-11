@@ -54,6 +54,16 @@ The product should read as trustworthy, transparent, innovative, professional, a
 
 VittamHub is the digital identity and discovery platform for startups — investors, mentors, incubators, universities, service providers, talent, and grants in one ecosystem, taking founders from Idea to Unicorn. Every feature decision should weigh trust, transparency, automation, scalability, security, performance, and premium UX.
 
+## 11. Current scope (November 2026)
+
+Until after the growth stage, the live platform covers six areas only: **founders, investors, mentors, incubators (and accelerators), universities, and community**. Everything else is paused, not abandoned:
+
+- **Service providers and job seekers / jobs / founder hiring**: sign-up for both roles is closed (`REGISTERABLE_ROLES`), their pages are removed from the website, and `HiringModule` / `ServiceProvidersModule` are unregistered in `app.module.ts`. Their code and database tables stay, so bringing one back is re-registering its module and restoring its pages from git history.
+- **Learning Hub**: removed. It will be rebuilt from the owner's own notes as a learning hub for entrepreneurs; don't restore the old placeholder tracks.
+- **"Coming soon" modules list** (Startup Passport as a module, AI tools, marketplaces, grants, government schemes, office space and the rest of `FUTURE_MODULES`): removed from the dashboard. `FUTURE_MODULES` stays in `packages/types` as the roadmap.
+
+Don't add new features outside the six areas without the owner asking.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

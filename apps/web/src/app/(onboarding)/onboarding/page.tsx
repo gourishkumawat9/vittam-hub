@@ -13,8 +13,6 @@ const ROLE_ONBOARDING_PATH: Record<string, string> = {
   [UserRole.MENTOR]: "/onboarding/mentor",
   [UserRole.INCUBATOR]: "/onboarding/incubator",
   [UserRole.UNIVERSITY]: "/onboarding/university",
-  [UserRole.SERVICE_PROVIDER]: "/onboarding/service-provider",
-  [UserRole.JOB_SEEKER]: "/onboarding/job-seeker",
 };
 
 /** Entry point after login/register — routes to the wizard matching the user's role. */
