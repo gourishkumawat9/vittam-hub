@@ -89,7 +89,7 @@ export default function PricingPage() {
 
       <section className="border-t border-border bg-background-secondary">
         <div className="mx-auto grid max-w-content gap-10 px-6 py-20 lg:grid-cols-[1fr_1.4fr] lg:gap-16 lg:py-24">
-          <SectionHeading eyebrow="Questions" title="Common questions" />
+          <SectionHeading align="left" eyebrow="Questions" title="Common questions" />
           <Accordion className="bg-surface" items={FAQ.map(({ value, question, answer }) => ({ value, question, answer }))} />
         </div>
       </section>

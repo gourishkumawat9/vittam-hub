@@ -10,19 +10,20 @@ export interface CardProps extends HTMLMotionProps<"div"> {
 }
 
 /**
- * Base surface: a hairline border and almost no shadow, so pages read as
- * clean paper. `interactive` adds a border and shadow change on hover for
- * clickable startup/investor cards; omit it for static containers (forms,
- * stat panels).
+ * Base surface. `interactive` adds the spec's "cards lift slightly" hover
+ * behavior — use it for clickable startup/investor cards, omit it for
+ * static content containers (forms, stat panels).
  */
 export const Card = forwardRef<HTMLDivElement, CardProps>(({ className, interactive = false, ...props }, ref) => (
   <motion.div
     ref={ref}
     className={cn(
-      "rounded-card border border-border bg-surface p-6 shadow-xs transition-[border-color,box-shadow] duration-150",
-      interactive && "cursor-pointer hover:border-brand-primary/40 hover:shadow-md",
+      "rounded-card border border-border bg-surface p-6 shadow-sm transition-shadow duration-150",
+      interactive && "cursor-pointer hover:shadow-lg",
       className,
     )}
+    whileHover={interactive ? { y: -4 } : undefined}
+    transition={{ duration: 0.16 }}
     {...props}
   />
 ));

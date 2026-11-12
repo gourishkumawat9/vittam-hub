@@ -6,6 +6,7 @@ import { JoinBand } from "@/components/marketing/JoinBand";
 import { PageHero } from "@/components/marketing/PageHero";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { WhyVittamHub } from "@/components/marketing/WhyVittamHub";
+import { PRODUCT_SHOTS } from "@/data/product-shots";
 
 export const metadata: Metadata = {
   title: "About",
@@ -50,6 +51,7 @@ export default function AboutPage() {
         eyebrow="About VittamHub"
         title="Every startup deserves a verified digital identity."
         intro="VittamHub helps founders build trust, gain visibility, and connect with investors, mentors, incubators and universities through one integrated ecosystem. We believe investors should discover startups through transparency, not cold outreach."
+        image={PRODUCT_SHOTS.startupProfile}
       />
 
       <section className="bg-background">

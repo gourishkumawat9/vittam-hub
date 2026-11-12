@@ -31,13 +31,12 @@ export const breakpoints = {
   "2xl": "1440px", // desktop max content width
 } as const;
 
-/** Tighter, more institutional corners than the first design: sharp enough to read "finance", soft enough to stay friendly. */
 export const radius = {
   none: "0px",
-  sm: "6px",
-  input: "8px",
-  button: "8px",
-  card: "12px",
-  modal: "16px",
+  sm: "8px",
+  input: "12px",
+  button: "12px",
+  card: "16px",
+  modal: "20px",
   full: "9999px",
 } as const;

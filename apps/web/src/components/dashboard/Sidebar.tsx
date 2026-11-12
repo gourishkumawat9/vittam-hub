@@ -106,12 +106,11 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "relative flex items-center gap-2.5 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
-              // The active page gets a blue bar on its left edge, as the website's nav underlines it. Only theme
-              // variables here, so the same item reads right on the navy sidebar and in the white mobile drawer.
+              "relative flex items-center gap-2.5 rounded-button px-3 py-2 text-sm font-medium transition-colors",
+              // The active page gets a blue bar on its left edge as well as the tinted pill.
               "before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-brand-primary before:opacity-0",
               isActive
-                ? "bg-brand-primary/10 font-semibold text-brand-primary before:opacity-100"
+                ? "bg-brand-100 font-semibold text-brand-700 before:opacity-100 dark:bg-brand-primary/15 dark:text-brand-primary"
                 : "text-text-secondary hover:bg-text-primary/5 hover:text-text-primary",
             )}
           >

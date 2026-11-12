@@ -13,10 +13,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Fixed steps, not the theme variable: white text needs 600 (6.4:1) in light and 500 (4.9:1) in dark.
-        primary: "bg-brand-600 text-white hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-600",
+        primary: "bg-brand-primary text-white hover:bg-brand-700 shadow-sm",
         secondary: "bg-surface text-text-primary border border-border hover:bg-background-secondary",
-        outline: "border border-brand-primary text-brand-primary hover:bg-brand-primary/10",
+        outline: "border border-brand-primary text-brand-primary hover:bg-brand-50",
         ghost: "text-text-primary hover:bg-background-secondary",
         danger: "bg-danger-600 text-white hover:bg-danger-700",
         link: "text-brand-primary underline-offset-4 hover:underline p-0 h-auto",
@@ -41,13 +40,13 @@ export interface ButtonProps extends HTMLMotionProps<"button">, VariantProps<typ
 }
 
 /**
- * Base interactive primitive. Buttons respond with colour, not movement: the
- * trust-blue redesign dropped the hover/tap scale for a steadier, more
- * institutional feel. It stays a `motion.button` so callers can still pass
- * motion props.
+ * Base interactive primitive. Hover/tap scale comes from Framer Motion per
+ * the animation spec ("Buttons slightly scale") rather than CSS transforms,
+ * so it composes cleanly with reduced-motion handling app-wide.
  *
  * `asChild` renders a plain Radix `Slot` (e.g. to style a Next.js `<Link>` as
- * a button), since the child element owns its own root DOM node.
+ * a button) — it intentionally skips the motion wrapper and hover/tap scale,
+ * since the child element owns its own root DOM node and event handlers.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, isLoading = false, disabled, children, ...props }, ref) => {
@@ -67,6 +66,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={classes}
         disabled={disabled || isLoading}
         aria-busy={isLoading}
+        whileHover={{ scale: disabled || isLoading ? 1 : 1.02 }}
+        whileTap={{ scale: disabled || isLoading ? 1 : 0.98 }}
+        transition={{ duration: 0.1 }}
         {...props}
       >
         {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}

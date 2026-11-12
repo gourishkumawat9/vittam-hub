@@ -50,7 +50,7 @@ export function Topbar() {
         >
           <Menu className="h-5 w-5" />
         </button>
-        {/* On wide screens the logo sits at the top of the navy sidebar instead. */}
+        {/* On wide screens the logo sits at the top of the sidebar instead. */}
         <span className="lg:hidden">
           <Logo height={28} />
         </span>
