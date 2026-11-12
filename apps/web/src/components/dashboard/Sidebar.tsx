@@ -96,7 +96,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const primaryNav = user ? (ROLE_NAV[user.role] ?? FALLBACK_NAV) : [];
 
   return (
-    <nav className="flex h-full flex-col gap-1 overflow-y-auto p-4" aria-label="Dashboard">
+    <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label="Dashboard">
       {primaryNav.map((item) => {
         const isActive = pathname === item.href.split("?")[0];
         return (
@@ -104,9 +104,15 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             key={item.href}
             href={item.href}
             onClick={onNavigate}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-button px-3 py-2 text-sm font-medium transition-colors",
-              isActive ? "bg-brand-100 text-brand-700" : "text-text-secondary hover:bg-background-secondary hover:text-text-primary",
+              "relative flex items-center gap-2.5 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
+              // The active page gets a blue bar on its left edge, as the website's nav underlines it. Only theme
+              // variables here, so the same item reads right on the navy sidebar and in the white mobile drawer.
+              "before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-brand-primary before:opacity-0",
+              isActive
+                ? "bg-brand-primary/10 font-semibold text-brand-primary before:opacity-100"
+                : "text-text-secondary hover:bg-text-primary/5 hover:text-text-primary",
             )}
           >
             <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />

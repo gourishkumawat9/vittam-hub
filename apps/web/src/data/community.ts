@@ -1,44 +1,40 @@
 export interface CommunityPost {
   id: string;
-  authorName: string;
-  authorRole: string;
+  author: string;
   initials: string;
+  kind: "Startup update" | "Poll" | "Event";
   content: string;
-  likes: number;
-  comments: number;
-  timeAgo: string;
+  pollOptions?: string[];
+  eventDetail?: string;
 }
 
-/** Illustrative placeholder posts for the community preview strip. */
+/**
+ * Made-up posts for the home page's community preview, one of each post type
+ * the feed supports. Every author is named "Example …" and there are no like
+ * or comment counts, so nothing reads as real activity (CLAUDE.md §2).
+ */
 export const COMMUNITY_POSTS: CommunityPost[] = [
   {
-    id: "1",
-    authorName: "Nimbus Health",
-    authorRole: "Startup update",
-    initials: "NH",
-    content: "Just crossed 10,000 patients screened through our rural diagnostics network. Huge thanks to our mentors.",
-    likes: 142,
-    comments: 18,
-    timeAgo: "2h ago",
+    id: "update",
+    author: "Example Startup",
+    initials: "ES",
+    kind: "Startup update",
+    content: "We shipped our MVP to our first pilot schools this month. Next milestone: our first paid plan.",
   },
   {
-    id: "2",
-    authorName: "VittamHub Team",
-    authorRole: "Announcement",
-    initials: "VH",
-    content: "Applications for the Q3 Incubator Spotlight cohort are now open. Verified startups get priority review.",
-    likes: 96,
-    comments: 11,
-    timeAgo: "5h ago",
+    id: "poll",
+    author: "Example Mentor",
+    initials: "EM",
+    kind: "Poll",
+    content: "Founders: what's been hardest about your first fundraise?",
+    pollOptions: ["Finding the right investors", "Valuation", "The pitch deck"],
   },
   {
-    id: "3",
-    authorName: "Ledgerly",
-    authorRole: "Startup update",
-    initials: "LG",
-    content: "We're hosting a live AMA on small-business bookkeeping automation this Thursday. Drop your questions below.",
-    likes: 64,
-    comments: 27,
-    timeAgo: "1d ago",
+    id: "event",
+    author: "Example Incubator",
+    initials: "EI",
+    kind: "Event",
+    content: "Online info session for our pre-incubation programme. Open to founders at the idea and MVP stages.",
+    eventDetail: "Online · RSVP from the feed",
   },
 ];

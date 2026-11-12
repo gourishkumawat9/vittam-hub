@@ -10,11 +10,11 @@
         --bg: #ffffff;
         --text: rgb(17 24 39);
         --muted: rgb(107 114 128);
-        --brand: rgb(95 137 200);
+        --brand: rgb(30 92 184);
         --track: rgb(229 231 235);
       }
       @media (prefers-color-scheme: dark) {
-        :root { --bg: rgb(2 6 23); --text: rgb(241 245 249); --muted: rgb(148 163 184); --brand: rgb(108 151 206); --track: rgb(31 41 55); }
+        :root { --bg: rgb(2 6 23); --text: rgb(241 245 249); --muted: rgb(148 163 184); --brand: rgb(46 111 209); --track: rgb(31 41 55); }
         .logo { background: #ffffff; border-radius: 12px; padding: 8px 12px; }
       }
       * { box-sizing: border-box; }
@@ -37,7 +37,7 @@
       p { margin: 0; max-width: 420px; color: var(--muted); line-height: 1.5; }
       .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--track); border-top-color: var(--brand); animation: spin 1s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      button { padding: 12px 28px; border: 0; border-radius: 10px; background: var(--brand); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+      button { padding: 12px 28px; border: 0; border-radius: 8px; background: var(--brand); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
     </style>
   </head>
   <body>

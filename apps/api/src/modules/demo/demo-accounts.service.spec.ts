@@ -16,6 +16,7 @@ function setup(password?: string) {
         Promise.resolve({ id: `user:${args.where.email}` }),
       ),
     },
+    userProfile: { upsert: upsert() },
     startup: { upsert: upsert() },
     investor: { upsert: upsert() },
     mentorProfile: { upsert: upsert() },
@@ -76,6 +77,12 @@ describe("DemoAccountsService", () => {
         expect(fields.passwordHash).not.toBe(PASSWORD);
         await expect(argon2.verify(fields.passwordHash as string, PASSWORD)).resolves.toBe(true);
       }
+    }
+    // Onboarding is marked done, so a demo login lands on its dashboard rather than the setup wizard.
+    expect(tx.userProfile.upsert).toHaveBeenCalledTimes(DEMO_ACCOUNTS.length);
+    for (const [args] of tx.userProfile.upsert.mock.calls as [{ update: { onboardingStatus: string }; create: { onboardingStatus: string } }][]) {
+      expect(args.update.onboardingStatus).toBe("COMPLETED");
+      expect(args.create.onboardingStatus).toBe("COMPLETED");
     }
     expect(tx.startup.upsert).toHaveBeenCalledTimes(2);
     expect(tx.serviceProviderProfile.upsert).not.toHaveBeenCalled();

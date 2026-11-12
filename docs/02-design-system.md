@@ -5,11 +5,11 @@ Single source of truth: [`packages/tokens/src`](../packages/tokens/src). Nothing
 ## Color ([`colors.ts`](../packages/tokens/src/colors.ts))
 
 Three scales, each with a job:
-- **`brand`** (50–950) — our one custom scale, anchored so `brand-400` is the spec's Secondary Blue (`#7EA7D8`) and `brand-600` is Primary Brand (`#5F89C8`). Every other step is a hand-tuned tint/shade around those two anchors.
+- **`brand`** (50–950) — our one custom scale, a deep "trust blue" (November 2026 redesign): `brand-600` `#1E5CB8` is the primary, `brand-950` `#0B1B38` is the navy used for hero bands, the footer, the auth panel and the dashboard sidebar, and `brand-300` sits next to the logo's own `#7DB2E3` for accents on navy. Dark blue because blue is the colour most tied to trust online and a dark-blue site was rated more trustworthy than a light-blue one (Broeder & Snijder, MID Journal 2(1), 2019, doi:10.2478/midj-2019-0001). White on 600 is 6.4:1, so it passes WCAG AA for normal text, which the old `#5F89C8` (3.6:1) didn't.
 - **`neutral`** (Tailwind `gray`) and **`slate`** (Tailwind `slate`) — used for text/borders and surfaces respectively. These aren't invented: `#F8FAFC`, `#0F172A`, `#020617`, `#E5E7EB`, `#111827`, `#6B7280` in the original brief are *exactly* Tailwind's default gray/slate palette, so we reuse Tailwind's scale rather than re-deriving one that happens to pass through the same six points.
 - **`success` / `warning` / `danger` / `info`** — same reasoning: the spec's hexes are Tailwind's green-600, amber-500, red-600, and blue-500. Reusing the real scale means we get 50/100 tints for badge/alert backgrounds for free, correctly calibrated.
 
-Components never reference `brand.600` or `neutral.900` directly — they use the **semantic layer** (`semanticColors.light` / `.dark`, exposed as CSS variables in `globals.css` and as Tailwind classes like `bg-brand-primary`, `text-text-secondary`). A rebrand or a contrast fix touches `colors.ts` once; no component changes.
+Components never reference `brand.600` or `neutral.900` directly — they use the **semantic layer** (`semanticColors.light` / `.dark`, exposed as CSS variables in `globals.css` and as Tailwind classes like `bg-brand-primary`, `text-text-secondary`). A rebrand or a contrast fix touches `colors.ts` once; no component changes. Two deliberate exceptions: solid buttons use `bg-brand-600` / `dark:bg-brand-500` so white text always passes contrast, and navy bands use the `theme-navy` class (`globals.css`), which flips the semantic variables to light-on-navy so any component placed inside one just works.
 
 ## Typography ([`typography.ts`](../packages/tokens/src/typography.ts))
 
@@ -26,7 +26,7 @@ Four families, four jobs — never mixed:
 
 ## Spacing, radius, breakpoints ([`spacing.ts`](../packages/tokens/src/spacing.ts))
 
-Strict 8-point grid (4/8/12/16/24/32/40/48/64/80/96/120), matching the brief exactly — no ad hoc 10px or 18px gaps. Radius is role-based, not size-based: `radius.card` (16px), `radius.button`/`radius.input` (12px), `radius.modal` (20px) — so "make this button's corners match the input next to it" is automatic, not a coincidence of picking the same number twice. Breakpoints (`sm`–`2xl`) top out at `1440px`, the spec's max content width, enforced via `max-w-content` in Tailwind.
+Strict 8-point grid (4/8/12/16/24/32/40/48/64/80/96/120), matching the brief exactly — no ad hoc 10px or 18px gaps. Radius is role-based, not size-based: `radius.card` (12px), `radius.button`/`radius.input` (8px), `radius.modal` (16px), tightened in the November 2026 redesign for a more institutional look — so "make this button's corners match the input next to it" is automatic, not a coincidence of picking the same number twice. Breakpoints (`sm`–`2xl`) top out at `1440px`, the spec's max content width, enforced via `max-w-content` in Tailwind.
 
 ## Shadow ([`shadows.ts`](../packages/tokens/src/shadows.ts))
 

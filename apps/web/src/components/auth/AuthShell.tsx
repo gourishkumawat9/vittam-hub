@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -11,26 +12,54 @@ export interface AuthShellProps {
   cardClassName?: string;
 }
 
+const POINTS = [
+  "Free to join for founders, investors, mentors, incubators and universities",
+  "Verification is automated, with no manual review queue",
+  "Founders reach investors through connect requests, never cold messages",
+];
+
 /**
  * One shared layout for every auth route (login, register, forgot/verify/reset
- * password) — same logo placement, same ambient background, same spacing
- * rhythm, so the funnel reads as one continuous system instead of three.
+ * password): the form on white, and on wide screens a navy panel beside it
+ * with the logo and what VittamHub is, matching the website's navy bands.
+ * The role picker needs more room, so its panel only appears from 1280px.
  */
 export function AuthShell({ children, variant = "narrow", cardClassName }: AuthShellProps) {
+  const wide = variant === "wide";
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
-      <div
-        aria-hidden="true"
-        className="bg-grid-pattern pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black,transparent)]"
-      />
-      <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 -z-10 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-primary/10 blur-3xl" />
+    <div className={cn("grid min-h-screen", wide ? "xl:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]")}>
+      <aside className={cn("theme-navy relative hidden flex-col justify-between overflow-hidden p-12", wide ? "xl:flex" : "lg:flex")}>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_100%,rgb(46_111_209/0.35),transparent_70%)]"
+        />
+        <Link href="/" className="relative w-fit" aria-label="VittamHub home">
+          <Logo height={30} />
+        </Link>
+        <div className="relative flex flex-col gap-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-primary">Visibility for tomorrow&apos;s unicorns</p>
+          <p className="font-heading text-3xl font-bold leading-tight tracking-tight text-text-primary xl:text-4xl">
+            The digital identity for every startup.
+          </p>
+          <ul className="flex flex-col gap-3">
+            {POINTS.map((point) => (
+              <li key={point} className="flex items-start gap-3 text-sm leading-relaxed text-text-secondary">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="relative text-sm text-text-secondary">© {new Date().getFullYear()} VittamHub</p>
+      </aside>
 
-      <div className={cn("w-full", variant === "wide" ? "max-w-4xl" : "max-w-sm")}>
-        <Link href="/" className="mb-8 flex justify-center">
+      <div className="flex flex-col items-center justify-center px-4 py-12 sm:px-8">
+        <Link href="/" className={cn("mb-8", wide ? "xl:hidden" : "lg:hidden")} aria-label="VittamHub home">
           <Logo />
         </Link>
-
-        {variant === "wide" ? children : <div className={cn("rounded-card border border-border bg-surface p-8 shadow-lg", cardClassName)}>{children}</div>}
+        <div className={cn("w-full", wide ? "max-w-4xl" : "max-w-sm")}>
+          {wide ? children : <div className={cn("rounded-card border border-border bg-surface p-8 shadow-sm", cardClassName)}>{children}</div>}
+        </div>
       </div>
     </div>
   );

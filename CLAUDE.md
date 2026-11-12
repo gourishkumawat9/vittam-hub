@@ -50,6 +50,10 @@ Design every module so these can be added later without a rewrite: AI fraud dete
 
 The product should read as trustworthy, transparent, innovative, professional, automated, scalable, and premium — without sacrificing simplicity for complexity that doesn't earn its keep.
 
+## 9a. Visual direction (November 2026)
+
+The owner chose the BCG careers site (careers.bcg.com) as the layout reference, with BCG's green swapped for a dark trust blue. Keep new pages and dashboards in that language: navy bands (`brand-950`, the `theme-navy` class) for heroes and feature bands, trust blue (`brand-600` `#1E5CB8`) for actions and accents, white and light-grey sections, large left-aligned headings, flat cards with hairline borders, and colour (not movement) on hover. Tokens live in `packages/tokens`; see docs/02-design-system.md.
+
 ## 10. North star
 
 VittamHub is the digital identity and discovery platform for startups — investors, mentors, incubators, universities, service providers, talent, and grants in one ecosystem, taking founders from Idea to Unicorn. Every feature decision should weigh trust, transparency, automation, scalability, security, performance, and premium UX.
