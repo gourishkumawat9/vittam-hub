@@ -15,8 +15,8 @@
     --color-border: 229 231 235;
     --color-text-primary: 17 24 39;
     --color-text-secondary: 107 114 128;
-    --color-brand-primary: 95 137 200;
-    --color-brand-secondary: 126 167 216;
+    --color-brand-primary: 30 92 184;
+    --color-brand-secondary: 94 141 212;
 
     --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
     --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
@@ -29,8 +29,8 @@
     --color-border: 31 41 55;
     --color-text-primary: 241 245 249;
     --color-text-secondary: 148 163 184;
-    --color-brand-primary: 108 151 206;
-    --color-brand-secondary: 126 167 216;
+    --color-brand-primary: 69 131 222;
+    --color-brand-secondary: 94 141 212;
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.32), 0 1px 2px rgba(0, 0, 0, 0.24);
     --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.44), 0 4px 8px rgba(0, 0, 0, 0.28);
@@ -44,8 +44,8 @@
       --color-border: 31 41 55;
       --color-text-primary: 241 245 249;
       --color-text-secondary: 148 163 184;
-      --color-brand-primary: 108 151 206;
-      --color-brand-secondary: 126 167 216;
+      --color-brand-primary: 69 131 222;
+      --color-brand-secondary: 94 141 212;
     }
   }
 
@@ -84,40 +84,24 @@
 }
 
 @layer components {
-  /* Blurred sticky nav-on-scroll, applied via a `scrolled` data attribute toggled in NavBar */
-  .nav-blur {
-    @apply backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-200;
-  }
-
-  /* Subtle background grid for the hero — kept low-opacity per the "very subtle" spec. */
-  .bg-grid-pattern {
-    background-image:
-      linear-gradient(to right, rgb(var(--color-text-primary) / 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(var(--color-text-primary) / 0.05) 1px, transparent 1px);
-    background-size: 44px 44px;
-  }
-}
-
-@layer utilities {
-  @keyframes marquee {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(-50%);
-    }
-  }
-
-  .animate-marquee {
-    animation: marquee 32s linear infinite;
-  }
-
-  .animate-marquee-slow {
-    animation: marquee 60s linear infinite;
-  }
-
-  .pause-on-hover:hover .animate-marquee,
-  .pause-on-hover:hover .animate-marquee-slow {
-    animation-play-state: paused;
+  /*
+   * Navy bands: the home hero, feature bands, the footer and the auth panel.
+   * Inside one, the semantic colour variables flip to light-on-navy, so shared
+   * components work unchanged, and the hero film (which reads
+   * --color-background to pick its palette) switches to its dark palette.
+   * Navy is brand-950; text-secondary reads at 10:1 on it, brand-primary
+   * (the logo-adjacent brand-300) at 7.6:1.
+   */
+  .theme-navy {
+    --color-background: 11 27 56;
+    --color-background-secondary: 15 41 87;
+    --color-surface: 20 43 82;
+    --color-border: 45 70 112;
+    --color-text-primary: 255 255 255;
+    --color-text-secondary: 190 205 228;
+    --color-brand-primary: 139 175 228;
+    --color-brand-secondary: 139 175 228;
+    background-color: rgb(var(--color-background));
+    color: rgb(var(--color-text-primary));
   }
 }

@@ -50,7 +50,10 @@ export function Topbar() {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <Logo height={28} />
+        {/* On wide screens the logo sits at the top of the navy sidebar instead. */}
+        <span className="lg:hidden">
+          <Logo height={28} />
+        </span>
       </div>
 
       <Drawer open={navOpen} onOpenChange={setNavOpen} title="Menu">

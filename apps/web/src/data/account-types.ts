@@ -30,7 +30,7 @@ export const ACCOUNT_TYPES: AccountTypeOption[] = [
     icon: GraduationCap,
     title: "Mentor",
     description: "Share your expertise with the next generation of founders.",
-    benefits: ["Set your own availability", "Build a public mentor reputation", "Flexible session pricing"],
+    benefits: ["Choose the session types you offer", "Build a public mentor reputation", "Accept the requests that fit"],
   },
   {
     role: UserRole.INCUBATOR,

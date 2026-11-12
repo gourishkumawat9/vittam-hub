@@ -11,9 +11,10 @@ const RADIUS = 220;
 
 export function EcosystemDiagram() {
   return (
-    <section id="ecosystem" className="border-t border-border bg-background-secondary">
+    <section id="ecosystem" className="border-y border-border bg-background-secondary">
       <div className="mx-auto max-w-content px-6 py-24">
         <SectionHeading
+          align="center"
           eyebrow="The ecosystem"
           title="Every part of the startup world, connected"
           description="VittamHub is the hub that links founders to everyone they need to grow."

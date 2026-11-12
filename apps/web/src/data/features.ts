@@ -11,8 +11,8 @@ export interface PlatformFeature {
 export const PLATFORM_FEATURES: PlatformFeature[] = [
   { id: "passport", title: "Startup Passport", description: "One verified profile documenting your entire journey, no more scattered decks.", icon: Wallet },
   { id: "trust-score", title: "Trust Score", description: "A transparent, data-backed signal of credibility for investors and partners.", icon: Award },
-  { id: "verification", title: "Verification", description: "Automated identity and company checks so every profile you see is real.", icon: ShieldCheck },
-  { id: "discovery", title: "Investor Discovery", description: "Get matched to investors by stage, industry, and check size, not cold email.", icon: Compass },
+  { id: "verification", title: "Verification", description: "Automated identity and company checks, with every profile's verification status shown openly.", icon: ShieldCheck },
+  { id: "discovery", title: "Investor Discovery", description: "Find investors by stage, industry and cheque size, then reach them with a connect request, not a cold email.", icon: Compass },
   { id: "mentorship", title: "Mentorship", description: "Connect with mentors who've built and scaled in your exact space.", icon: Users },
   { id: "incubators", title: "Incubators", description: "Find incubation and acceleration programmes that take startups at your stage.", icon: Building2 },
   { id: "universities", title: "Universities", description: "Reach university startup cells and the student founders they support.", icon: GraduationCap },

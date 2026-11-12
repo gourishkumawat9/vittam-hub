@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 /** Pages that render fully without the API, so a slow API is no reason to cover them. */
 const STATIC_PATHS = new Set(["/", "/about", "/pricing", "/privacy", "/terms", "/unavailable"]);
+const isStaticPath = (pathname: string) => STATIC_PATHS.has(pathname) || pathname.startsWith("/for/");
 
 /**
  * Covers the page while the API is waking up (the free host sleeps after 15
@@ -25,7 +26,7 @@ export function ApiStatusOverlay() {
   const [status, setStatus] = useState<ApiStatus>(getApiStatus);
   // The screen last shown, kept on while it fades out.
   const [shown, setShown] = useState<ApiStatus | null>(null);
-  const covering = status !== "ok" && !STATIC_PATHS.has(pathname);
+  const covering = status !== "ok" && !isStaticPath(pathname);
 
   useEffect(() => subscribeApiStatus(setStatus), []);
   useEffect(() => {

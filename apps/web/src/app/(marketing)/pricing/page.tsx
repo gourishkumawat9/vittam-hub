@@ -3,7 +3,9 @@ import { Check } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PageHero } from "@/components/marketing/PageHero";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
+import { cta } from "@/components/marketing/cta";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -41,55 +43,56 @@ const FAQ = [
 ];
 
 /**
- * A real page: the Free plan is described honestly (no invented request
- * count, since the limit is admin-configurable at runtime per CLAUDE.md §5,
- * not a fixed number safe to print here) and everything beyond it is
- * clearly labeled not-yet-available rather than presented as a live tier.
+ * The Free plan is described honestly (no invented request count, since the
+ * limit is admin-configurable at runtime per CLAUDE.md §5, not a fixed number
+ * safe to print here) and everything beyond it is clearly labeled
+ * not-yet-available rather than presented as a live tier.
  */
 export default function PricingPage() {
   return (
-    <div className="mx-auto max-w-content px-6 py-24">
-      <SectionHeading eyebrow="Pricing" title="Start free. Pricing tiers are still being finalized." />
+    <>
+      <PageHero eyebrow="Pricing" title="Start free." intro="Pricing tiers are still being finalized. Everything that's live today is on the Free plan." />
 
-      <div className="mx-auto mt-16 grid max-w-3xl gap-6 sm:grid-cols-2">
-        <div className="flex flex-col gap-4 rounded-card border border-brand-primary bg-surface p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="font-heading text-lg font-semibold text-text-primary">Free</h2>
-            <Badge variant="brand">Available now</Badge>
+      <section className="bg-background">
+        <div className="mx-auto grid max-w-content gap-6 px-6 py-20 md:grid-cols-2 lg:max-w-4xl lg:py-24">
+          <div className="flex flex-col gap-5 rounded-card border-2 border-brand-primary bg-surface p-8">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-2xl font-bold text-text-primary">Free</h2>
+              <Badge variant="brand">Available now</Badge>
+            </div>
+            <p className="text-sm leading-relaxed text-text-secondary">Everything you need to build a verified presence and start connecting.</p>
+            <ul className="flex flex-col gap-3">
+              {FREE_FEATURES.map((feature) => (
+                <li key={feature} className="flex items-start gap-2.5 text-sm text-text-primary">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <Link href="/register" className={`${cta.primary} mt-auto`}>
+              Get started free
+            </Link>
           </div>
-          <p className="text-sm text-text-secondary">Everything you need to build a verified presence and start connecting.</p>
-          <ul className="flex flex-col gap-2.5">
-            {FREE_FEATURES.map((feature) => (
-              <li key={feature} className="flex items-start gap-2 text-sm text-text-secondary">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-success-600" aria-hidden="true" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/register"
-            className="mt-2 rounded-button bg-brand-primary px-5 py-2.5 text-center text-sm font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Get started free
-          </Link>
-        </div>
 
-        <div className="flex flex-col gap-4 rounded-card border border-dashed border-border bg-background-secondary p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-heading text-lg font-semibold text-text-primary">Pro</h2>
-            <Badge variant="neutral">Coming soon</Badge>
+          <div className="flex flex-col gap-5 rounded-card border border-dashed border-border bg-background-secondary p-8">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-2xl font-bold text-text-primary">Pro</h2>
+              <Badge variant="neutral">Coming soon</Badge>
+            </div>
+            <p className="text-sm leading-relaxed text-text-secondary">
+              Higher connect limits, unlimited discovery, advanced recommendations, and priority listing, for teams ready to move faster.
+            </p>
+            <span className="mt-auto text-sm font-medium text-text-secondary">Pricing not yet set</span>
           </div>
-          <p className="text-sm text-text-secondary">
-            Higher connect limits, unlimited discovery, advanced recommendations, and priority listing, for teams ready to move faster.
-          </p>
-          <span className="mt-auto text-sm font-medium text-text-secondary">Pricing not yet set</span>
         </div>
-      </div>
+      </section>
 
-      <div className="mx-auto mt-20 max-w-2xl">
-        <h2 className="mb-6 text-center font-heading text-xl font-semibold text-text-primary">Common questions</h2>
-        <Accordion items={FAQ.map(({ value, question, answer }) => ({ value, question, answer }))} />
-      </div>
-    </div>
+      <section className="border-t border-border bg-background-secondary">
+        <div className="mx-auto grid max-w-content gap-10 px-6 py-20 lg:grid-cols-[1fr_1.4fr] lg:gap-16 lg:py-24">
+          <SectionHeading eyebrow="Questions" title="Common questions" />
+          <Accordion className="bg-surface" items={FAQ.map(({ value, question, answer }) => ({ value, question, answer }))} />
+        </div>
+      </section>
+    </>
   );
 }
