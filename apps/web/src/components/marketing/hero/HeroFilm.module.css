@@ -47,14 +47,3 @@
 .root[data-scene="on"] .canvas {
   opacity: 1;
 }
-
-.appear {
-  animation: appear 0.4s ease-out both;
-}
-
-@keyframes appear {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-}
