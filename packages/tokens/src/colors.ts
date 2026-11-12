@@ -1,13 +1,10 @@
 /**
  * VittamHub color tokens.
- * `brand` is a deep "trust blue" scale (hue ~216°), 600 = primary, 950 = navy.
- * Why a dark blue: blue is the colour people most associate with trust online, and
- * in Broeder & Snijder's test the dark-blue version of a site was rated more
- * trustworthy than the light-blue one ("Colour in online advertising: going for
- * trust, which blue is a must?", MID Journal 2(1), 2019, doi:10.2478/midj-2019-0001).
- * It also clears WCAG AA: white on 600 is 6.4:1, 600 on white is 6.4:1, and 700
- * on 100 (badges, active nav) is 6.7:1. The official logo's lighter blue (#7DB2E3)
- * sits close to 300 and is used on navy (950), where it reads at 7.6:1.
+ * `brand` is our custom scale anchored on the spec hexes (400 = secondary, 600 = primary).
+ * It is the owner's chosen blue, the same calm mid-blue family as the Goldman Sachs logo
+ * (#6B96C3 / #7399C6 in public brand-colour references). A deeper "trust blue" was tried in
+ * November 2026 and rolled back at the owner's request: keep this scale. White on 600 is
+ * 3.6:1, which suits buttons and large text; prefer 700 for small text on white.
  * `neutral` / `slate` and the semantic scales reuse the exact Tailwind v3 palette values
  * that the brand hexes (#F8FAFC, #0F172A, #020617, #E5E7EB, #111827, #6B7280, and the
  * success/warning/danger/info hexes) already correspond to — so tokens here match Tailwind
@@ -15,17 +12,17 @@
  */
 
 export const brand = {
-  50: "#EFF4FB",
-  100: "#DEE8F7",
-  200: "#BCD1F0",
-  300: "#8BAFE4", // Logo-adjacent light blue — accents on navy
-  400: "#5E8DD4", // Secondary Blue
-  500: "#2E6FD1", // Primary on dark surfaces (buttons)
-  600: "#1E5CB8", // Primary Brand — trust, professionalism, confidence
-  700: "#174C9B", // Hover / pressed
-  800: "#143B7B",
-  900: "#0F2957",
-  950: "#0B1B38", // Navy — hero bands, footer, auth panel
+  50: "#F4F8FC",
+  100: "#E7F0F9",
+  200: "#CEE0F3",
+  300: "#A9C7E6",
+  400: "#7EA7D8", // Secondary Blue — innovation, future, technology
+  500: "#6C97CE",
+  600: "#5F89C8", // Primary Brand — trust, professionalism, confidence
+  700: "#4D71A8",
+  800: "#3D5A85",
+  900: "#2F4767",
+  950: "#1D2C40",
 } as const;
 
 /** Text / border scale (Tailwind `gray`). */
@@ -104,7 +101,7 @@ export const semanticColors = {
     textOnBrand: "#FFFFFF",
     brandPrimary: brand[600],
     brandSecondary: brand[400],
-    brandDark: brand[950],
+    brandDark: slate[900],
     success: success[600],
     successBg: success[50],
     warning: warning[500],
@@ -124,10 +121,9 @@ export const semanticColors = {
     textPrimary: "#F1F5F9",
     textSecondary: "#94A3B8",
     textOnBrand: "#FFFFFF",
-    // Text-first on dark: #4583DE reads at 4.7:1+ on every dark surface; buttons use brand[500] for white text.
-    brandPrimary: "#4583DE",
+    brandPrimary: brand[500],
     brandSecondary: brand[400],
-    brandDark: brand[950],
+    brandDark: slate[900],
     success: success[500],
     successBg: "rgba(34,197,94,0.12)",
     warning: warning[500],

@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { Check, FileText, Link2 } from "lucide-react";
 import Link from "next/link";
 
@@ -12,14 +15,14 @@ const POINTS = [
 /** A made-up request, labelled as one (CLAUDE.md §2), showing what an investor receives. */
 function ExampleRequest() {
   return (
-    <figure className="rounded-card border border-border bg-surface p-6 shadow-xl shadow-black/20 lg:p-8">
+    <figure className="rounded-card border border-border bg-surface p-6 shadow-xl lg:p-8">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Connect request</span>
         <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-text-secondary">Example</span>
       </div>
 
       <div className="mt-5 flex items-center gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 font-heading text-sm font-bold text-text-primary">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-100 font-heading text-sm font-bold text-brand-700">
           ES
         </span>
         <div>
@@ -54,7 +57,7 @@ function ExampleRequest() {
       </dl>
 
       <div className="mt-7 grid grid-cols-3 gap-2 border-t border-border pt-5 text-center text-xs font-semibold" aria-hidden="true">
-        <span className="rounded-button bg-brand-500 px-2 py-2.5 text-white">Accept</span>
+        <span className="rounded-button bg-brand-primary px-2 py-2.5 text-white">Accept</span>
         <span className="rounded-button border border-border px-2 py-2.5 text-text-primary">Ask for more</span>
         <span className="rounded-button border border-border px-2 py-2.5 text-text-primary">Decline</span>
       </div>
@@ -64,17 +67,18 @@ function ExampleRequest() {
 }
 
 /**
- * The Smart Connect Request system (docs/12-connect-requests.md) as a navy
- * split band, in the place of BCG's "near you" block. No request count is
- * printed: the Free allowance is set by admins at runtime (CLAUDE.md §5).
+ * The Smart Connect Request system (docs/12-connect-requests.md) as a light
+ * blue split band, with the example request sliding in beside it. No request
+ * count is printed: the Free allowance is set by admins at runtime
+ * (CLAUDE.md §5).
  */
 export function ConnectRequestsBand() {
   return (
-    <section id="connect-requests" className="theme-navy">
+    <section id="connect-requests" className="border-y border-border bg-brand-50 dark:bg-background-secondary">
       <div className="mx-auto grid max-w-content items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:gap-16 lg:py-24">
         <div className="flex flex-col items-start gap-6">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary">Smart connect requests</span>
-          <h2 className="font-heading text-3xl font-bold leading-tight tracking-tight text-text-primary sm:text-4xl lg:text-[2.75rem]/[1.12]">
+          <span className="text-xs font-semibold uppercase tracking-wider text-brand-primary">Smart connect requests</span>
+          <h2 className="font-heading text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
             No cold messages. Every introduction comes with context.
           </h2>
           <p className="text-lg leading-relaxed text-text-secondary">
@@ -91,16 +95,23 @@ export function ConnectRequestsBand() {
             ))}
           </ul>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <Link href="/register?role=founder" className={cta.onNavy}>
+            <Link href="/register?role=founder" className={cta.primary}>
               Start as a founder
             </Link>
-            <Link href="/pricing" className={cta.outlineOnDark}>
+            <Link href="/pricing" className={cta.outline}>
               See what&apos;s free
             </Link>
           </div>
         </div>
 
-        <ExampleRequest />
+        <motion.div
+          initial={{ opacity: 0, x: 32 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5 }}
+        >
+          <ExampleRequest />
+        </motion.div>
       </div>
     </section>
   );

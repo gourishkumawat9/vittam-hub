@@ -52,7 +52,9 @@ The product should read as trustworthy, transparent, innovative, professional, a
 
 ## 9a. Visual direction (November 2026)
 
-The owner chose the BCG careers site (careers.bcg.com) as the layout reference, with BCG's green swapped for a dark trust blue. Keep new pages and dashboards in that language: navy bands (`brand-950`, the `theme-navy` class) for heroes and feature bands, trust blue (`brand-600` `#1E5CB8`) for actions and accents, white and light-grey sections, large left-aligned headings, flat cards with hairline borders, and colour (not movement) on hover. Tokens live in `packages/tokens`; see docs/02-design-system.md.
+The owner's own blue is the brand colour: `brand-600` `#5F89C8` and its scale in `packages/tokens`, the same calm mid-blue family as the Goldman Sachs logo. A navy "trust blue" redesign was tried and rolled back at the owner's request, so don't bring it back. Keep pages light: white and light-grey sections, blue accents and blue gradient cards, and no near-black or navy bands anywhere, dashboards included (the owner asked for no black).
+
+The home page is the original one (hero film, audience cards, journey, features, how it works, ecosystem, example startups and investors, community, closing card) and keeps its motion: fade-ups on scroll, the hero film and parallax, the marquee and hover lifts. Use pictures where a section needs one: real VittamHub screens captured on the demo accounts (`ProductShot`, `data/product-shots.ts`), or photos the owner provides, and never present a photo of people as VittamHub members (§2). BCG careers (careers.bcg.com) stays a reference for layout ideas. See docs/02-design-system.md.
 
 ## 10. North star
 

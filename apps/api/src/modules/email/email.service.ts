@@ -75,7 +75,7 @@ export class EmailService {
 function emailShell(bodyHtml: string): string {
   return `
     <div style="font-family: -apple-system, Inter, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; color: #111827;">
-      <p style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #1E5CB8; margin: 0 0 24px;">VittamHub</p>
+      <p style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #5F89C8; margin: 0 0 24px;">VittamHub</p>
       ${bodyHtml}
       <p style="font-size: 12px; color: #6B7280; margin-top: 32px;">If you didn't request this, you can safely ignore this email.</p>
     </div>
@@ -94,7 +94,7 @@ function passwordResetEmailTemplate(resetUrl: string): string {
   return emailShell(`
     <h1 style="font-size: 20px; margin: 0 0 12px;">Reset your password</h1>
     <p style="font-size: 14px; color: #374151; margin: 0 0 20px;">Click the button below to choose a new password. This link expires in 30 minutes.</p>
-    <a href="${resetUrl}" style="display: inline-block; background: #1E5CB8; color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 8px;">Reset password</a>
+    <a href="${resetUrl}" style="display: inline-block; background: #5F89C8; color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 12px;">Reset password</a>
   `);
 }
 

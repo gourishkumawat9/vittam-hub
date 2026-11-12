@@ -3,6 +3,7 @@
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiClientError, authApi } from "@vittamhub/api-client";
 import { ToastProvider, useToast } from "@vittamhub/ui";
+import { MotionConfig } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -97,10 +98,13 @@ export function Providers({ children }: { children: ReactNode }) {
   // lets anyone opt into dark, and that choice persists.
   return (
     <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-      <ToastProvider>
-        <QueryProvider>{children}</QueryProvider>
-        <ApiStatusOverlay />
-      </ToastProvider>
+      {/* Every framer-motion animation follows the OS "reduce motion" setting, as the CSS ones already do. */}
+      <MotionConfig reducedMotion="user">
+        <ToastProvider>
+          <QueryProvider>{children}</QueryProvider>
+          <ApiStatusOverlay />
+        </ToastProvider>
+      </MotionConfig>
     </ThemeProvider>
   );
 }

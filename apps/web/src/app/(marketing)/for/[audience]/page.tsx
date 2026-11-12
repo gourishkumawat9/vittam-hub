@@ -11,6 +11,7 @@ import { PageHero } from "@/components/marketing/PageHero";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { cta } from "@/components/marketing/cta";
 import { AUDIENCES, findAudience } from "@/data/audiences";
+import { PRODUCT_SHOTS, type ProductShotKey } from "@/data/product-shots";
 
 type Params = { params: { audience: string } };
 
@@ -31,8 +32,9 @@ export function generateMetadata({ params }: Params): Metadata {
 }
 
 /**
- * One page per stakeholder, after BCG's audience pages: navy hero, what you
- * can do, how it works, questions, other paths, and a sign-up band. Content
+ * One page per stakeholder: a hero with a real screen of that role's
+ * dashboard (demo account), what you can do, how it works, questions, other
+ * paths, and a sign-up band. Content
  * lives in data/audiences.ts; founders and investors also get the connect
  * request band, since it's the loop between them.
  */
@@ -50,14 +52,14 @@ export default function AudiencePage({ params }: Params) {
         eyebrow={audience.eyebrow}
         title={audience.heroTitle}
         intro={audience.heroIntro}
-        icon={audience.icon}
+        image={PRODUCT_SHOTS[audience.id as ProductShotKey]}
         actions={
           <>
-            <Link href={registerHref} className={cta.onNavy}>
+            <Link href={registerHref} className={cta.primary}>
               {audience.ctaLabel}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <Link href="/login" className={cta.outlineOnDark}>
+            <Link href="/login" className={cta.outline}>
               Log in
             </Link>
           </>
@@ -94,7 +96,7 @@ export default function AudiencePage({ params }: Params) {
 
       <section className="bg-background">
         <div className="mx-auto grid max-w-content gap-10 px-6 py-20 lg:grid-cols-[1fr_1.4fr] lg:gap-16 lg:py-24">
-          <SectionHeading eyebrow="Questions" title={`What ${shortName} ask us`} />
+          <SectionHeading align="left" eyebrow="Questions" title={`What ${shortName} ask us`} />
           <Accordion
             className="bg-surface"
             items={audience.faq.map((item, index) => ({ value: `q${index}`, question: item.question, answer: item.answer }))}
@@ -110,7 +112,7 @@ export default function AudiencePage({ params }: Params) {
               <li key={other.id}>
                 <Link
                   href={`/for/${other.id}`}
-                  className="group flex h-full flex-col gap-3 rounded-card border border-border bg-surface p-6 transition-[border-color,box-shadow] duration-150 hover:border-brand-primary/50 hover:shadow-md"
+                  className="group flex h-full flex-col gap-3 rounded-card border border-border bg-surface p-6 shadow-sm transition-[box-shadow,transform] duration-200 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <other.icon className="h-6 w-6 text-brand-primary" aria-hidden="true" />
                   <span className="font-heading text-lg font-bold text-text-primary">{other.label}</span>

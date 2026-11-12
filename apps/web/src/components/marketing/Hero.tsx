@@ -1,46 +1,106 @@
-import { ArrowRight } from "lucide-react";
-import Link from "next/link";
+"use client";
 
-import { cta } from "./cta";
+import { motion, useTransform } from "framer-motion";
+import { ArrowRight, PlayCircle } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+
+import { useParallax } from "@/hooks/useParallax";
+
+import { DemoModal } from "./hero/DemoModal";
+import { GradientOrbs } from "./hero/GradientOrbs";
 import { HeroFilm } from "./hero/HeroFilm";
 
-/**
- * Navy hero, after the BCG careers page: a short tagline, one strong line,
- * one primary action. The brand film plays on the right; inside `theme-navy`
- * it picks its dark palette by itself.
- */
+const fadeUp = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+};
+
 export function Hero() {
+  const [demoOpen, setDemoOpen] = useState(false);
+  const { x, y } = useParallax();
+  const parallaxX = useTransform(x, (value) => value * 24);
+  const parallaxY = useTransform(y, (value) => value * 24);
+
   return (
-    <section className="theme-navy relative overflow-hidden">
+    <section className="relative overflow-hidden">
+      <GradientOrbs />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_65%_at_80%_20%,rgb(46_111_209/0.32),transparent_70%)]"
+        className="bg-grid-pattern pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black,transparent)]"
       />
-      <div className="relative mx-auto grid max-w-content items-center gap-10 px-6 pb-14 pt-14 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-24 lg:pt-20">
-        <div className="flex flex-col items-start gap-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-primary">Visibility for tomorrow&apos;s unicorns</p>
-          <h1 className="font-heading text-4xl font-bold leading-[1.06] tracking-tight text-text-primary sm:text-5xl xl:text-6xl">
+
+      <div className="mx-auto grid max-w-content items-center gap-16 px-6 pb-24 pt-16 lg:grid-cols-2 lg:pb-32 lg:pt-24">
+        {/* Left column — copy + CTAs */}
+        <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-left">
+          <motion.div
+            initial={fadeUp.initial}
+            animate={fadeUp.animate}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center gap-2 lg:items-start"
+          >
+            <p className="rounded-full border border-border bg-surface px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-primary shadow-xs">
+              Nurturing future startups
+            </p>
+            <p className="text-sm font-medium text-text-secondary">Visibility for tomorrow&apos;s unicorns</p>
+          </motion.div>
+
+          <motion.h1
+            initial={fadeUp.initial}
+            animate={fadeUp.animate}
+            transition={{ duration: 0.5, delay: 0.08 }}
+            className="max-w-xl font-heading text-4xl font-bold tracking-tight text-text-primary sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]"
+          >
             The digital identity for every startup.
-          </h1>
-          <p className="max-w-xl text-lg leading-relaxed text-text-secondary">
-            Build trust, show your journey, and connect with investors, mentors, incubators and universities in one place, from
-            your first idea to your unicorn moment.
-          </p>
-          <div className="mt-2 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <Link href="/register" className={cta.onNavy}>
-              Get started free
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </motion.h1>
+
+          <motion.p
+            initial={fadeUp.initial}
+            animate={fadeUp.animate}
+            transition={{ duration: 0.5, delay: 0.16 }}
+            className="max-w-lg text-lg text-text-secondary"
+          >
+            Build trust, showcase your journey, and connect with investors, mentors, and incubators on one verified
+            platform.
+          </motion.p>
+
+          <motion.div
+            initial={fadeUp.initial}
+            animate={fadeUp.animate}
+            transition={{ duration: 0.5, delay: 0.24 }}
+            className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start"
+          >
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center gap-2 rounded-button bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Get started
+              <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="#how-it-works" className={cta.outlineOnDark}>
-              See how it works
-            </Link>
-          </div>
+            <button
+              type="button"
+              onClick={() => setDemoOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-button border border-border bg-surface px-6 py-3.5 text-sm font-semibold text-text-primary transition-colors hover:bg-background-secondary"
+            >
+              <PlayCircle className="h-4 w-4" />
+              Watch demo
+            </button>
+          </motion.div>
         </div>
 
-        <div className="-mx-6 sm:mx-0">
+        {/* Right column — the brand story, played live; edge to edge on phones */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="relative -mx-6 sm:mx-auto sm:w-full sm:max-w-xl lg:max-w-none"
+          style={{ x: parallaxX, y: parallaxY }}
+        >
           <HeroFilm />
-        </div>
+        </motion.div>
       </div>
+
+      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
     </section>
   );
 }
