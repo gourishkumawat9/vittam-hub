@@ -30,9 +30,10 @@ a login dropped from the list stops working on the next start.
 3. After about two minutes, sign in at https://vittamhub.com/login with any
    email above and that password.
 
-On every start the API creates or refreshes the six accounts and resets
-their names and profiles, so anything a visitor changed is undone on the next
-deploy or wake-up.
+On every start the API creates or refreshes the six accounts, resets
+their names and profiles, and marks their setup as finished, so each login
+opens its dashboard rather than the setup wizard. Anything a visitor changed
+is undone on the next deploy or wake-up.
 
 - **Change the password:** edit the variable. The old one stops working on the
   next start.

@@ -232,6 +232,12 @@ export class DemoAccountsService implements OnApplicationBootstrap {
           update: fields,
           create: { email: account.email, ...fields },
         });
+        // Straight to the dashboard on login: /onboarding sends anyone whose wizard isn't COMPLETED back into it.
+        await tx.userProfile.upsert({
+          where: { userId: user.id },
+          update: { onboardingStatus: "COMPLETED" },
+          create: { userId: user.id, onboardingStatus: "COMPLETED" },
+        });
         await account.profile?.(tx, user.id);
       });
     }
