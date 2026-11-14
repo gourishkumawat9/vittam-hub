@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post, Query, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, UseGuards, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import {
   createRelationshipClaimInputSchema,
   relationshipClaimListFiltersSchema,
@@ -11,6 +12,7 @@ import {
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { ACCOUNT_THROTTLER, UserThrottlerGuard } from "../../common/guards/user-throttler.guard";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
@@ -30,6 +32,8 @@ export class RelationshipClaimsController {
 
   @Post()
   @Roles("FOUNDER", "INVESTOR", "INCUBATOR", "UNIVERSITY")
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ [ACCOUNT_THROTTLER]: { limit: 20, ttl: 60 * 60_000 } })
   @UsePipes(new ZodValidationPipe(createRelationshipClaimInputSchema))
   @ApiOperation({ summary: "Claim a relationship with another profile (e.g. 'we invested in this startup') — pending until the other side confirms" })
   create(@CurrentUser() user: AuthenticatedUser, @Body() input: CreateRelationshipClaimInput) {

@@ -4,7 +4,7 @@ import { Throttle } from "@nestjs/throttler";
 import { z } from "zod";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { UserThrottlerGuard } from "../../common/guards/user-throttler.guard";
+import { ACCOUNT_THROTTLER, UserThrottlerGuard } from "../../common/guards/user-throttler.guard";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import type { AuthenticatedUser } from "../../common/types/authenticated-user";
 
@@ -37,7 +37,7 @@ export class MediaController {
    */
   @Post("upload-url")
   @UseGuards(UserThrottlerGuard)
-  @Throttle({ default: { limit: 60, ttl: 60 * 60_000 } })
+  @Throttle({ [ACCOUNT_THROTTLER]: { limit: 60, ttl: 60 * 60_000 } })
   @UsePipes(new ZodValidationPipe(uploadUrlRequestSchema))
   @ApiOperation({ summary: "Get a short-lived pre-signed URL for direct-to-storage upload" })
   createUploadUrl(@CurrentUser() user: AuthenticatedUser, @Body() body: UploadUrlRequest) {

@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import type { Prisma } from "@prisma/client";
 import type {
@@ -10,10 +10,14 @@ import type {
 } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
+import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
 
 const RELATIONSHIP_CLAIM_VERIFICATION_TTL_DAYS = 730; // "verification always expires" (spec §2) — 2yr forces periodic reconfirmation
+
+/** How long after a "no" the same claim can't be sent again. */
+const REFILE_AFTER_DENIAL_MS = 30 * 24 * 60 * 60_000;
 
 /** Which entity type a user's role lets them file/receive claims as. Only roles with a claimable profile are eligible. */
 const ROLE_TO_CLAIMANT_TYPE: Partial<Record<UserRole, ClaimableEntityType>> = {
@@ -47,7 +51,7 @@ export class RelationshipClaimsService {
   private async resolveEntity(entityType: ClaimableEntityType, entityId: string): Promise<{ id: string; ownerId: string } | null> {
     switch (entityType) {
       case "Startup":
-        return this.prisma.startup.findUnique({ where: { id: entityId }, select: { id: true, ownerId: true } });
+        return this.prisma.startup.findFirst({ where: { id: entityId, deletedAt: null }, select: { id: true, ownerId: true } });
       case "Investor":
         return this.prisma.investor.findUnique({ where: { id: entityId }, select: { id: true, ownerId: true } });
       case "IncubatorProfile":
@@ -86,21 +90,50 @@ export class RelationshipClaimsService {
     }
 
     const target = await this.resolveEntity(input.targetType, input.targetId);
-    if (!target) throw new NotFoundException("Target profile not found");
+    // Demo and real accounts never interact (common/demo/demo-scope.ts): a claim notifies the other side.
+    if (!target || !(await inSameSandbox(this.prisma, callerId, target.ownerId))) {
+      throw new NotFoundException("Target profile not found");
+    }
     if (claimantType === input.targetType && claimant.id === target.id) {
       throw new BadRequestException("A profile can't claim a relationship with itself");
     }
+    if (target.ownerId === callerId) {
+      throw new BadRequestException("A profile can't claim a relationship with itself");
+    }
 
-    const claim = await this.prisma.relationshipClaim.create({
-      data: {
-        claimantType,
-        claimantId: claimant.id,
-        targetType: input.targetType,
-        targetId: target.id,
-        relationshipType: input.relationshipType,
-        note: input.note,
-        evidenceUrl: input.evidenceUrl || undefined,
-      },
+    const pair = {
+      claimantType,
+      claimantId: claimant.id,
+      targetType: input.targetType,
+      targetId: target.id,
+      relationshipType: input.relationshipType,
+    };
+
+    // The same claim can't be filed twice: each one notifies the other side,
+    // and a second confirmation would write the verification twice. After a
+    // "no", it can't be re-sent straight away either. The lock makes the
+    // check and the insert one step.
+    const claim = await this.prisma.$transaction(async (tx) => {
+      const lockKey = `relationship-claim:${claimant.id}:${target.id}:${input.relationshipType}`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+
+      const existing = await tx.relationshipClaim.findFirst({
+        where: {
+          ...pair,
+          OR: [
+            { status: { in: ["PENDING", "CONFIRMED"] } },
+            { status: "DENIED", respondedAt: { gte: new Date(Date.now() - REFILE_AFTER_DENIAL_MS) } },
+          ],
+        },
+        select: { status: true },
+      });
+      if (existing?.status === "PENDING") throw new ConflictException("You've already sent this claim. It's waiting for their reply.");
+      if (existing?.status === "CONFIRMED") throw new ConflictException("This relationship is already confirmed");
+      if (existing) throw new ConflictException("They declined this claim recently. You can send it again later.");
+
+      return tx.relationshipClaim.create({
+        data: { ...pair, note: input.note, evidenceUrl: input.evidenceUrl || undefined },
+      });
     });
 
     this.eventEmitter.emit("relationship-claim.created", {
@@ -121,18 +154,20 @@ export class RelationshipClaimsService {
   async respond(claimId: string, callerId: string, action: RespondToRelationshipClaimAction) {
     const claim = await this.prisma.relationshipClaim.findUnique({ where: { id: claimId } });
     if (!claim) throw new NotFoundException("Relationship claim not found");
-    if (claim.status !== "PENDING") throw new BadRequestException("This claim has already been responded to");
-
     const target = await this.resolveEntity(claim.targetType as ClaimableEntityType, claim.targetId);
     if (!target || target.ownerId !== callerId) {
       throw new ForbiddenException("Only the claimed-about party can confirm or deny this");
     }
 
     const status = RESPONSE_ACTION_TO_STATUS[action];
-    const updated = await this.prisma.relationshipClaim.update({
-      where: { id: claimId },
+    // Answered only if it is still pending at the moment of the write, so a
+    // double tap can't confirm twice and record the verification twice.
+    const answered = await this.prisma.relationshipClaim.updateMany({
+      where: { id: claimId, status: "PENDING" },
       data: { status, respondedAt: new Date(), respondedBy: callerId },
     });
+    if (answered.count === 0) throw new BadRequestException("This claim has already been responded to");
+    const updated = await this.prisma.relationshipClaim.findUniqueOrThrow({ where: { id: claimId } });
 
     if (status === "CONFIRMED") {
       await this.recordTwoSidedVerification(claim.claimantType, claim.claimantId, claim.targetType, claim.targetId, claim.relationshipType);

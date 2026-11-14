@@ -27,6 +27,9 @@ const RESPONSE_ACTION_TO_STATUS: Record<ConnectionResponseAction, "ACCEPTED" | "
   IGNORE: "IGNORED",
 };
 
+const CLOCK_SLACK_MS = 5 * 60_000;
+const MAX_UPCOMING_MEETINGS = 10;
+
 function startOfCurrentMonth(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -229,10 +232,21 @@ export class ConnectionsService {
       );
     }
 
+    const scheduledAt = new Date(input.scheduledAt);
+    // A few minutes of slack for a slow form and a device clock that runs fast.
+    if (scheduledAt.getTime() < Date.now() - CLOCK_SLACK_MS) {
+      throw new BadRequestException("Pick a time in the future");
+    }
+    // Each proposal notifies the other person, so there is a ceiling on how many can be outstanding.
+    const upcoming = await this.prisma.meeting.count({ where: { connectionId, scheduledAt: { gte: new Date() } } });
+    if (upcoming >= MAX_UPCOMING_MEETINGS) {
+      throw new BadRequestException("This connection already has several meetings coming up. Wait for one to pass before proposing another.");
+    }
+
     const meeting = await this.prisma.meeting.create({
       data: {
         connectionId,
-        scheduledAt: new Date(input.scheduledAt),
+        scheduledAt,
         notes: input.notes,
         videoCallUrl: input.videoCallUrl,
       },

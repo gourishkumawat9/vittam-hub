@@ -13,11 +13,35 @@ interface NotifyPayload {
   linkUrl?: string;
 }
 
+/** How long an unread notification stands in for identical ones that follow it. */
+const COLLAPSE_WINDOW_MS = 24 * 60 * 60_000;
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(payload: NotifyPayload) {
+  /**
+   * Saves a notification, unless the same one is already waiting unread.
+   *
+   * Most notifications are set off by another member: a follow, a comment, a
+   * message, a meeting proposal. Without this, repeating the action (follow,
+   * unfollow, follow again) filled the other person's bell with copies. One
+   * unread "Asha started following you" says everything ten of them would.
+   */
+  async create(payload: NotifyPayload) {
+    const waiting = await this.prisma.notification.findFirst({
+      where: {
+        userId: payload.userId,
+        type: payload.type,
+        title: payload.title,
+        body: payload.body,
+        linkUrl: payload.linkUrl ?? null,
+        readAt: null,
+        createdAt: { gte: new Date(Date.now() - COLLAPSE_WINDOW_MS) },
+      },
+      select: { id: true },
+    });
+    if (waiting) return waiting;
     return this.prisma.notification.create({ data: payload });
   }
 
