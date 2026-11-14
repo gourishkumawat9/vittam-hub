@@ -15,12 +15,14 @@ export interface PostStartupRef {
   logoUrl: string | null;
 }
 
+/** A poll option with its tally. Who voted for what is never sent, only whether the reader did. */
 export interface PollOptionWithVotes {
   id: string;
   postId: string;
   label: string;
   order: number;
-  votes: { id: string; userId: string }[];
+  voteCount: number;
+  votedByMe: boolean;
 }
 
 /** `GET /v1/community/feed` joins in the author, startup context, poll tallies, and counts so the feed never needs follow-up fetches per row. */
@@ -40,6 +42,8 @@ export interface PostWithRelations {
   startup: PostStartupRef | null;
   pollOptions: PollOptionWithVotes[];
   isBookmarked: boolean;
+  isLiked: boolean;
+  isAttending: boolean;
   _count: { comments: number; likes: number; rsvps: number };
 }
 
@@ -62,8 +66,8 @@ export const communityApi = {
     });
     return apiRequest<PaginatedResult<PostWithRelations>>(`/v1/community/feed?${params.toString()}`);
   },
-  createPost: (input: CreatePostInput) => apiRequest<PostWithRelations>("/v1/community/posts", { method: "POST", body: input }),
-  removePost: (id: string) => apiRequest<void>(`/v1/community/posts/${id}`, { method: "DELETE" }),
+  createPost: (input: CreatePostInput) => apiRequest<{ id: string }>("/v1/community/posts", { method: "POST", body: input }),
+  removePost: (id: string) => apiRequest<{ deleted: boolean }>(`/v1/community/posts/${id}`, { method: "DELETE" }),
   listComments: (postId: string) => apiRequest<CommentWithAuthor[]>(`/v1/community/posts/${postId}/comments`),
   addComment: (postId: string, input: CreateCommentInput) =>
     apiRequest<CommentWithAuthor>(`/v1/community/posts/${postId}/comments`, { method: "POST", body: input }),
