@@ -154,13 +154,7 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-xs text-text-secondary">OR</span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      <OAuthButtons />
+      <OAuthButtons className="mt-6" />
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         Already have an account?{" "}

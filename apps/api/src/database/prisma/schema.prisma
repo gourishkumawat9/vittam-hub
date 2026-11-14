@@ -603,11 +603,17 @@ model RefreshToken {
   expiresAt   DateTime
   lastUsedAt  DateTime  @default(now())
   revokedAt   DateTime?
+  // Set (with revokedAt) only when this token was exchanged for its successor, never on sign-out.
+  // AuthService.refresh uses it to tell "the same browser asked twice at once" from a stolen token being replayed.
+  rotatedAt   DateTime?
+  // One id for a sign-in and every token it was later exchanged for, so the whole chain can be revoked together.
+  familyId    String?   @db.Uuid
   createdAt   DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([familyId])
   @@map("refresh_tokens")
 }
 

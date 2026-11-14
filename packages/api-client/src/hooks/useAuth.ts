@@ -74,6 +74,11 @@ export function useCaptchaSiteKey() {
   return useQuery({ queryKey: ["auth", "captcha-site-key"], queryFn: authApi.captchaSiteKey, staleTime: Infinity });
 }
 
+/** The sign-in providers the API holds keys for. Empty until it answers, so a button never appears that can't work. */
+export function useOAuthProviders() {
+  return useQuery({ queryKey: ["auth", "oauth-providers"], queryFn: authApi.oauthProviders, staleTime: Infinity });
+}
+
 // ─── MFA enrollment ─────────────────────────────────────────────────────
 
 export function useBeginMfaEnrollment() {

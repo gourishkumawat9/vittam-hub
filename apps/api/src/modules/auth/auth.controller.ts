@@ -11,11 +11,12 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
+  UseFilters,
   UseGuards,
   UsePipes,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { AuthGuard } from "@nestjs/passport";
 import { ApiExcludeEndpoint, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import {
@@ -37,7 +38,7 @@ import {
   type RequestPasswordResetInput,
   type VerifyOtpInput,
 } from "@vittamhub/types";
-import { CookieOptions, Request, Response } from "express";
+import { Request, Response } from "express";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
@@ -47,12 +48,15 @@ import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { UsersService } from "../users/users.service";
 
 import { AuthService, type RequestMeta } from "./auth.service";
+import { configuredOAuthProviders, type OAuthProfile } from "./oauth/oauth-providers";
+import { OAuthRedirectFilter } from "./oauth/oauth-redirect.filter";
+import { OAuthGuard } from "./oauth/oauth.guard";
 import { MfaService } from "./services/mfa.service";
 import { OtpService } from "./services/otp.service";
 import { PasswordResetService } from "./services/password-reset.service";
 import { SessionService } from "./services/session.service";
+import { REFRESH_COOKIE_NAME, clearSessionCookies, setSessionCookies } from "./session-cookies";
 
-const REFRESH_COOKIE_NAME = "vh_refresh";
 
 @ApiTags("auth")
 @Controller("v1/auth")
@@ -108,12 +112,12 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken, user } = await this.authService.completeMfaChallenge(
+    const { accessToken, refreshToken, rememberMe, user } = await this.authService.completeMfaChallenge(
       input.challengeToken,
       input.code,
       this.requestMeta(req),
     );
-    this.setSessionCookies(res, accessToken, refreshToken, false);
+    this.setSessionCookies(res, accessToken, refreshToken, rememberMe);
     return { user };
   }
 
@@ -132,8 +136,10 @@ export class AuthController {
       return { refreshed: true };
     } catch (error) {
       // A dead refresh cookie would otherwise keep passing the web
-      // middleware's "can this session be renewed?" check forever.
-      this.clearSessionCookies(res);
+      // middleware's "can this session be renewed?" check forever. Only when
+      // the session really is over, though: a database hiccup used to clear
+      // the cookies too, signing people out for something a retry would fix.
+      if (error instanceof UnauthorizedException) this.clearSessionCookies(res);
       throw error;
     }
   }
@@ -166,6 +172,7 @@ export class AuthController {
 
   @Post("verify-email/confirm")
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UsePipes(new ZodValidationPipe(verifyOtpInputSchema.pick({ code: true })))
   @ApiOperation({ summary: "Confirm the 6-digit email verification code" })
   async confirmVerificationEmail(@CurrentUser() user: AuthenticatedUser, @Body() body: Pick<VerifyOtpInput, "code">) {
@@ -190,6 +197,7 @@ export class AuthController {
   @Public()
   @Post("password/reset")
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UsePipes(new ZodValidationPipe(confirmPasswordResetInputSchema))
   @ApiOperation({ summary: "Set a new password using a reset token" })
   async resetPassword(@Body() input: ConfirmPasswordResetInput) {
@@ -200,10 +208,16 @@ export class AuthController {
   @Post("password/change")
   @UseGuards(NotDemoGuard)
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UsePipes(new ZodValidationPipe(changePasswordInputSchema))
-  @ApiOperation({ summary: "Change password while logged in" })
-  async changePassword(@CurrentUser() user: AuthenticatedUser, @Body() input: ChangePasswordInput) {
-    await this.passwordResetService.changePassword(user.sub, input.currentPassword, input.newPassword);
+  @ApiOperation({ summary: "Change password while logged in (signs out every other device)" })
+  async changePassword(@CurrentUser() user: AuthenticatedUser, @Body() input: ChangePasswordInput, @Req() req: Request) {
+    await this.passwordResetService.changePassword(
+      user.sub,
+      input.currentPassword,
+      input.newPassword,
+      this.hashCookie(req.cookies?.[REFRESH_COOKIE_NAME]),
+    );
     return { changed: true };
   }
 
@@ -220,6 +234,7 @@ export class AuthController {
   @Post("mfa/enroll/confirm")
   @UseGuards(NotDemoGuard)
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UsePipes(new ZodValidationPipe(mfaVerifyInputSchema))
   @ApiOperation({ summary: "Confirm TOTP enrollment with a code from the authenticator app" })
   async confirmMfaEnrollment(@CurrentUser() user: AuthenticatedUser, @Body() input: MfaVerifyInput) {
@@ -228,7 +243,9 @@ export class AuthController {
   }
 
   @Post("mfa/disable")
+  @UseGuards(NotDemoGuard)
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UsePipes(new ZodValidationPipe(mfaVerifyInputSchema))
   @ApiOperation({ summary: "Disable MFA (requires a valid code)" })
   async disableMfa(@CurrentUser() user: AuthenticatedUser, @Body() input: MfaVerifyInput) {
@@ -287,9 +304,18 @@ export class AuthController {
 
   // ─── OAuth ─────────────────────────────────────────────────────────────
 
+  /** Which "Continue with ..." buttons the sign-in pages should show: only providers this server holds keys for. */
+  @Public()
+  @Get("providers")
+  @ApiExcludeEndpoint()
+  oauthProviders() {
+    return { providers: configuredOAuthProviders(this.configService) };
+  }
+
   @Public()
   @Get("google")
-  @UseGuards(AuthGuard("google"))
+  @UseFilters(OAuthRedirectFilter)
+  @UseGuards(OAuthGuard("google"))
   @ApiExcludeEndpoint()
   googleAuth() {
     // Passport redirects to Google before this body ever runs.
@@ -297,7 +323,8 @@ export class AuthController {
 
   @Public()
   @Get("google/callback")
-  @UseGuards(AuthGuard("google"))
+  @UseFilters(OAuthRedirectFilter)
+  @UseGuards(OAuthGuard("google"))
   @ApiExcludeEndpoint()
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     return this.handleOAuthCallback(req, res);
@@ -305,13 +332,15 @@ export class AuthController {
 
   @Public()
   @Get("github")
-  @UseGuards(AuthGuard("github"))
+  @UseFilters(OAuthRedirectFilter)
+  @UseGuards(OAuthGuard("github"))
   @ApiExcludeEndpoint()
   githubAuth() {}
 
   @Public()
   @Get("github/callback")
-  @UseGuards(AuthGuard("github"))
+  @UseFilters(OAuthRedirectFilter)
+  @UseGuards(OAuthGuard("github"))
   @ApiExcludeEndpoint()
   async githubCallback(@Req() req: Request, @Res() res: Response) {
     return this.handleOAuthCallback(req, res);
@@ -319,13 +348,15 @@ export class AuthController {
 
   @Public()
   @Get("linkedin")
-  @UseGuards(AuthGuard("linkedin"))
+  @UseFilters(OAuthRedirectFilter)
+  @UseGuards(OAuthGuard("linkedin"))
   @ApiExcludeEndpoint()
   linkedinAuth() {}
 
   @Public()
   @Get("linkedin/callback")
-  @UseGuards(AuthGuard("linkedin"))
+  @UseFilters(OAuthRedirectFilter)
+  @UseGuards(OAuthGuard("linkedin"))
   @ApiExcludeEndpoint()
   async linkedinCallback(@Req() req: Request, @Res() res: Response) {
     return this.handleOAuthCallback(req, res);
@@ -334,19 +365,20 @@ export class AuthController {
   // ─── Helpers ───────────────────────────────────────────────────────────
 
   private async handleOAuthCallback(req: Request, res: Response) {
-    const profile = req.user as {
-      email?: string;
-      fullName?: string;
-      avatarUrl?: string;
-      provider: string;
-      providerAccountId: string;
-    };
+    const appUrl = this.configService.getOrThrow<string>("APP_URL");
+    const result = await this.authService.findOrCreateOAuthUser(req.user as OAuthProfile, this.requestMeta(req));
 
-    const { accessToken, refreshToken } = await this.authService.findOrCreateOAuthUser(profile, this.requestMeta(req));
-    this.setSessionCookies(res, accessToken, refreshToken, false);
+    if (result.mfaRequired) {
+      // The provider was the first factor; the login page asks for the second.
+      // In the fragment, not the query string, so the token never reaches a server log or a Referer header.
+      res.redirect(`${appUrl}/login#mfa=${encodeURIComponent(result.challengeToken)}`);
+      return;
+    }
+
+    this.setSessionCookies(res, result.accessToken, result.refreshToken, false);
     // /onboarding routes each role to its own place; /founder sent investors
     // and every other role to the founder dashboard.
-    res.redirect(`${this.configService.get("APP_URL")}/onboarding`);
+    res.redirect(`${appUrl}/onboarding`);
   }
 
   private requestMeta(req: Request, rememberMe = false): RequestMeta {
@@ -362,49 +394,11 @@ export class AuthController {
     return createHash("sha256").update(rawToken).digest("hex");
   }
 
-  /**
-   * In production the API (api.vittamhub.com) and the web app (vittamhub.com)
-   * are different hosts. A cookie set without `domain` is host-only, so the
-   * web app's middleware never saw the session and bounced every signed-in
-   * user from /founder, /investor and /admin back to /login. Scoping to the
-   * parent domain — as csrfCookieMiddleware already does — fixes that.
-   */
-  private cookieScope(): { isProd: boolean; domain: string | undefined } {
-    const isProd = this.configService.get("NODE_ENV") === "production";
-    const domain = isProd ? `.${new URL(this.configService.getOrThrow<string>("APP_URL")).hostname}` : undefined;
-    return { isProd, domain };
-  }
-
   private clearSessionCookies(res: Response) {
-    // Cookies only clear when path and domain match how they were set.
-    const { domain } = this.cookieScope();
-    const sessionCookie = this.configService.get("SESSION_COOKIE_NAME", "vh_session");
-    res.clearCookie(sessionCookie, { path: "/", domain });
-    res.clearCookie(REFRESH_COOKIE_NAME, { path: "/", domain });
-    if (domain) {
-      // Sessions issued before cookies were domain-scoped were host-only.
-      res.clearCookie(sessionCookie, { path: "/" });
-      res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
-    }
+    clearSessionCookies(res, this.configService);
   }
 
-  private setSessionCookies(res: Response, accessToken: string, refreshToken: string, rememberMe: boolean) {
-    const { isProd, domain } = this.cookieScope();
-    const baseOptions: CookieOptions = {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: "lax",
-      path: "/",
-      domain,
-    };
-
-    res.cookie(this.configService.get("SESSION_COOKIE_NAME", "vh_session"), accessToken, {
-      ...baseOptions,
-      maxAge: 1000 * 60 * 15, // 15m, mirrors JWT_ACCESS_TTL
-    });
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
-      ...baseOptions,
-      maxAge: rememberMe ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60 * 24,
-    });
+  private setSessionCookies(res: Response, accessToken: string, refreshToken: string | undefined, rememberMe: boolean) {
+    setSessionCookies(res, this.configService, accessToken, refreshToken, rememberMe);
   }
 }

@@ -1,7 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import UAParser from "ua-parser-js";
 
 import { PrismaService } from "../../../database/prisma/prisma.service";
+
+import { revokeUserSessions } from "./session-revocation";
 
 @Injectable()
 export class SessionService {
@@ -33,18 +35,19 @@ export class SessionService {
   }
 
   async revokeSession(userId: string, sessionId: string): Promise<void> {
-    const session = await this.prisma.refreshToken.findUnique({ where: { id: sessionId } });
+    // Looked up by id *and* owner, so someone else's session id is simply "not found"
+    // rather than a different answer that confirms the id exists.
+    const session = await this.prisma.refreshToken.findFirst({ where: { id: sessionId, userId } });
     if (!session) throw new NotFoundException("Session not found");
-    if (session.userId !== userId) throw new ForbiddenException("Not your session to revoke");
 
-    await this.prisma.refreshToken.update({ where: { id: sessionId }, data: { revokedAt: new Date() } });
+    await this.prisma.refreshToken.updateMany({
+      where: { id: sessionId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   /** Signs out everywhere except the current session — the "log out all other devices" action. */
   async revokeAllOtherSessions(userId: string, currentTokenHash: string): Promise<void> {
-    await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null, tokenHash: { not: currentTokenHash } },
-      data: { revokedAt: new Date() },
-    });
+    await revokeUserSessions(this.prisma, userId, currentTokenHash || undefined);
   }
 }

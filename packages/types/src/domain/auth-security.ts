@@ -1,16 +1,16 @@
 import { z } from "zod";
 
-import { passwordSchema } from "./user";
+import { accountEmailSchema, passwordSchema } from "./user";
 
 // ─── Email verification (OTP) ─────────────────────────────────────────────
 
 export const requestOtpInputSchema = z.object({
-  email: z.string().email(),
+  email: accountEmailSchema,
 });
 export type RequestOtpInput = z.infer<typeof requestOtpInputSchema>;
 
 export const verifyOtpInputSchema = z.object({
-  email: z.string().email(),
+  email: accountEmailSchema,
   code: z.string().length(6, "Enter the 6-digit code"),
 });
 export type VerifyOtpInput = z.infer<typeof verifyOtpInputSchema>;
@@ -35,7 +35,7 @@ export const mfaRecoveryCodesResponseSchema = z.object({
 export type MfaRecoveryCodesResponse = z.infer<typeof mfaRecoveryCodesResponseSchema>;
 
 export const mfaChallengeInputSchema = z.object({
-  challengeToken: z.string(),
+  challengeToken: z.string().min(1).max(2048),
   code: z.string().min(6).max(10), // 6-digit TOTP or an 8-char recovery code
 });
 export type MfaChallengeInput = z.infer<typeof mfaChallengeInputSchema>;
@@ -43,18 +43,18 @@ export type MfaChallengeInput = z.infer<typeof mfaChallengeInputSchema>;
 // ─── Password reset ─────────────────────────────────────────────────────────
 
 export const requestPasswordResetInputSchema = z.object({
-  email: z.string().email(),
+  email: accountEmailSchema,
 });
 export type RequestPasswordResetInput = z.infer<typeof requestPasswordResetInputSchema>;
 
 export const confirmPasswordResetInputSchema = z.object({
-  token: z.string().min(1),
+  token: z.string().min(1).max(256),
   password: passwordSchema,
 });
 export type ConfirmPasswordResetInput = z.infer<typeof confirmPasswordResetInputSchema>;
 
 export const changePasswordInputSchema = z.object({
-  currentPassword: z.string().min(1),
+  currentPassword: z.string().min(1).max(128),
   newPassword: passwordSchema,
 });
 export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;

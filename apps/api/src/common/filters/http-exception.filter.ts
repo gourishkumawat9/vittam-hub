@@ -24,6 +24,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    // Already answered (a redirect, a file being streamed): writing a second response would throw.
+    if (response.headersSent) return;
     const requestId = randomUUID();
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError && PRISMA_NOT_FOUND_CODES.has(exception.code)) {

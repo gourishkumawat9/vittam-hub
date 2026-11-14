@@ -1,12 +1,13 @@
 import { z } from "zod";
 
 import { UserRole, VerificationStatus } from "./enums";
+import { httpUrlSchema } from "./url";
 
 export const userSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   fullName: z.string().min(1).max(120),
-  avatarUrl: z.string().url().nullable(),
+  avatarUrl: httpUrlSchema.nullable(),
   role: z.nativeEnum(UserRole),
   verificationStatus: z.nativeEnum(VerificationStatus),
   emailVerifiedAt: z.string().datetime().nullable(),
@@ -25,6 +26,14 @@ export const REGISTERABLE_ROLES = [UserRole.FOUNDER, UserRole.INVESTOR, UserRole
 export type RegisterableRole = (typeof REGISTERABLE_ROLES)[number];
 
 /**
+ * An email address someone signs in with. Trimmed and lower-cased before it is
+ * checked, so "Asha@Example.com " and "asha@example.com" are one account:
+ * compared exactly, a capital letter at sign-in read as "invalid email or
+ * password" and the same person could end up with two accounts.
+ */
+export const accountEmailSchema = z.string().trim().toLowerCase().max(254, "That email address is too long").email("Enter a valid email address");
+
+/**
  * Mirrors a standard enterprise password policy (min length + character
  * variety) — the same schema backs both the client-side strength meter and
  * the server's final check, so they can never disagree.
@@ -38,22 +47,22 @@ export const passwordSchema = z
   .regex(/[0-9]/, "Include a number");
 
 export const registerInputSchema = z.object({
-  email: z.string().email(),
+  email: accountEmailSchema,
   password: passwordSchema,
-  fullName: z.string().min(1).max(120),
+  fullName: z.string().trim().min(1, "Enter your name").max(120),
   role: z.enum(REGISTERABLE_ROLES),
   // Required only when CAPTCHA_SECRET_KEY is configured server-side (see
   // apps/api/src/config/env.validation.ts) — optional here so the schema
   // doesn't hard-block auth in environments that haven't set up Turnstile yet.
-  captchaToken: z.string().optional(),
+  captchaToken: z.string().max(4096).optional(),
   acceptedTerms: z.literal(true, { errorMap: () => ({ message: "You must accept the Terms of Service" }) }),
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
 export const loginInputSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1, "Password is required"),
+  email: accountEmailSchema,
+  password: z.string().min(1, "Password is required").max(128),
   rememberMe: z.boolean().default(false),
-  captchaToken: z.string().optional(),
+  captchaToken: z.string().max(4096).optional(),
 });
 export type LoginInput = z.infer<typeof loginInputSchema>;

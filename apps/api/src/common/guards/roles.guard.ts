@@ -16,8 +16,11 @@ export class RolesGuard {
     ]);
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
-    const { user } = context.switchToHttp().getRequest<{ user: AuthenticatedUser }>();
-    if (!requiredRoles.includes(user.role)) {
+    // `user` is null on a @Public() route nobody is signed in to. Nothing
+    // combines @Public() with @Roles() today; if a route ever does, that must
+    // read as "not allowed", not crash into a 500.
+    const { user } = context.switchToHttp().getRequest<{ user?: AuthenticatedUser | null }>();
+    if (!user || !requiredRoles.includes(user.role)) {
       throw new ForbiddenException("You do not have permission to access this resource");
     }
     return true;
