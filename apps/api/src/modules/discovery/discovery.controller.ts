@@ -17,6 +17,6 @@ export class DiscoveryController {
   @UsePipes(new ZodValidationPipe(startupSearchFiltersSchema))
   @ApiOperation({ summary: "Personalized startup discovery feed for the current investor" })
   feed(@CurrentUser() user: AuthenticatedUser, @Query() filters: StartupSearchFilters) {
-    return this.discoveryService.feedFor(user.sub, filters);
+    return this.discoveryService.feedFor({ userId: user.sub, isInvestor: user.role === "INVESTOR" }, filters);
   }
 }

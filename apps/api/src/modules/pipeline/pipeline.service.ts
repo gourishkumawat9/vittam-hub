@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { AddToPipelineInput, PassStartupInput, UpdatePipelineEntryInput } from "@vittamhub/types";
 
+import { isDemoViewer } from "../../common/demo/demo-scope";
+import { findListableStartup, INVESTOR_VIEWER, listableStartupWhere, projectStartup } from "../../common/startups/startup-visibility";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /**
@@ -14,17 +16,26 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 export class PipelineService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listForInvestor(investorId: string) {
-    return this.prisma.pipelineEntry.findMany({
-      where: { investorId },
+  /**
+   * A card shows the startup with its figures, so it follows the same rules as
+   * the profile: a startup that has since gone private or stealth drops off
+   * the board, and one that hides its numbers shows none here either.
+   */
+  async listForInvestor(investorId: string) {
+    const entries = await this.prisma.pipelineEntry.findMany({
+      where: { investorId, startup: listableStartupWhere(await isDemoViewer(this.prisma, investorId)) },
       orderBy: { updatedAt: "desc" },
       include: { startup: { include: { traction: true, funding: true } } },
     });
+    return entries.map((entry) => ({ ...entry, startup: projectStartup(entry.startup, INVESTOR_VIEWER) }));
   }
 
   async addToPipeline(investorId: string, input: AddToPipelineInput) {
-    const startup = await this.prisma.startup.findUnique({ where: { id: input.startupId } });
-    if (!startup) throw new NotFoundException("Startup not found");
+    await findListableStartup(this.prisma, input.startupId, investorId);
+    if (input.mandateId) {
+      const mandate = await this.prisma.investmentMandate.findUnique({ where: { id: input.mandateId }, select: { investorId: true } });
+      if (!mandate || mandate.investorId !== investorId) throw new NotFoundException("Mandate not found");
+    }
 
     return this.prisma.pipelineEntry.upsert({
       where: { investorId_startupId: { investorId, startupId: input.startupId } },
