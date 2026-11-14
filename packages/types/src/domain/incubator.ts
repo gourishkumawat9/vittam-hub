@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { IncubatorKind, VerificationStatus } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 export const incubatorProgramSchema = z.object({
   name: z.string().min(1, "Program name is required").max(120),
@@ -8,7 +9,7 @@ export const incubatorProgramSchema = z.object({
   durationWeeks: z.coerce.number().int().positive().optional(),
   applicationCycleStart: z.string().optional(),
   applicationCycleEnd: z.string().optional(),
-  applicationUrl: z.string().url().optional(),
+  applicationUrl: optionalHttpUrlSchema,
   eligibilityCriteria: z.string().max(1000).optional(),
 });
 export type IncubatorProgramInput = z.infer<typeof incubatorProgramSchema>;
@@ -18,8 +19,8 @@ export const incubatorProfileSchema = z.object({
   ownerId: z.string().uuid(),
   organizationName: z.string().max(160),
   description: z.string().max(2000).nullable(),
-  website: z.string().url().nullable(),
-  logoUrl: z.string().url().nullable(),
+  website: httpUrlSchema.nullable(),
+  logoUrl: httpUrlSchema.nullable(),
   industries: z.array(z.string()),
   portfolioCompanies: z.array(z.string()),
   affiliatedMentorCount: z.number().int().nonnegative().nullable(),
@@ -31,10 +32,7 @@ export const incubatorProfileSchema = z.object({
 });
 export type IncubatorProfileRecord = z.infer<typeof incubatorProfileSchema>;
 
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 export const createIncubatorInputSchema = z.object({
   organizationName: z.string().min(1, "Organization name is required").max(160),

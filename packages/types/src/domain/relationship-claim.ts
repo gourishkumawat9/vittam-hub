@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ClaimableEntityType, ClaimStatus, RelationshipType } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 /**
  * A claim about a relationship between two entities, confirmed or denied by
@@ -18,7 +19,7 @@ export const relationshipClaimSchema = z.object({
   relationshipType: z.nativeEnum(RelationshipType),
   status: z.nativeEnum(ClaimStatus),
   note: z.string().max(1000).nullable(),
-  evidenceUrl: z.string().url().nullable(),
+  evidenceUrl: httpUrlSchema.nullable(),
   respondedBy: z.string().uuid().nullable(),
   createdAt: z.string().datetime(),
   respondedAt: z.string().datetime().nullable(),
@@ -30,7 +31,7 @@ export const createRelationshipClaimInputSchema = z.object({
   targetId: z.string().uuid(),
   relationshipType: z.nativeEnum(RelationshipType),
   note: z.string().max(1000).optional(),
-  evidenceUrl: z.union([z.string().url(), z.literal("")]).optional(),
+  evidenceUrl: optionalHttpUrlSchema,
 });
 export type CreateRelationshipClaimInput = z.infer<typeof createRelationshipClaimInputSchema>;
 

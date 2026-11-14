@@ -12,6 +12,7 @@ import {
   StartupStage,
   VerificationStatus,
 } from "./enums";
+import { httpUrlSchema } from "./url";
 
 export const startupSchema = z.object({
   id: z.string().uuid(),
@@ -20,8 +21,8 @@ export const startupSchema = z.object({
   slug: z.string().min(1).max(140),
   tagline: z.string().max(160),
   description: z.string().max(5000),
-  logoUrl: z.string().url().nullable(),
-  website: z.string().url().nullable(),
+  logoUrl: httpUrlSchema.nullable(),
+  website: httpUrlSchema.nullable(),
   industry: z.nativeEnum(Industry),
   stage: z.nativeEnum(StartupStage),
   // Self-reported vs. computed stage axes (CLAUDE.md — declared vs. verified). New/optional; no UI built for these yet.

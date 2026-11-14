@@ -1,14 +1,15 @@
 import { z } from "zod";
 
 import { VerificationStatus } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 export const universityProfileSchema = z.object({
   id: z.string().uuid(),
   ownerId: z.string().uuid(),
   institutionName: z.string().max(160),
   affiliationType: z.string().max(40).nullable(),
-  website: z.string().url().nullable(),
-  logoUrl: z.string().url().nullable(),
+  website: httpUrlSchema.nullable(),
+  logoUrl: httpUrlSchema.nullable(),
   incubationCellName: z.string().max(160).nullable(),
   departments: z.array(z.string()),
   programsOffered: z.array(z.string()),
@@ -19,10 +20,7 @@ export const universityProfileSchema = z.object({
 });
 export type UniversityProfileRecord = z.infer<typeof universityProfileSchema>;
 
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 export const createUniversityInputSchema = z.object({
   institutionName: z.string().min(1, "Institution name is required").max(160),

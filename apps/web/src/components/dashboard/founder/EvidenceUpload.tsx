@@ -5,6 +5,8 @@ import { Button, Input } from "@vittamhub/ui";
 import { FileText, Link2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { externalHref } from "@/lib/safe-url";
+
 const MAX_EVIDENCE_ITEMS = 6;
 
 function isImageUrl(url: string) {
@@ -76,7 +78,7 @@ export function EvidenceUpload({ value, onChange }: EvidenceUploadProps) {
               ) : (
                 <FileText className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
               )}
-              <a href={url} target="_blank" rel="noreferrer" className="flex-1 truncate text-brand-primary hover:underline">
+              <a href={externalHref(url)} target="_blank" rel="noreferrer" className="flex-1 truncate text-brand-primary hover:underline">
                 {url}
               </a>
               <button type="button" onClick={() => removeUrl(url)} aria-label="Remove evidence">

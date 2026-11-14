@@ -6,14 +6,11 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 import { StatusScreen } from "@/components/StatusScreen";
-
-/** Only same-site paths, so `?from=` can't be used to bounce people to another site. */
-function safeReturnPath(from: string | null): string {
-  return from && from.startsWith("/") && !from.startsWith("//") ? from : "/";
-}
+import { safeInternalPath } from "@/lib/safe-url";
 
 function UnavailableContent() {
-  const returnTo = safeReturnPath(useSearchParams().get("from"));
+  // Only same-site paths, so `?from=` can't be used to bounce people to another site.
+  const returnTo = safeInternalPath(useSearchParams().get("from"));
   return (
     <StatusScreen
       title="We'll be right back"

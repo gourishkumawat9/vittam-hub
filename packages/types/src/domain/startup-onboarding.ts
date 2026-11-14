@@ -15,11 +15,9 @@ import {
   StartupStage,
   TeamMemberCategory,
 } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 const optionalString = (max: number) => z.string().max(max).optional();
 
@@ -61,7 +59,7 @@ export const productStepSchema = z.object({
   playStoreUrl: urlOrEmpty,
   demoVideoUrl: urlOrEmpty,
   pitchVideoUrl: urlOrEmpty,
-  screenshots: z.array(z.string().url()).max(10).default([]),
+  screenshots: z.array(httpUrlSchema).max(10).default([]),
   technologyStack: z.array(z.string().max(40)).max(30).default([]),
   hasApi: z.boolean().default(false),
 });

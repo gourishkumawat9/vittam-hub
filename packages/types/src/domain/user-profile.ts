@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { Gender, OnboardingStatus } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 /**
  * "Personal Details" — the one form every role's onboarding starts with
@@ -15,9 +16,9 @@ export const userProfileSchema = z.object({
   dateOfBirth: z.string().datetime().nullable(),
   gender: z.nativeEnum(Gender).nullable(),
   nationality: z.string().max(80).nullable(),
-  linkedinUrl: z.string().url().nullable(),
-  githubUrl: z.string().url().nullable(),
-  portfolioUrl: z.string().url().nullable(),
+  linkedinUrl: httpUrlSchema.nullable(),
+  githubUrl: httpUrlSchema.nullable(),
+  portfolioUrl: httpUrlSchema.nullable(),
   city: z.string().max(80).nullable(),
   state: z.string().max(80).nullable(),
   country: z.string().max(80).nullable(),
@@ -28,10 +29,7 @@ export const userProfileSchema = z.object({
 });
 export type UserProfileRecord = z.infer<typeof userProfileSchema>;
 
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 export const personalDetailsInputSchema = z.object({
   fullName: z.string().min(1, "Full name is required").max(120),

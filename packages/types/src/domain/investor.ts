@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { Currency, InvestorType, StartupStage, VerificationStatus } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 export const investorSchema = z.object({
   id: z.string().uuid(),
@@ -9,8 +10,8 @@ export const investorSchema = z.object({
   designation: z.string().max(120).nullable(),
   investorType: z.nativeEnum(InvestorType),
   bio: z.string().max(3000),
-  logoUrl: z.string().url().nullable(),
-  website: z.string().url().nullable(),
+  logoUrl: httpUrlSchema.nullable(),
+  website: httpUrlSchema.nullable(),
   currency: z.nativeEnum(Currency).default(Currency.INR),
   checkSizeMinAmount: z.number().nonnegative(),
   checkSizeMaxAmount: z.number().nonnegative(),
@@ -28,10 +29,7 @@ export const investorSchema = z.object({
 });
 export type Investor = z.infer<typeof investorSchema>;
 
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 // "LinkedIn" from the spec's Investor field list is collected once, on the
 // shared Personal Details step (UserProfile.linkedinUrl) — not duplicated

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { PostType } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 export const postSchema = z.object({
   id: z.string().uuid(),
@@ -8,10 +9,10 @@ export const postSchema = z.object({
   startupId: z.string().uuid().nullable(),
   type: z.nativeEnum(PostType),
   body: z.string().max(5000),
-  mediaUrls: z.array(z.string().url()),
+  mediaUrls: z.array(httpUrlSchema),
   eventStartsAt: z.string().datetime().nullable(),
   eventLocation: z.string().nullable(),
-  eventUrl: z.string().url().nullable(),
+  eventUrl: httpUrlSchema.nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -22,10 +23,15 @@ export const createPostInputSchema = z
     startupId: z.string().uuid().optional(),
     type: z.nativeEnum(PostType),
     body: z.string().min(1, "Say something").max(5000),
-    mediaUrls: z.array(z.string().url()).max(10).default([]),
-    eventStartsAt: z.string().optional(),
+    mediaUrls: z.array(httpUrlSchema).max(10).default([]),
+    // Checked to be a real date so a bad value is a clear 400, not a database error.
+    eventStartsAt: z
+      .string()
+      .refine((value) => value === "" || !Number.isNaN(Date.parse(value)), { message: "Pick a valid date and time" })
+      .optional()
+      .transform((value) => (value === "" ? undefined : value)),
     eventLocation: z.string().max(200).optional(),
-    eventUrl: z.string().url().optional(),
+    eventUrl: optionalHttpUrlSchema,
     pollOptions: z.array(z.string().min(1).max(120)).min(2).max(10).optional(),
   })
   .refine((data) => data.type !== "POLL" || (data.pollOptions?.length ?? 0) >= 2, {

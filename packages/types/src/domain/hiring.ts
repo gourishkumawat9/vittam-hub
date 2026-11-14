@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ApplicationStatus, Currency, EmploymentType, JobStatus } from "./enums";
+import { httpUrlSchema } from "./url";
 
 export const jobSchema = z.object({
   id: z.string().uuid(),
@@ -51,7 +52,7 @@ export const jobApplicationSchema = z.object({
   id: z.string().uuid(),
   jobId: z.string().uuid(),
   applicantId: z.string().uuid(),
-  resumeUrl: z.string().url(),
+  resumeUrl: httpUrlSchema,
   coverLetter: z.string().max(3000).nullable(),
   status: z.nativeEnum(ApplicationStatus),
   createdAt: z.string().datetime(),
@@ -59,7 +60,7 @@ export const jobApplicationSchema = z.object({
 export type JobApplicationRecord = z.infer<typeof jobApplicationSchema>;
 
 export const applyToJobInputSchema = z.object({
-  resumeUrl: z.string().url("A resume link is required"),
+  resumeUrl: httpUrlSchema,
   coverLetter: z.string().max(3000).optional(),
 });
 export type ApplyToJobInput = z.infer<typeof applyToJobInputSchema>;

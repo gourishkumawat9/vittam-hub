@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DocumentType } from "./enums";
+import { httpUrlSchema } from "./url";
 
 /**
  * A verification document belongs to the uploading user, not a specific role
@@ -21,7 +22,7 @@ export type DocumentRecord = z.infer<typeof documentSchema>;
 
 export const documentUploadInputSchema = z.object({
   type: z.nativeEnum(DocumentType),
-  fileUrl: z.string().url(),
+  fileUrl: httpUrlSchema,
   fileName: z.string().min(1).max(200),
 });
 export type DocumentUploadInput = z.infer<typeof documentUploadInputSchema>;
