@@ -21,9 +21,13 @@ export type VerifiableEntityType = z.infer<typeof verifiableEntityTypeSchema>;
 export const runVerificationCheckInputSchema = z.object({
   entityType: verifiableEntityTypeSchema,
   entityId: z.string().uuid(),
-  field: z.string().min(1).max(200),
-  method: z.string().min(1).max(100),
-  input: z.record(z.string(), z.string()).default({}),
+  field: z.string().regex(/^[A-Za-z][A-Za-z0-9_.-]{0,63}$/, "Use letters, numbers, dots, dashes and underscores"),
+  method: z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/, "Unknown verification method"),
+  // A handful of short identifiers (a CIN, a GSTIN, a registration number). It is stored with the result, so it is kept small.
+  input: z
+    .record(z.string().max(64), z.string().max(500))
+    .default({})
+    .refine((value) => Object.keys(value).length <= 10, { message: "Too many fields" }),
 });
 export type RunVerificationCheckInput = z.infer<typeof runVerificationCheckInputSchema>;
 

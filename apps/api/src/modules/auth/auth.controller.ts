@@ -17,6 +17,7 @@ import {
   UsePipes,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ApiExcludeEndpoint, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import {
@@ -69,6 +70,7 @@ export class AuthController {
     private readonly mfaService: MfaService,
     private readonly passwordResetService: PasswordResetService,
     private readonly sessionService: SessionService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ─── Registration & login ────────────────────────────────────────────
@@ -166,7 +168,11 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiOperation({ summary: "Resend the email verification code" })
   async resendVerificationEmail(@CurrentUser() user: AuthenticatedUser) {
-    await this.otpService.issue(user.sub, user.email, OtpPurpose.EMAIL_VERIFICATION);
+    // The address comes from the database, not the session token, and nothing is sent once it is confirmed.
+    const account = await this.usersService.findById(user.sub);
+    if (!account || account.deletedAt) throw new UnauthorizedException();
+    if (account.emailVerifiedAt) return { sent: false, alreadyVerified: true };
+    await this.otpService.issue(account.id, account.email, OtpPurpose.EMAIL_VERIFICATION);
     return { sent: true };
   }
 
@@ -177,7 +183,11 @@ export class AuthController {
   @ApiOperation({ summary: "Confirm the 6-digit email verification code" })
   async confirmVerificationEmail(@CurrentUser() user: AuthenticatedUser, @Body() body: Pick<VerifyOtpInput, "code">) {
     const isValid = await this.otpService.verify(user.sub, OtpPurpose.EMAIL_VERIFICATION, body.code);
-    if (isValid) await this.usersService.markEmailVerified(user.sub);
+    if (isValid) {
+      await this.usersService.markEmailVerified(user.sub);
+      // Checks that wait for a confirmed address (the work-email one) can run now.
+      this.eventEmitter.emit("user.email-verified", { ownerId: user.sub });
+    }
     return { verified: isValid };
   }
 

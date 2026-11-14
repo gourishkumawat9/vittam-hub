@@ -18,9 +18,18 @@ export async function applyPersonalDetails(tx: Tx, userId: string, rawPersonalDe
   }
   const details = parsed.data;
 
+  // A phone number is verified by a code sent to it. Swapping in a different
+  // number must not carry the old number's "verified" along with it.
+  const previous = await tx.userProfile.findUnique({ where: { userId }, select: { mobileNumber: true } });
+  const phoneChanged = (previous?.mobileNumber ?? null) !== (details.mobileNumber ?? null);
+
   await tx.user.update({
     where: { id: userId },
-    data: { fullName: details.fullName, avatarUrl: details.avatarUrl },
+    data: {
+      fullName: details.fullName,
+      avatarUrl: details.avatarUrl,
+      ...(phoneChanged ? { phoneVerifiedAt: null } : {}),
+    },
   });
 
   const profileData: Prisma.UserProfileUpdateInput = {
