@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type {
   ConnectionListFilters,
   ConnectionResponseAction,
@@ -54,54 +54,70 @@ export class ConnectionsService {
 
     const recipient = await this.prisma.user.findUnique({ where: { id: input.recipientId } });
     // A demo account and a real one never interact (common/demo/demo-scope.ts); "not found" so neither side can probe the other.
-    if (!recipient || !(await inSameSandbox(this.prisma, requesterId, recipient.id))) throw new NotFoundException("Investor not found");
+    // A deleted account is "not found" too, so a request (and a slot of the monthly limit) is never spent on nobody.
+    if (!recipient || recipient.deletedAt || !(await inSameSandbox(this.prisma, requesterId, recipient.id))) {
+      throw new NotFoundException("Investor not found");
+    }
     if (recipient.role !== "INVESTOR") {
       throw new BadRequestException("Connect requests can only be sent to investors.");
     }
 
-    await this.assertUnderMonthlyQuota(requesterId);
-
-    try {
-      const connection = await this.prisma.connection.create({
-        data: {
-          requesterId,
-          recipientId: input.recipientId,
-          startupId: startup.id,
-          introduction: input.introduction,
-          fundingRequirementAmount: input.fundingRequirementAmount,
-          pitchDeckUrl: input.pitchDeckUrl,
-          executiveSummaryUrl: input.executiveSummaryUrl,
-          demoLinkUrl: input.demoLinkUrl,
-        },
-      });
-
-      const requester = await this.prisma.user.findUniqueOrThrow({ where: { id: requesterId } });
-      this.eventEmitter.emit("connection.requested", {
-        recipientId: recipient.id,
-        requesterName: requester.fullName,
-        startupName: startup.name,
-      });
-
-      return connection;
-    } catch {
-      throw new ConflictException("A connection request already exists between these users");
-    }
-  }
-
-  private async assertUnderMonthlyQuota(founderId: string) {
-    const subscription = await this.prisma.subscription.findUnique({ where: { userId: founderId } });
+    const subscription = await this.prisma.subscription.findUnique({ where: { userId: requesterId } });
     const plan = subscription?.plan ?? "FREE";
     const limit = await this.planLimits.getMonthlyConnectRequestLimit(plan);
-    if (limit === null) return; // unlimited
 
-    const sentThisMonth = await this.prisma.connection.count({
-      where: { requesterId: founderId, createdAt: { gte: startOfCurrentMonth() } },
-    });
-    if (sentThisMonth >= limit) {
-      throw new ForbiddenException(
-        `You've reached your ${limit} connect request${limit === 1 ? "" : "s"} this month on the ${plan} plan. Upgrade to send more.`,
-      );
+    let connection;
+    try {
+      // The limit check and the insert have to be one step. As two, a founder
+      // who fired several requests at the same instant got every one of them
+      // past "have I sent fewer than N?" before any was counted. The lock is
+      // per founder and is released when the transaction ends, so it only ever
+      // makes one person's own simultaneous requests wait for each other.
+      connection = await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`connect-request:${requesterId}`}))`;
+
+        if (limit !== null) {
+          const sentThisMonth = await tx.connection.count({
+            where: { requesterId, createdAt: { gte: startOfCurrentMonth() } },
+          });
+          if (sentThisMonth >= limit) {
+            throw new ForbiddenException(
+              `You've reached your ${limit} connect request${limit === 1 ? "" : "s"} this month on the ${plan} plan. Upgrade to send more.`,
+            );
+          }
+        }
+
+        return tx.connection.create({
+          data: {
+            requesterId,
+            recipientId: input.recipientId,
+            startupId: startup.id,
+            introduction: input.introduction,
+            fundingRequirementAmount: input.fundingRequirementAmount,
+            pitchDeckUrl: input.pitchDeckUrl,
+            executiveSummaryUrl: input.executiveSummaryUrl,
+            demoLinkUrl: input.demoLinkUrl,
+          },
+        });
+      });
+    } catch (error) {
+      // Only the unique (founder, investor, startup) constraint means "already
+      // requested". Catching everything here used to report a database outage
+      // as "a request already exists".
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictException("You've already sent this investor a connect request");
+      }
+      throw error;
     }
+
+    const requester = await this.prisma.user.findUniqueOrThrow({ where: { id: requesterId } });
+    this.eventEmitter.emit("connection.requested", {
+      recipientId: recipient.id,
+      requesterName: requester.fullName,
+      startupName: startup.name,
+    });
+
+    return connection;
   }
 
   async respond(connectionId: string, recipientId: string, action: ConnectionResponseAction) {
@@ -165,6 +181,9 @@ export class ConnectionsService {
     const connection = await this.prisma.connection.findUnique({ where: { id: connectionId } });
     if (!connection) throw new NotFoundException("Connection request not found");
     if (connection.recipientId !== recipientId) throw new ForbiddenException("Not your connection request");
+    if (connection.status !== "PENDING") throw new ConflictException("This connection request has already been responded to");
+    // Asking once is enough: a second click must not notify the founder again.
+    if (connection.infoRequestedAt) return connection;
 
     const updated = await this.prisma.connection.update({
       where: { id: connectionId },
@@ -180,11 +199,7 @@ export class ConnectionsService {
     return updated;
   }
 
-  /**
-   * Membership-only check — deliberately does NOT require ACCEPTED, unlike
-   * assertCanMessage: meetings can be proposed before a formal Accept (an
-   * intro call ahead of the decision), messaging cannot.
-   */
+  /** Membership only: who may read a connection's meetings. Proposing one has its own, stricter rule in `scheduleMeeting`. */
   private async assertConnectionMember(connectionId: string, callerId: string) {
     const connection = await this.prisma.connection.findUnique({ where: { id: connectionId } });
     if (!connection) throw new NotFoundException("Connection not found");
@@ -194,9 +209,25 @@ export class ConnectionsService {
     return connection;
   }
 
-  /** Either party can propose a time — allowed before acceptance too (an intro call can happen ahead of a formal Accept). */
+  /**
+   * A meeting carries free text and a link, so proposing one is a way of
+   * writing to the other person. That makes it subject to the same rule as
+   * messages (CLAUDE.md §4): a founder can only do it once the investor has
+   * accepted. The investor is the one being approached, so they may also
+   * propose an intro call while the request is still pending, before deciding.
+   * Nobody can on a request that was declined or ignored.
+   */
   async scheduleMeeting(connectionId: string, callerId: string, input: ScheduleMeetingInput) {
     const connection = await this.assertConnectionMember(connectionId, callerId);
+    const callerIsInvestor = connection.recipientId === callerId;
+    const allowed = connection.status === "ACCEPTED" || (connection.status === "PENDING" && callerIsInvestor);
+    if (!allowed) {
+      throw new ForbiddenException(
+        callerIsInvestor
+          ? "This request is closed, so a meeting can't be proposed on it"
+          : "You can propose a meeting once the investor has accepted your connect request",
+      );
+    }
 
     const meeting = await this.prisma.meeting.create({
       data: {
