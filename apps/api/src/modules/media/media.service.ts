@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
@@ -17,7 +17,12 @@ const ALLOWED_MIME_TYPES = new Set([
   "text/csv",
 ]);
 
-type UploadFolder = "logos" | "avatars" | "documents" | "resumes";
+/** The only types a public folder takes: they are shown to anyone, straight from the CDN, as pictures. */
+const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type UploadFolder = "logos" | "avatars" | "documents" | "resumes";
 
 /**
  * Folders whose objects are rendered directly in `<img src=…>` on **public**
@@ -113,19 +118,27 @@ export class MediaService {
    * with `uploadFields` plus the file, then persists `publicUrl` on the
    * owning record (Startup.logoUrl, User.avatarUrl, ...).
    */
-  async createUploadUrl(mimeType: string, folder: UploadFolder) {
+  async createUploadUrl(mimeType: string, folder: UploadFolder, userId: string) {
     this.assertStorageConfigured();
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
       // BadRequest, not a bare Error — a rejected file type is the caller's
       // problem to correct, and a raw throw surfaced it as an opaque 500.
       throw new BadRequestException(`Unsupported file type: ${mimeType}`);
     }
+    // Logos and avatars are served to everyone from the CDN domain. Letting a
+    // PDF or a spreadsheet in there would turn it into free public file
+    // hosting under VittamHub's own name.
+    if (PUBLIC_FOLDERS.has(folder) && !IMAGE_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException("Only PNG, JPEG or WebP images can be uploaded here");
+    }
 
-    // Key is `<folder>/<uuid>`: the folder comes from a closed enum validated
-    // at the controller, and the filename is a server-generated UUID, so no
-    // user-controlled string ever reaches the object key. The uploader's
-    // original filename is stored on the Document row, never in storage.
-    const key = `${folder}/${randomUUID()}`;
+    // Key is `<folder>/<uploader>/<uuid>`: the folder comes from a closed enum
+    // validated at the controller, the uploader is the signed-in user's id and
+    // the filename is a server-generated UUID, so no user-controlled string
+    // ever reaches the object key. Carrying the uploader in the key is what
+    // lets `isOwnedBy` refuse a file somebody else uploaded. The original
+    // filename is stored on the Document row, never in storage.
+    const key = `${folder}/${userId}/${randomUUID()}`;
     const bucket = this.bucketFor(folder);
 
     const { url, fields } = await createPresignedPost(this.s3, {
@@ -187,6 +200,47 @@ export class MediaService {
       `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/`,
       `${this.configService.get("STORAGE_ENDPOINT")}/${this.configService.get("STORAGE_BUCKET")}/`,
     ];
+  }
+
+  /**
+   * True when `storedUrl` is one of this deployment's objects and `userId` is
+   * the person who uploaded it.
+   *
+   * A storage URL is only a locator, so without this anyone who learned
+   * another member's document URL (a signed link they were once given shows
+   * the key) could register it as their own document and keep reading it after
+   * the owner revoked their access.
+   *
+   * Objects uploaded before keys carried the uploader are `<folder>/<uuid>`.
+   * Those can't be attributed, so they stay accepted; nothing new is ever
+   * stored in that shape.
+   */
+  isOwnedBy(storedUrl: string, userId: string): boolean {
+    let key: string;
+    try {
+      key = this.extractKeyFromPublicUrl(storedUrl);
+    } catch {
+      return false;
+    }
+    const parts = key.split("/");
+    if (parts.length === 3) return parts[1] === userId && UUID.test(parts[2] ?? "");
+    return parts.length === 2 && UUID.test(parts[1] ?? "");
+  }
+
+  /**
+   * Removes a stored object. Best-effort by design: the database row is the
+   * record of what a member has on file, so a storage hiccup must not stop
+   * them deleting a document or their account. A failure is logged for a
+   * later sweep instead.
+   */
+  async deleteByUrl(storedUrl: string): Promise<void> {
+    if (this.missingStorageVars().length > 0) return;
+    try {
+      const key = this.extractKeyFromPublicUrl(storedUrl);
+      await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucketForUrl(storedUrl), Key: key }));
+    } catch (err) {
+      this.logger.warn(`Could not delete a stored object: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   /** Which bucket a previously-stored URL lives in — private unless it came from the public CDN. */

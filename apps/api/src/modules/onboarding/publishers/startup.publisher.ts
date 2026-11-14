@@ -17,6 +17,7 @@ import { slugify } from "@vittamhub/utils";
 import { ZodError } from "zod";
 
 import { PrismaService } from "../../../database/prisma/prisma.service";
+import { MediaService } from "../../media/media.service";
 import { recordTractionObservations } from "../../startups/metric-observations.util";
 import { deriveOverallStage } from "../../startups/stage.util";
 
@@ -33,6 +34,7 @@ export class StartupPublisher {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly mediaService: MediaService,
   ) {}
 
   async publish(userId: string, rawDraft: StartupOnboardingDraft, confirmation: unknown) {
@@ -48,13 +50,25 @@ export class StartupPublisher {
     // they could have a profile at all, and an untouched step produced an
     // "incomplete" error naming a section they had deliberately skipped.
     const startupInfo = this.parseStep(startupInfoStepSchema, rawDraft.startupInfo, "Startup information");
-    const product = productStepSchema.parse(rawDraft.product ?? {});
-    const market = marketStepSchema.parse(rawDraft.market ?? {});
+    // An untouched section parses to its defaults. One that holds something
+    // invalid (a half-typed link saved by autosave, say) has to come back as a
+    // message naming the field: a bare `.parse()` here threw a ZodError that
+    // reached the founder as "something went wrong" on the very last step.
+    const product = this.parseStep(productStepSchema, rawDraft.product, "Product", true);
+    const market = this.parseStep(marketStepSchema, rawDraft.market, "Market", true);
     const team = this.parseLenient(teamStepPublishSchema, rawDraft.team);
-    const traction = tractionStepSchema.parse(rawDraft.traction ?? {});
-    const funding = fundingStepSchema.parse(rawDraft.funding ?? {});
-    const verification = verificationStepSchema.parse(rawDraft.verification ?? {});
+    const traction = this.parseStep(tractionStepSchema, rawDraft.traction, "Traction", true);
+    const funding = this.parseStep(fundingStepSchema, rawDraft.funding, "Funding", true);
+    const verification = this.parseStep(verificationStepSchema, rawDraft.verification, "Verification", true);
     const preferences = this.parseLenient(preferencesStepPublishSchema, rawDraft.preferences);
+
+    // The draft is free-form JSON, so the file links in it are whatever the
+    // browser sent. Only keep documents this founder uploaded themselves.
+    for (const document of verification.documents) {
+      if (!this.mediaService.isOwnedBy(document.fileUrl, userId)) {
+        throw new BadRequestException(`"${document.fileName}" isn't a file uploaded from your account. Please remove it and upload it again.`);
+      }
+    }
 
     const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId } });
     if (existing?.publishedAt) {
@@ -177,7 +191,8 @@ export class StartupPublisher {
     return schema.safeParse({}).data as T;
   }
 
-  private parseStep<T>(schema: { parse: (input: unknown) => T }, value: unknown, label: string): T {
+  /** `optional` is for a section a founder may skip: an empty one is fine, only a wrong value in it stops publishing. */
+  private parseStep<T>(schema: { parse: (input: unknown) => T }, value: unknown, label: string, optional = false): T {
     try {
       return schema.parse(value ?? {});
     } catch (err) {
@@ -197,6 +212,9 @@ export class StartupPublisher {
           : fields.length > 0
             ? ` Check: ${fields.join(", ")}.`
             : "";
+      if (optional) {
+        throw new BadRequestException(`Something in the ${label} step isn't valid — please correct it before publishing.${detail}`);
+      }
       throw new BadRequestException(`${label} is incomplete — please finish this step before publishing.${detail}`);
     }
   }

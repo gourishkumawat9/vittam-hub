@@ -49,7 +49,25 @@ export class DocumentAccessService {
     await this.ownedDocument(founderId, documentId);
 
     const recipient = await this.prisma.user.findUnique({ where: { id: input.grantedToId } });
-    if (!recipient) throw new NotFoundException("Recipient not found");
+    if (!recipient || recipient.deletedAt) throw new NotFoundException("Recipient not found");
+
+    // Documents are exchanged only between two people who are connected: the
+    // other side has accepted a connect request (CLAUDE.md §4). Without this,
+    // sharing a file was a way to reach any investor directly, as often as you
+    // liked, each share arriving as a notification with your name on it.
+    const connection = await this.prisma.connection.findFirst({
+      where: {
+        status: "ACCEPTED",
+        OR: [
+          { requesterId: founderId, recipientId: input.grantedToId },
+          { requesterId: input.grantedToId, recipientId: founderId },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!connection) {
+      throw new ForbiddenException("You can share documents with someone once your connect request has been accepted");
+    }
 
     const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000);
     const grant = await this.prisma.documentGrant.upsert({

@@ -26,17 +26,16 @@ export class DocumentsService {
   ) {}
 
   /**
-   * Rejects any fileUrl that isn't a VittamHub-managed storage object —
-   * prevents registering an arbitrary external URL as a "document" (which
-   * would let a user point other people's viewers at a tracking pixel or a
-   * phishing page). Delegates to MediaService so the accepted prefixes stay
-   * in one place: documents live in the private bucket and therefore carry
-   * the S3-API URL form, not the public CDN one.
+   * Rejects any fileUrl that isn't a VittamHub-managed storage object the
+   * caller uploaded themselves. That rules out registering an arbitrary
+   * external URL as a "document" (which would let a user point other people's
+   * viewers at a tracking pixel or a phishing page), and registering someone
+   * else's stored file to read it through a signed link of your own.
+   * Delegates to MediaService so the accepted shapes stay in one place.
    */
-  private assertOwnedStorageUrl(fileUrl: string) {
-    const isOwned = this.mediaService.storageUrlPrefixes().some((prefix: string) => fileUrl.startsWith(prefix));
-    if (!isOwned) {
-      throw new BadRequestException("fileUrl must reference a file uploaded via /v1/media/upload-url");
+  assertOwnedStorageUrl(userId: string, fileUrl: string) {
+    if (!this.mediaService.isOwnedBy(fileUrl, userId)) {
+      throw new BadRequestException("fileUrl must reference a file you uploaded via /v1/media/upload-url");
     }
   }
 
@@ -51,7 +50,7 @@ export class DocumentsService {
   }
 
   async upload(userId: string, input: DocumentUploadInput) {
-    this.assertOwnedStorageUrl(input.fileUrl);
+    this.assertOwnedStorageUrl(userId, input.fileUrl);
 
     const document = await this.prisma.document.create({ data: { userId, ...input } });
     this.eventEmitter.emit("profile.upserted", { ownerId: userId });
@@ -70,6 +69,10 @@ export class DocumentsService {
     const document = await this.prisma.document.findUnique({ where: { id: documentId } });
     if (!document || document.userId !== userId) throw new NotFoundException("Document not found");
     const removed = await this.prisma.document.delete({ where: { id: documentId } });
+    // "Delete" has to mean the file is gone, not just unlisted. Skipped when
+    // another row still points at the same object.
+    const stillReferenced = await this.prisma.document.count({ where: { fileUrl: document.fileUrl } });
+    if (stillReferenced === 0) await this.mediaService.deleteByUrl(document.fileUrl);
     this.eventEmitter.emit("profile.upserted", { ownerId: userId });
     await this.auditLog.record({
       actorId: userId,
