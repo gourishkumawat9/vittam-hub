@@ -228,6 +228,22 @@ export class MediaService {
   }
 
   /**
+   * Stricter than `isOwnedBy`: true only when the object's key names `userId`
+   * as its uploader. Used before deleting, where an unattributable legacy
+   * object must be left alone instead of given the benefit of the doubt.
+   */
+  wasUploadedBy(storedUrl: string, userId: string): boolean {
+    let key: string;
+    try {
+      key = this.extractKeyFromPublicUrl(storedUrl);
+    } catch {
+      return false;
+    }
+    const parts = key.split("/");
+    return parts.length === 3 && parts[1] === userId && UUID.test(parts[2] ?? "");
+  }
+
+  /**
    * Removes a stored object. Best-effort by design: the database row is the
    * record of what a member has on file, so a storage hiccup must not stop
    * them deleting a document or their account. A failure is logged for a

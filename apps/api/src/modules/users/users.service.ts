@@ -39,18 +39,22 @@ export class UsersService {
    *
    * The user row itself stays (soft delete, `deletedAt`) because other
    * people's history hangs off it: an investor's accepted connection and the
-   * messages in it, a mentor's past session, a thread someone replied to.
-   * Everything that is the person's own goes, in one transaction:
+   * messages in it, a mentor's past session. Everything that is the person's
+   * own goes, in one transaction:
    *
    * - every way to sign in: sessions, password, two-factor, linked Google /
    *   GitHub / LinkedIn accounts, outstanding codes and reset links;
    * - who they are: name, photo, phone-verified flag, the profile row;
-   * - everything public: the startup leaves every listing and its page, and
-   *   the investor / mentor / incubator / university profile is removed;
-   * - their documents, and the files behind them;
+   * - everything public: the startup (with its team, milestones, numbers and
+   *   funding rounds) and the investor / mentor / incubator / university
+   *   profile, along with their verification checks and trust scores;
+   * - what they wrote in the community: posts, comments, likes, votes, RSVPs
+   *   and bookmarks;
+   * - their documents, and the files behind them and behind their pictures;
    * - their private working data: follows, saved startups, alerts, saved
    *   searches, pipeline, mandates, portfolio entries, notifications;
-   * - connect requests nobody had answered yet (withdrawn).
+   * - reviews written about them, and connect requests nobody had answered
+   *   yet (withdrawn).
    *
    * Before this, only the sessions and the email address were touched, so a
    * "deleted" founder's startup stayed listed and a "deleted" investor stayed
@@ -60,18 +64,76 @@ export class UsersService {
   async deleteAccount(userId: string): Promise<void> {
     const now = new Date();
 
-    const documents = await this.prisma.$transaction(async (tx) => {
+    const storedFiles = await this.prisma.$transaction(async (tx) => {
       await revokeUserSessions(tx, userId);
       await tx.oAuthAccount.deleteMany({ where: { userId } });
       await tx.otpCode.deleteMany({ where: { userId } });
       await tx.passwordResetToken.deleteMany({ where: { userId } });
       await tx.mfaRecoveryCode.deleteMany({ where: { userId } });
 
+      const [account, startup, investor, mentor, incubator, university, serviceProvider] = await Promise.all([
+        tx.user.findUnique({ where: { id: userId }, select: { avatarUrl: true } }),
+        tx.startup.findUnique({
+          where: { ownerId: userId },
+          select: {
+            id: true,
+            logoUrl: true,
+            teamMembers: { select: { photoUrl: true } },
+            milestones: { select: { evidenceUrls: true } },
+          },
+        }),
+        tx.investor.findUnique({ where: { ownerId: userId }, select: { id: true, logoUrl: true } }),
+        tx.mentorProfile.findUnique({ where: { ownerId: userId }, select: { id: true } }),
+        tx.incubatorProfile.findUnique({ where: { ownerId: userId }, select: { id: true, logoUrl: true } }),
+        tx.universityProfile.findUnique({ where: { ownerId: userId }, select: { id: true, logoUrl: true } }),
+        tx.serviceProviderProfile.findUnique({ where: { ownerId: userId }, select: { id: true } }),
+      ]);
+
       const ownDocuments = await tx.document.findMany({ where: { userId }, select: { fileUrl: true } });
       await tx.document.deleteMany({ where: { userId } });
       await tx.documentGrant.deleteMany({ where: { OR: [{ grantedToId: userId }, { grantedById: userId }] } });
+      await tx.documentView.deleteMany({ where: { viewerId: userId } });
 
-      await tx.startup.updateMany({ where: { ownerId: userId }, data: { deletedAt: now, isPublic: false } });
+      // Verification checks, trust scores and "we backed / incubated them"
+      // claims are keyed by profile type and id, not by a foreign key, so
+      // nothing removes them when the profile goes. They hold registry lookups.
+      const entities = [
+        { type: "User", id: userId },
+        ...(startup ? [{ type: "Startup", id: startup.id }] : []),
+        ...(investor ? [{ type: "Investor", id: investor.id }] : []),
+        ...(mentor ? [{ type: "MentorProfile", id: mentor.id }] : []),
+        ...(incubator ? [{ type: "IncubatorProfile", id: incubator.id }] : []),
+        ...(university ? [{ type: "UniversityProfile", id: university.id }] : []),
+        ...(serviceProvider ? [{ type: "ServiceProviderProfile", id: serviceProvider.id }] : []),
+      ];
+      const asEntity = entities.map(({ type, id }) => ({ entityType: type, entityId: id }));
+      await tx.verificationRecord.deleteMany({ where: { OR: asEntity } });
+      await tx.trustScoreSnapshot.deleteMany({ where: { OR: asEntity } });
+      await tx.relationshipClaim.deleteMany({
+        where: {
+          OR: [
+            ...entities.map(({ type, id }) => ({ claimantType: type, claimantId: id })),
+            ...entities.map(({ type, id }) => ({ targetType: type, targetId: id })),
+          ],
+        },
+      });
+
+      // The community: a post takes its comments, likes, votes and RSVPs with it.
+      await tx.post.deleteMany({ where: { authorId: userId } });
+      await tx.comment.deleteMany({ where: { authorId: userId } });
+      await tx.like.deleteMany({ where: { userId } });
+      await tx.pollVote.deleteMany({ where: { userId } });
+      await tx.eventRsvp.deleteMany({ where: { userId } });
+      await tx.postBookmark.deleteMany({ where: { userId } });
+
+      // Reviews written about them. Ones they wrote about someone else stay, under "Deleted account".
+      await tx.founderReview.deleteMany({ where: { founderId: userId } });
+      await tx.mentorReview.deleteMany({ where: { mentorId: userId } });
+
+      // The startup row is removed outright, and everything that belongs to it
+      // goes with it (team, milestones, numbers, funding rounds, followers,
+      // pipeline entries). Connections that mentioned it stay, without it.
+      await tx.startup.deleteMany({ where: { ownerId: userId } });
       await tx.investor.deleteMany({ where: { ownerId: userId } });
       await tx.mentorProfile.deleteMany({ where: { ownerId: userId } });
       await tx.incubatorProfile.deleteMany({ where: { ownerId: userId } });
@@ -82,6 +144,7 @@ export class UsersService {
 
       await tx.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followingId: userId }] } });
       await tx.startupFollow.deleteMany({ where: { investorId: userId } });
+      await tx.startupProfileView.deleteMany({ where: { investorId: userId } });
       await tx.watchlistTrigger.deleteMany({ where: { investorId: userId } });
       await tx.savedSearch.deleteMany({ where: { investorId: userId } });
       await tx.pipelineEntry.deleteMany({ where: { investorId: userId } });
@@ -114,15 +177,36 @@ export class UsersService {
         },
       });
 
-      return ownDocuments;
+      const pictures = [
+        account?.avatarUrl,
+        startup?.logoUrl,
+        investor?.logoUrl,
+        incubator?.logoUrl,
+        university?.logoUrl,
+        ...(startup?.teamMembers.map((member) => member.photoUrl) ?? []),
+        ...(startup?.milestones.flatMap((milestone) => milestone.evidenceUrls) ?? []),
+      ].filter((url): url is string => !!url);
+
+      return { documents: ownDocuments.map((document) => document.fileUrl), pictures };
     });
 
     // The stored files go only once the rows are gone for certain. Best effort:
     // a storage hiccup must not undo, or fail, a deletion the person asked for.
-    for (const document of documents) {
-      const stillReferenced = await this.prisma.document.count({ where: { fileUrl: document.fileUrl } });
-      if (stillReferenced === 0) await this.mediaService.deleteByUrl(document.fileUrl);
+    let removed = 0;
+    for (const fileUrl of new Set(storedFiles.documents)) {
+      const stillReferenced = await this.prisma.document.count({ where: { fileUrl } });
+      if (stillReferenced > 0) continue;
+      await this.mediaService.deleteByUrl(fileUrl);
+      removed += 1;
     }
-    this.logger.log(`Account ${userId} deleted at its owner's request (${documents.length} stored file(s) removed).`);
+    // A picture field takes any link, so only files this account itself
+    // uploaded are removed: nobody can delete another member's logo by
+    // pasting its address into their own profile first.
+    for (const fileUrl of new Set(storedFiles.pictures)) {
+      if (!this.mediaService.wasUploadedBy(fileUrl, userId)) continue;
+      await this.mediaService.deleteByUrl(fileUrl);
+      removed += 1;
+    }
+    this.logger.log(`Account ${userId} deleted at its owner's request (${removed} stored file(s) removed).`);
   }
 }
