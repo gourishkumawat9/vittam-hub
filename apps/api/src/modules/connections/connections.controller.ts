@@ -1,5 +1,6 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import {
   connectionListFiltersSchema,
   createConnectionInputSchema,
@@ -15,6 +16,7 @@ import {
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { ACCOUNT_THROTTLER, UserThrottlerGuard } from "../../common/guards/user-throttler.guard";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
@@ -75,6 +77,9 @@ export class ConnectionsController {
   }
 
   @Post(":id/messages")
+  // Per account, not per IP: enough for a real conversation, too few to flood the other side.
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ [ACCOUNT_THROTTLER]: { limit: 60, ttl: 10 * 60_000 } })
   @UsePipes(new ZodValidationPipe(createMessageInputSchema))
   @ApiOperation({ summary: "Send a message in an accepted connection's thread" })
   sendMessage(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: CreateMessageInput) {

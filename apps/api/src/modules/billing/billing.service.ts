@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Stripe from "stripe";
 
@@ -21,13 +21,19 @@ export class BillingService {
     this.stripe = secretKey ? new Stripe(secretKey, { apiVersion: "2025-02-24.acacia" }) : null;
   }
 
+  /**
+   * Billing isn't switched on yet (CLAUDE.md §5), so an unconfigured server answers 503 rather than
+   * crashing with a 500, and a body whose signature doesn't check out is a 400, never processed.
+   */
   constructEvent(rawBody: Buffer, signature: string) {
-    if (!this.stripe) throw new Error("STRIPE_SECRET_KEY is not configured");
-    return this.stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      this.configService.getOrThrow("STRIPE_WEBHOOK_SECRET"),
-    );
+    const webhookSecret = this.configService.get<string>("STRIPE_WEBHOOK_SECRET");
+    if (!this.stripe || !webhookSecret) throw new ServiceUnavailableException("Billing is not enabled");
+    if (!Buffer.isBuffer(rawBody)) throw new BadRequestException("Invalid webhook body");
+    try {
+      return this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    } catch {
+      throw new BadRequestException("Invalid webhook signature");
+    }
   }
 
   async handleEvent(event: Stripe.Event) {

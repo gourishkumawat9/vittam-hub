@@ -101,7 +101,7 @@ export function MentorInfoStep({ defaultValues, onBack, isEditing = false }: Men
         {errors.sessionTypes?.message && <p className="text-xs text-danger-600">{errors.sessionTypes.message}</p>}
       </div>
 
-      <Input label="Pricing model" hint='e.g. "Free", "$100/session"' error={errors.pricingModel?.message} {...register("pricingModel")} />
+      <Input label="Pricing model" hint='e.g. "Free", "₹2,000 per session"' error={errors.pricingModel?.message} {...register("pricingModel")} />
 
       <Controller
         control={control}
