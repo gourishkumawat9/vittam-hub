@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, EmptyState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { FileText, History, Link2 } from "lucide-react";
 
+import { externalHref } from "@/lib/safe-url";
+
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|webp|gif)$/i.test(url);
 }
@@ -15,14 +17,14 @@ function EvidenceRow({ evidenceUrls }: { evidenceUrls: string[] }) {
     <div className="mt-1.5 flex flex-wrap gap-1.5">
       {evidenceUrls.map((url) =>
         isImageUrl(url) ? (
-          <a key={url} href={url} target="_blank" rel="noreferrer">
+          <a key={url} href={externalHref(url)} target="_blank" rel="noreferrer">
             {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded remote URL, thumbnail only */}
             <img src={url} alt="" className="h-8 w-8 rounded object-cover" />
           </a>
         ) : (
           <a
             key={url}
-            href={url}
+            href={externalHref(url)}
             target="_blank"
             rel="noreferrer"
             className="flex h-8 items-center gap-1 rounded-button border border-border px-2 text-xs text-text-secondary hover:text-brand-primary"

@@ -33,6 +33,22 @@ jobs:
 - **`main` merge → Vercel** auto-deploys `apps/web` (preview deploys already happen per-PR automatically via Vercel's GitHub integration once the project is linked)
 - **`main` merge → API**: build `infra/docker/api.Dockerfile`, push to the registry, deploy to the PaaS, run `pnpm db:deploy` (Prisma migrate deploy) against production *before* the new API version receives traffic — migrations must be backward-compatible with the previous API version during the deploy window (additive changes first, remove-old-column in a follow-up deploy)
 
+## File storage setup (Cloudflare R2)
+
+Uploads go from the browser straight to storage on a short-lived signed link; the API only signs. Until all six `STORAGE_*` variables are set on the API, every upload is refused with a message naming what is missing.
+
+1. Create **two** buckets: a private one for documents (`STORAGE_BUCKET`) and a public one for logos and avatars (`STORAGE_PUBLIC_BUCKET`). Attach the public domain (`STORAGE_PUBLIC_CDN_URL`, e.g. `https://media.vittamhub.com`) to the public bucket only. A domain on the documents bucket would make every pitch deck readable by URL.
+2. Create an R2 API token with read and write on both buckets, and set `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY_ID` and `STORAGE_SECRET_ACCESS_KEY` on the API.
+3. Give **each** bucket this CORS rule, or the browser refuses to send the file:
+
+   ```json
+   [{ "AllowedOrigins": ["https://vittamhub.com"], "AllowedMethods": ["PUT"], "AllowedHeaders": ["content-type"], "MaxAgeSeconds": 3600 }]
+   ```
+
+The link is a signed `PUT`, not a form `POST`: R2 does not accept form uploads. The size limit (5 MB pictures, 20 MB documents) is checked by the API and then signed into the link as the exact `Content-Length`, so storage rejects a body of any other size.
+
+The website's Content-Security-Policy (`apps/web/next.config.mjs`) allows uploads to `*.r2.cloudflarestorage.com` and pictures from `media.vittamhub.com`. For any other store or picture domain, set `NEXT_PUBLIC_UPLOAD_ORIGINS` / `NEXT_PUBLIC_MEDIA_ORIGINS` on the website and redeploy it.
+
 ## Environments
 
 Three tiers: **local** (`docker-compose.yml` for Postgres/Redis, `.env` for secrets), **preview** (one per PR — Vercel preview + a preview API deploy pointed at a preview/branch database, ideally a Neon branch so preview data doesn't touch production), **production**. `NODE_ENV` gates behavior in exactly two places today: Swagger UI is disabled (`main.ts`) and cookies are marked `Secure` (`auth.controller.ts`) only when `production`.

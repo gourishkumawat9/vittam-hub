@@ -19,7 +19,12 @@ import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
+import { MediaService } from "../media/media.service";
 import { PlanLimitsService } from "../plan-limits/plan-limits.service";
+
+/** The two files a founder can attach to a connect request, by the name used in the route. */
+export const CONNECTION_ATTACHMENTS = { "pitch-deck": "pitchDeckUrl", "executive-summary": "executiveSummaryUrl" } as const;
+export type ConnectionAttachmentKind = keyof typeof CONNECTION_ATTACHMENTS;
 
 const RESPONSE_ACTION_TO_STATUS: Record<ConnectionResponseAction, "ACCEPTED" | "DECLINED" | "IGNORED"> = {
   ACCEPT: "ACCEPTED",
@@ -42,7 +47,20 @@ export class ConnectionsService {
     private readonly planLimits: PlanLimitsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly auditLog: AuditLogService,
+    private readonly mediaService: MediaService,
   ) {}
+
+  /**
+   * An attachment is either a link the founder pasted or a file they uploaded
+   * to our own storage. For a file, it has to be their own upload: the
+   * attachment route hands a signed link to both people on the request, so
+   * accepting someone else's stored file here would be a way to read it.
+   */
+  private assertOwnAttachment(requesterId: string, url: string | undefined) {
+    if (url && this.mediaService.isStorageUrl(url) && !this.mediaService.isOwnedBy(url, requesterId)) {
+      throw new BadRequestException("That attachment isn't a file uploaded from your account. Please upload it again.");
+    }
+  }
 
   /**
    * The only way a founder can reach an investor — see docs/12-connect-requests.md.
@@ -54,6 +72,8 @@ export class ConnectionsService {
     if (!startup) {
       throw new BadRequestException("Complete your startup profile before sending connect requests.");
     }
+    this.assertOwnAttachment(requesterId, input.pitchDeckUrl);
+    this.assertOwnAttachment(requesterId, input.executiveSummaryUrl);
 
     const recipient = await this.prisma.user.findUnique({ where: { id: input.recipientId } });
     // A demo account and a real one never interact (common/demo/demo-scope.ts); "not found" so neither side can probe the other.
@@ -200,6 +220,24 @@ export class ConnectionsService {
     });
 
     return updated;
+  }
+
+  /**
+   * Where to open a connect request's pitch deck or one-pager. An uploaded
+   * file sits in the private bucket, so the address stored on the request
+   * opens nothing by itself (it answered "access denied" to the investor it
+   * was sent to). Both people on the request get a link that works for five
+   * minutes; a link the founder pasted is passed through unchanged.
+   */
+  async attachmentUrl(connectionId: string, callerId: string, kind: ConnectionAttachmentKind) {
+    const connection = await this.assertConnectionMember(connectionId, callerId);
+    const stored = connection[CONNECTION_ATTACHMENTS[kind]];
+    if (!stored) throw new NotFoundException("Nothing is attached here");
+    if (!this.mediaService.isStorageUrl(stored)) return { url: stored };
+    // Checked again on the way out, for requests created before `create` checked it.
+    if (!this.mediaService.isOwnedBy(stored, connection.requesterId)) throw new NotFoundException("Nothing is attached here");
+    const key = this.mediaService.extractKeyFromPublicUrl(stored);
+    return { url: await this.mediaService.getSignedDownloadUrl(key, 300, this.mediaService.bucketForUrl(stored)) };
   }
 
   /** Membership only: who may read a connection's meetings. Proposing one has its own, stricter rule in `scheduleMeeting`. */

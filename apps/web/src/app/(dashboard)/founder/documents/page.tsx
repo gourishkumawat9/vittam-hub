@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeleteDocument, useDocuments, useUploadDocument, uploadFile } from "@vittamhub/api-client";
+import { useDeleteDocument, useDocumentDownloadUrl, useDocuments, useUploadDocument, uploadFile } from "@vittamhub/api-client";
 import { DocumentType } from "@vittamhub/types";
 import { Button, EmptyState, Select, useToast } from "@vittamhub/ui";
 import { ChevronDown, FolderLock, Loader2, Trash2, Upload } from "lucide-react";
@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 import { DocumentAccessPanel } from "@/components/dashboard/founder/DocumentAccessPanel";
+import { openFetchedLink } from "@/lib/open-link";
 
 const DOCUMENT_LABELS: Record<string, string> = {
   PITCH_DECK: "Pitch Deck",
@@ -55,6 +56,7 @@ export default function FounderDocumentsPage() {
   const uploadDocument = useUploadDocument();
   const { toast } = useToast();
   const deleteDocument = useDeleteDocument();
+  const downloadUrl = useDocumentDownloadUrl();
   const [uploadType, setUploadType] = useState<DocumentType>(DocumentType.PITCH_DECK);
   const [uploading, setUploading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -118,12 +120,21 @@ export default function FounderDocumentsPage() {
         <div className="flex flex-col divide-y divide-border rounded-card border border-border">
           {documents.map((doc) => (
             <div key={doc.id} className="flex flex-col gap-3 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-text-primary">{doc.fileName}</span>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm font-medium text-text-primary">{doc.fileName}</span>
                   <span className="text-xs text-text-secondary">{DOCUMENT_LABELS[doc.type] ?? doc.type}</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* A founder had no way to open a file they had uploaded. */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={downloadUrl.isPending}
+                    onClick={() => void openFetchedLink(async () => (await downloadUrl.mutateAsync(doc.id)).fileUrl)}
+                  >
+                    View
+                  </Button>
                   {SHAREABLE_TYPES.has(doc.type) && (
                     <Button
                       variant="ghost"

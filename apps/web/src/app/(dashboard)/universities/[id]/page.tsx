@@ -5,6 +5,7 @@ import { Badge, Card, CardContent, CardHeader, CardTitle, ErrorState, Skeleton }
 import { useParams } from "next/navigation";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { externalHref } from "@/lib/safe-url";
 
 export default function UniversityDetailPage() {
   const params = useParams<{ id: string }>();
@@ -66,7 +67,7 @@ export default function UniversityDetailPage() {
             </ul>
           )}
           {university.website && (
-            <a href={university.website} target="_blank" rel="noreferrer" className="mt-2 font-semibold text-brand-primary hover:underline">
+            <a href={externalHref(university.website)} target="_blank" rel="noreferrer" className="mt-2 font-semibold text-brand-primary hover:underline">
               Visit website
             </a>
           )}

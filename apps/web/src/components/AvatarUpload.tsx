@@ -22,8 +22,8 @@ export function AvatarUpload({ value, onChange, label = "Profile picture" }: Ava
     try {
       const url = await uploadFile(file, "avatars");
       onChange(url);
-    } catch {
-      setError("Upload failed. Please try again");
+    } catch (cause) {
+      setError(cause instanceof Error && cause.message ? cause.message : "Upload failed. Please try again");
     } finally {
       setIsUploading(false);
     }

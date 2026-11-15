@@ -22,6 +22,7 @@ interface StepProps {
 export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
   const setSectionData = useOnboardingStore((s) => s.setSectionData);
   const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false);
+  const [screenshotError, setScreenshotError] = useState<string | null>(null);
 
   const {
     register,
@@ -44,10 +45,14 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
 
   const handleScreenshotUpload = async (file: File | undefined) => {
     if (!file) return;
+    setScreenshotError(null);
     setIsUploadingScreenshot(true);
     try {
-      const url = await uploadFile(file, "documents");
+      // Public images: screenshots are shown as pictures, so they can't sit with the private documents.
+      const url = await uploadFile(file, "pictures");
       setValue("screenshots", [...(values.screenshots ?? []), url]);
+    } catch (cause) {
+      setScreenshotError(cause instanceof Error && cause.message ? cause.message : "That picture couldn't be uploaded. Please try again.");
     } finally {
       setIsUploadingScreenshot(false);
     }
@@ -94,23 +99,34 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
               <button
                 type="button"
                 onClick={() => setValue("screenshots", (values.screenshots ?? []).filter((s) => s !== url))}
-                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900/70 text-white"
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-text-primary shadow-sm"
                 aria-label="Remove screenshot"
               >
                 <X className="h-3 w-3" />
               </button>
             </div>
           ))}
-          <label className="flex h-20 w-32 cursor-pointer items-center justify-center rounded-card border border-dashed border-border text-xs text-text-secondary hover:bg-background-secondary">
-            {isUploadingScreenshot ? <Loader2 className="h-4 w-4 animate-spin" /> : "+ Add"}
+          <label className="flex h-20 w-32 cursor-pointer items-center justify-center rounded-card border border-dashed border-border text-xs text-text-secondary hover:bg-background-secondary focus-within:ring-2 focus-within:ring-brand-primary">
+            {isUploadingScreenshot ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : "+ Add"}
+            <span className="sr-only">Add a screenshot</span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={(e) => handleScreenshotUpload(e.target.files?.[0])}
+              className="sr-only"
+              disabled={isUploadingScreenshot}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                void handleScreenshotUpload(file);
+              }}
             />
           </label>
         </div>
+        {screenshotError && (
+          <p className="text-xs text-danger-600" role="alert">
+            {screenshotError}
+          </p>
+        )}
       </div>
 
       <Controller

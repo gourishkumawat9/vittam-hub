@@ -60,6 +60,9 @@ export const connectionsApi = {
     return apiRequest<PaginatedResult<ConnectionWithRelations>>(`/v1/connections?${params.toString()}`);
   },
   quota: () => apiRequest<ConnectionQuota>("/v1/connections/quota"),
+  /** A link that opens the request's pitch deck or one-pager. Uploaded files get a five-minute signed link; pasted links come back as they are. */
+  attachment: (id: string, kind: "pitch-deck" | "executive-summary") =>
+    apiRequest<{ url: string }>(`/v1/connections/${id}/attachments/${kind}`),
   listMyMeetings: () => apiRequest<MeetingWithConnection[]>("/v1/connections/meetings"),
   create: (input: CreateConnectionInput) => apiRequest<Connection>("/v1/connections", { method: "POST", body: input }),
   respond: (id: string, action: ConnectionResponseAction) =>

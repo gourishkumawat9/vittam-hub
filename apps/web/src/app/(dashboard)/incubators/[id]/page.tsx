@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { FollowButton } from "@/components/dashboard/FollowButton";
+import { externalHref } from "@/lib/safe-url";
 
 function formatDate(iso: string | null) {
   if (!iso) return null;
@@ -76,7 +77,7 @@ export default function IncubatorDetailPage() {
                   {program.eligibilityCriteria && <p>Eligibility: {program.eligibilityCriteria}</p>}
                   {program.applicationUrl && (
                     <a
-                      href={program.applicationUrl}
+                      href={externalHref(program.applicationUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-1 font-semibold text-brand-primary hover:underline"

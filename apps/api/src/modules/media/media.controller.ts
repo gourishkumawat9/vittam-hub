@@ -21,7 +21,9 @@ const uploadUrlRequestSchema = z.object({
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx — contracts, notes
     "text/csv",
   ]),
-  folder: z.enum(["logos", "avatars", "documents", "resumes"]),
+  folder: z.enum(["logos", "avatars", "pictures", "documents", "resumes"]),
+  // The file's size, which is signed into the upload link. The per-folder limit is applied by MediaService.
+  sizeBytes: z.number().int().positive().max(20 * 1024 * 1024, "That file is too large. The limit is 20 MB."),
 });
 type UploadUrlRequest = z.infer<typeof uploadUrlRequestSchema>;
 
@@ -41,6 +43,6 @@ export class MediaController {
   @UsePipes(new ZodValidationPipe(uploadUrlRequestSchema))
   @ApiOperation({ summary: "Get a short-lived pre-signed URL for direct-to-storage upload" })
   createUploadUrl(@CurrentUser() user: AuthenticatedUser, @Body() body: UploadUrlRequest) {
-    return this.mediaService.createUploadUrl(body.mimeType, body.folder, user.sub);
+    return this.mediaService.createUploadUrl(body.mimeType, body.folder, user.sub, body.sizeBytes);
   }
 }

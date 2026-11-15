@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { DeleteObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -22,7 +21,7 @@ const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type UploadFolder = "logos" | "avatars" | "documents" | "resumes";
+export type UploadFolder = "logos" | "avatars" | "pictures" | "documents" | "resumes";
 
 /**
  * Folders whose objects are rendered directly in `<img src=…>` on **public**
@@ -39,12 +38,20 @@ export type UploadFolder = "logos" | "avatars" | "documents" | "resumes";
  * by URL — including `documents/<uuid>` — with no expiry and no grant check,
  * silently defeating the entire data room.
  */
-const PUBLIC_FOLDERS = new Set<UploadFolder>(["logos", "avatars"]);
+// "pictures" holds the images a profile shows: a milestone's evidence and the
+// product screenshots. They used to be stored with the private documents, so
+// they showed as broken images and their links opened "access denied".
+const PUBLIC_FOLDERS = new Set<UploadFolder>(["logos", "avatars", "pictures"]);
 
-/** Per-folder max upload size, enforced by S3/R2 itself via the presigned POST policy's content-length-range condition — never trusted to the client. */
+/**
+ * Per-folder max upload size. The browser says how big the file is, the size
+ * is checked against this, and that exact size is then signed into the upload
+ * link, so storage itself refuses a body of any other length.
+ */
 const MAX_UPLOAD_BYTES: Record<UploadFolder, number> = {
   logos: 5 * 1024 * 1024,
   avatars: 5 * 1024 * 1024,
+  pictures: 5 * 1024 * 1024,
   documents: 20 * 1024 * 1024,
   resumes: 10 * 1024 * 1024,
 };
@@ -72,6 +79,11 @@ export class MediaService {
         accessKeyId: this.configService.get("STORAGE_ACCESS_KEY_ID", ""),
         secretAccessKey: this.configService.get("STORAGE_SECRET_ACCESS_KEY", ""),
       },
+      // Cloudflare R2 doesn't take the CRC32 checksums newer SDK versions add
+      // to every request by default. Left on, the SDK also writes the checksum
+      // of an empty body into each upload link, which no real file matches.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
 
     const missing = this.missingStorageVars();
@@ -88,11 +100,11 @@ export class MediaService {
    * Fail closed when storage isn't configured.
    *
    * This is not defensive padding — it fixes a real fail-open bug. With the
-   * STORAGE_* vars unset, `createPresignedPost` does NOT throw: it happily
-   * returns a well-formed policy pointing at `https://s3.auto.amazonaws.com/`
-   * (the SDK's default endpoint), so the API answered 200 and the browser
-   * then POSTed the user's pitch deck to an unrelated Amazon endpoint before
-   * failing with an opaque "File upload failed". `publicUrl` was
+   * STORAGE_* vars unset, signing does NOT throw: it happily returns a
+   * well-formed link pointing at `https://s3.auto.amazonaws.com/` (the SDK's
+   * default endpoint), so the API answered 200 and the browser then sent the
+   * user's pitch deck to an unrelated Amazon endpoint before failing with an
+   * opaque "File upload failed". `publicUrl` was
    * simultaneously being built as the literal string "undefined/documents/…".
    * Refusing loudly is the only safe behaviour.
    */
@@ -106,19 +118,23 @@ export class MediaService {
   }
 
   /**
-   * Returns a presigned POST policy (url + form fields) so the browser
-   * uploads straight to R2 — files never transit through our API process.
-   * A presigned PUT (the previous mechanism) can't cap the byte size the
-   * client sends; a POST policy's `content-length-range` condition is
-   * enforced by S3/R2 itself before the object is even written, so this is
-   * real, non-bypassable size enforcement rather than a client-reported
-   * value we'd have to trust.
+   * Returns a short-lived signed link the browser PUTs the file to, so files
+   * go straight to storage and never through this API process.
    *
-   * Caller (e.g. logo upload form) POSTs a multipart form to `uploadUrl`
-   * with `uploadFields` plus the file, then persists `publicUrl` on the
-   * owning record (Startup.logoUrl, User.avatarUrl, ...).
+   * This was a presigned POST form, chosen because its policy can cap the
+   * size. Cloudflare R2, the store this project is set up for, does not
+   * accept form uploads at all ("POST ... is not currently supported"), so no
+   * upload could ever have worked there. A signed PUT works on R2 and on S3.
+   * The size cap is kept by signing the `Content-Length` header: the link is
+   * only valid for a body of exactly the size that was checked here, and
+   * only with the content type that was checked here.
+   *
+   * The caller PUTs the file to `uploadUrl` with `uploadHeaders`, then
+   * persists `publicUrl` on the owning record (Startup.logoUrl, a Document
+   * row, ...). The bucket needs a CORS rule that lets the website's origin
+   * PUT with a Content-Type header: see docs/10-deployment-infrastructure.md.
    */
-  async createUploadUrl(mimeType: string, folder: UploadFolder, userId: string) {
+  async createUploadUrl(mimeType: string, folder: UploadFolder, userId: string, sizeBytes: number) {
     this.assertStorageConfigured();
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
       // BadRequest, not a bare Error — a rejected file type is the caller's
@@ -131,6 +147,12 @@ export class MediaService {
     if (PUBLIC_FOLDERS.has(folder) && !IMAGE_MIME_TYPES.has(mimeType)) {
       throw new BadRequestException("Only PNG, JPEG or WebP images can be uploaded here");
     }
+    if (!Number.isInteger(sizeBytes) || sizeBytes <= 0) {
+      throw new BadRequestException("That file is empty");
+    }
+    if (sizeBytes > MAX_UPLOAD_BYTES[folder]) {
+      throw new BadRequestException(`That file is too large. The limit here is ${MAX_UPLOAD_BYTES[folder] / (1024 * 1024)} MB.`);
+    }
 
     // Key is `<folder>/<uploader>/<uuid>`: the folder comes from a closed enum
     // validated at the controller, the uploader is the signed-in user's id and
@@ -139,20 +161,15 @@ export class MediaService {
     // lets `isOwnedBy` refuse a file somebody else uploaded. The original
     // filename is stored on the Document row, never in storage.
     const key = `${folder}/${userId}/${randomUUID()}`;
-    const bucket = this.bucketFor(folder);
 
-    const { url, fields } = await createPresignedPost(this.s3, {
-      Bucket: bucket,
-      Key: key,
-      Expires: 300,
-      Conditions: [
-        ["content-length-range", 0, MAX_UPLOAD_BYTES[folder]],
-        ["eq", "$Content-Type", mimeType],
-      ],
-      Fields: { "Content-Type": mimeType },
-    });
+    const uploadUrl = await getSignedUrl(
+      this.s3,
+      new PutObjectCommand({ Bucket: this.bucketFor(folder), Key: key, ContentType: mimeType, ContentLength: sizeBytes }),
+      // Both headers are part of the signature: a different type or a different length fails at storage.
+      { expiresIn: 300, signableHeaders: new Set(["content-type", "content-length"]) },
+    );
 
-    return { uploadUrl: url, uploadFields: fields, publicUrl: this.objectUrl(folder, key) };
+    return { uploadUrl, uploadHeaders: { "Content-Type": mimeType }, publicUrl: this.objectUrl(folder, key) };
   }
 
   private bucketFor(folder: UploadFolder): string {
@@ -200,6 +217,12 @@ export class MediaService {
       `${this.configService.get("STORAGE_PUBLIC_CDN_URL")}/`,
       `${this.configService.get("STORAGE_ENDPOINT")}/${this.configService.get("STORAGE_BUCKET")}/`,
     ];
+  }
+
+  /** True when `url` points at one of this deployment's own stored objects (and not, say, at a link somebody pasted). */
+  isStorageUrl(url: string): boolean {
+    if (this.missingStorageVars().length > 0) return false;
+    return this.storageUrlPrefixes().some((prefix) => url.startsWith(prefix));
   }
 
   /**

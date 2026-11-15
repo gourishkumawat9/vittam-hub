@@ -18,11 +18,12 @@ export function useFollowers() {
   return useQuery({ queryKey: followKeys.followers, queryFn: followsApi.listFollowers });
 }
 
-export function useIsFollowing(userId: string) {
+/** `enabled` is for pages a signed-out visitor can open: there is nobody to ask "am I following?" for. */
+export function useIsFollowing(userId: string, enabled = true) {
   return useQuery({
     queryKey: followKeys.isFollowing(userId),
     queryFn: () => followsApi.isFollowing(userId),
-    enabled: !!userId,
+    enabled: enabled && !!userId,
   });
 }
 

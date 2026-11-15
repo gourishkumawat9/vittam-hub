@@ -6,6 +6,7 @@ import { Calendar, Video } from "lucide-react";
 import Link from "next/link";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { externalHref } from "@/lib/safe-url";
 
 export default function MeetingsPage() {
   const { data: meetings, isLoading } = useMyMeetings();
@@ -33,7 +34,7 @@ export default function MeetingsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   {meeting.videoCallUrl && (
-                    <a href={meeting.videoCallUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline">
+                    <a href={externalHref(meeting.videoCallUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline">
                       <Video className="h-3.5 w-3.5" /> Join
                     </a>
                   )}

@@ -14,6 +14,8 @@ import {
   type StartupInfoStepInput,
 } from "@vittamhub/types";
 import { Input, Select, Textarea } from "@vittamhub/ui";
+import { ImageIcon, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useAutosave } from "@/hooks/useAutosave";
@@ -62,10 +64,23 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
     onNext();
   });
 
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoUrl = values.logoUrl;
+
+  // A failed upload used to do nothing visible, and nothing showed that one had worked either.
   const handleLogoUpload = async (file: File | undefined) => {
     if (!file) return;
-    const url = await uploadFile(file, "logos");
-    setValue("logoUrl", url);
+    setLogoError(null);
+    setLogoUploading(true);
+    try {
+      const url = await uploadFile(file, "logos");
+      setValue("logoUrl", url, { shouldDirty: true });
+    } catch (cause) {
+      setLogoError(cause instanceof Error && cause.message ? cause.message : "That logo couldn't be uploaded. Please try again.");
+    } finally {
+      setLogoUploading(false);
+    }
   };
 
   return (
@@ -84,13 +99,45 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-text-primary">Logo</label>
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            onChange={(e) => handleLogoUpload(e.target.files?.[0])}
-            className="text-sm text-text-secondary file:mr-3 file:rounded-button file:border-0 file:bg-brand-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700"
-          />
+          <span className="text-sm font-medium text-text-primary">Logo</span>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-card border border-border bg-background-secondary">
+              {logoUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-text-secondary" aria-hidden />
+              ) : logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded remote URL
+                <img src={logoUrl} alt="Your logo" className="h-full w-full object-cover" />
+              ) : (
+                <ImageIcon className="h-4 w-4 text-text-secondary" aria-hidden />
+              )}
+            </div>
+            <label className="cursor-pointer rounded-button border border-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-background-secondary focus-within:ring-2 focus-within:ring-brand-primary">
+              {logoUrl ? "Change logo" : "Upload logo"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                disabled={logoUploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  void handleLogoUpload(file);
+                }}
+              />
+            </label>
+            {logoUrl && !logoUploading && (
+              <button type="button" onClick={() => setValue("logoUrl", "", { shouldDirty: true })} className="text-xs text-text-secondary hover:text-text-primary">
+                Remove
+              </button>
+            )}
+          </div>
+          {logoError ? (
+            <p className="text-xs text-danger-600" role="alert">
+              {logoError}
+            </p>
+          ) : (
+            <p className="text-xs text-text-secondary">PNG, JPEG or WebP, up to 5 MB. A square picture looks best.</p>
+          )}
         </div>
         <Input label="Website" placeholder="https://…" error={errors.website?.message} {...register("website")} />
       </div>

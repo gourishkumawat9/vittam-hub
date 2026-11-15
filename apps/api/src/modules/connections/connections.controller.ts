@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   connectionListFiltersSchema,
@@ -18,7 +18,7 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
-import { ConnectionsService } from "./connections.service";
+import { CONNECTION_ATTACHMENTS, ConnectionsService, type ConnectionAttachmentKind } from "./connections.service";
 
 @ApiTags("connections")
 @Controller("v1/connections")
@@ -59,6 +59,13 @@ export class ConnectionsController {
   @ApiOperation({ summary: "Accept, decline, or ignore a received connect request" })
   respond(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: RespondToConnectionInput) {
     return this.connectionsService.respond(id, user.sub, input.action);
+  }
+
+  @Get(":id/attachments/:kind")
+  @ApiOperation({ summary: "A short-lived link to the pitch deck or one-pager attached to a connect request (its two members only)" })
+  attachment(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Param("kind") kind: string) {
+    if (!Object.hasOwn(CONNECTION_ATTACHMENTS, kind)) throw new NotFoundException("Nothing is attached here");
+    return this.connectionsService.attachmentUrl(id, user.sub, kind as ConnectionAttachmentKind);
   }
 
   @Get(":id/messages")

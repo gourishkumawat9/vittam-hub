@@ -1,7 +1,50 @@
-// In dev the API runs on http://localhost:4000, not the production domain — without this,
-// the browser's CSP silently blocks every fetch() to the API and every request just
-// rejects with a generic "Failed to fetch" (no visible error unless you check the console).
-const apiConnectSrc = process.env.NODE_ENV === "production" ? "https://api.vittamhub.com" : "http://localhost:4000";
+const isProduction = process.env.NODE_ENV === "production";
+
+/** The origin of a URL, or null when it isn't one. */
+function originOf(url) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+/** A list of origins from an environment variable (commas or spaces between them). */
+function originsFrom(value) {
+  return (value ?? "").split(/[\s,]+/).filter(Boolean);
+}
+
+// The API the browser talks to. In dev that is http://localhost:4000, not the production domain — without it,
+// the browser's CSP silently blocks every fetch() to the API and every request just rejects with a generic
+// "Failed to fetch". Read from NEXT_PUBLIC_API_URL, which is what the app itself calls, so the two can't disagree.
+const apiConnectSrc = [
+  ...new Set([originOf(process.env.NEXT_PUBLIC_API_URL), isProduction ? "https://api.vittamhub.com" : "http://localhost:4000"].filter(Boolean)),
+].join(" ");
+
+// A file goes from the browser straight to object storage on a pre-signed URL, never through the API, so that
+// origin has to be allowed too or every upload fails with "Failed to fetch". Cloudflare R2 is the store named in
+// docs/10-deployment-infrastructure.md; set NEXT_PUBLIC_UPLOAD_ORIGINS for any other S3-compatible one.
+const uploadConnectSrc = (originsFrom(process.env.NEXT_PUBLIC_UPLOAD_ORIGINS).length
+  ? originsFrom(process.env.NEXT_PUBLIC_UPLOAD_ORIGINS)
+  : ["https://*.r2.cloudflarestorage.com"]
+).join(" ");
+
+// Pictures: the media CDN, plus the profile photo a Google, GitHub or LinkedIn sign-in brings with it
+// (those were blocked, so every such account showed a broken image).
+const imgSrc = [
+  "'self'",
+  "data:",
+  "blob:",
+  "https://media.vittamhub.com",
+  ...originsFrom(process.env.NEXT_PUBLIC_MEDIA_ORIGINS),
+  "https://lh3.googleusercontent.com",
+  "https://avatars.githubusercontent.com",
+  "https://media.licdn.com",
+].join(" ");
+
+// Cloudflare Turnstile, the CAPTCHA the auth pages load when CAPTCHA_SITE_KEY is set on the API. Its script and
+// its frame were both blocked here, so switching the CAPTCHA on would have made signing up and logging in impossible.
+const TURNSTILE = "https://challenges.cloudflare.com";
 
 /** Canonical host — www redirects here so the app is served from exactly one origin. */
 const CANONICAL_HOST = "vittamhub.com";
@@ -22,12 +65,18 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // tighten with nonces once CSP is finalized
+      // 'unsafe-eval' is only for the dev server's hot reload; a production build never needs it.
+      // 'unsafe-inline' stays until scripts carry nonces (Next.js writes inline ones).
+      `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} ${TURNSTILE}`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://media.vittamhub.com",
+      `img-src ${imgSrc}`,
       "font-src 'self' data:",
-      `connect-src 'self' ${apiConnectSrc}`,
+      `connect-src 'self' ${apiConnectSrc} ${uploadConnectSrc}`,
+      `frame-src ${TURNSTILE}`,
       "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
     ].join("; "),
   },
 ];

@@ -7,6 +7,7 @@ import { FolderLock, Loader2, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { openFetchedLink } from "@/lib/open-link";
 
 const DOCUMENT_LABELS: Record<string, string> = {
   PITCH_DECK: "Pitch Deck",
@@ -72,8 +73,7 @@ export default function DocumentVaultPage() {
   // The API never hands out a permanent file URL — each "View" click mints a
   // fresh short-lived signed one via GET /v1/documents/:id/access.
   const handleView = async (documentId: string) => {
-    const result = await downloadUrl.mutateAsync(documentId);
-    window.open(result.fileUrl, "_blank", "noopener,noreferrer");
+    await openFetchedLink(async () => (await downloadUrl.mutateAsync(documentId)).fileUrl);
   };
 
   return (

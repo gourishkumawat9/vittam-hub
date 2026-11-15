@@ -9,6 +9,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { FollowButton } from "@/components/dashboard/FollowButton";
+import { externalHref } from "@/lib/safe-url";
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|webp|gif)$/i.test(url);
@@ -120,7 +121,7 @@ export default function StartupProfilePage() {
           <Users className="h-4 w-4" /> {startup.teamSize} people
         </span>
         {startup.website && (
-          <a href={startup.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-brand-primary hover:underline">
+          <a href={externalHref(startup.website)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-brand-primary hover:underline">
             <Globe className="h-4 w-4" /> Website
           </a>
         )}
@@ -233,14 +234,14 @@ function buildProfileTabs(
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {milestone.evidenceUrls.map((url) =>
                       isImageUrl(url) ? (
-                        <a key={url} href={url} target="_blank" rel="noreferrer">
+                        <a key={url} href={externalHref(url)} target="_blank" rel="noreferrer">
                           {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded remote URL, thumbnail only */}
                           <img src={url} alt="" className="h-10 w-10 rounded object-cover" />
                         </a>
                       ) : (
                         <a
                           key={url}
-                          href={url}
+                          href={externalHref(url)}
                           target="_blank"
                           rel="noreferrer"
                           className="flex h-10 items-center gap-1 rounded-button border border-border px-2 text-xs text-text-secondary hover:text-brand-primary"

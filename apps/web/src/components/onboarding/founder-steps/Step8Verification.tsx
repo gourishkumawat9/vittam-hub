@@ -57,6 +57,7 @@ interface StepProps {
 export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) {
   const setSectionData = useOnboardingStore((s) => s.setSectionData);
   const [uploadingType, setUploadingType] = useState<DocumentType | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { handleSubmit, watch, setValue } = useForm<VerificationStepInput>({
     resolver: zodResolver(verificationStepSchema),
@@ -75,11 +76,16 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
 
   const handleUpload = async (type: DocumentType, file: File | undefined) => {
     if (!file) return;
+    setUploadError(null);
     setUploadingType(type);
     try {
       const fileUrl = await uploadFile(file, "documents");
       const withoutType = documents.filter((doc) => doc.type !== type);
       setValue("documents", [...withoutType, { type, fileUrl, fileName: file.name }]);
+    } catch (cause) {
+      // This failed without a word before: the spinner stopped and the document simply wasn't there.
+      const label = DOCUMENT_LABELS[type] ?? "That document";
+      setUploadError(`${label} couldn't be uploaded. ${cause instanceof Error && cause.message ? cause.message : "Please try again."}`);
     } finally {
       setUploadingType(null);
     }
@@ -114,7 +120,7 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
                 <p className="mt-0.5 text-xs text-text-secondary">{DOCUMENT_BENEFITS[type]}</p>
                 {uploaded && <p className="mt-1 truncate text-xs font-medium text-success-600">{uploaded.fileName}</p>}
               </div>
-              <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-background-secondary">
+              <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-background-secondary focus-within:ring-2 focus-within:ring-brand-primary">
                 {isUploading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : uploaded ? (
@@ -123,17 +129,29 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
                   <Upload className="h-3.5 w-3.5" />
                 )}
                 {uploaded ? "Replace" : "Upload"}
+                <span className="sr-only">{DOCUMENT_LABELS[type]}</span>
                 <input
                   type="file"
-                  accept="application/pdf,image/png,image/jpeg"
-                  className="hidden"
-                  onChange={(e) => handleUpload(type, e.target.files?.[0])}
+                  accept="application/pdf,image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  disabled={uploadingType !== null}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    void handleUpload(type, file);
+                  }}
                 />
               </label>
             </div>
           );
         })}
       </div>
+
+      {uploadError && (
+        <p className="text-sm text-danger-600" role="alert">
+          {uploadError}
+        </p>
+      )}
 
       <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>

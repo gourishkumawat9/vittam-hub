@@ -1,35 +1,53 @@
 import { apiRequest } from "../http";
 
-export type UploadFolder = "logos" | "avatars" | "documents" | "resumes";
+/** "logos", "avatars" and "pictures" are public images; "documents" and "resumes" are private files. */
+export type UploadFolder = "logos" | "avatars" | "pictures" | "documents" | "resumes";
 
 export const mediaApi = {
-  createUploadUrl: (mimeType: string, folder: UploadFolder) =>
-    apiRequest<{ uploadUrl: string; uploadFields: Record<string, string>; publicUrl: string }>("/v1/media/upload-url", {
+  createUploadUrl: (mimeType: string, folder: UploadFolder, sizeBytes: number) =>
+    apiRequest<{ uploadUrl: string; uploadHeaders: Record<string, string>; publicUrl: string }>("/v1/media/upload-url", {
       method: "POST",
-      body: { mimeType, folder },
+      body: { mimeType, folder, sizeBytes },
     }),
 };
 
+/** What storage accepts. Checked here first so the person gets a plain reason, not a rejected request. */
+const UPLOADABLE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/csv",
+]);
+
 /**
- * Requests a presigned POST policy and posts the file directly to storage as
- * multipart form data — a POST policy (not a PUT URL) is what lets the
- * storage provider itself enforce a max file size via `content-length-range`,
- * so the API process never has to trust a client-reported size. Never touches
- * the file bytes on our server either way.
+ * Asks the API for a signed link, then PUTs the file straight to storage; the
+ * file never passes through our server. The link is signed for this file's
+ * exact size and type, so storage refuses anything else (the size limit is
+ * checked by the API before it signs).
  */
 export async function uploadFile(file: File, folder: UploadFolder): Promise<string> {
-  const { uploadUrl, uploadFields, publicUrl } = await mediaApi.createUploadUrl(file.type, folder);
+  if (!UPLOADABLE_TYPES.has(file.type)) {
+    throw new Error("That file type can't be uploaded. Use a PDF, an image (PNG, JPEG or WebP), a Word or Excel file, or a CSV.");
+  }
+  if (file.size === 0) throw new Error("That file is empty.");
 
-  const formData = new FormData();
-  Object.entries(uploadFields).forEach(([key, value]) => formData.append(key, value));
-  formData.append("file", file);
+  const { uploadUrl, uploadHeaders, publicUrl } = await mediaApi.createUploadUrl(file.type, folder, file.size);
 
-  const response = await fetch(uploadUrl, { method: "POST", body: formData });
+  let response: Response;
+  try {
+    response = await fetch(uploadUrl, { method: "PUT", headers: uploadHeaders, body: file });
+  } catch {
+    // The browser gives no detail when storage is unreachable or refuses the site's origin.
+    throw new Error("The file couldn't reach storage. Check your connection and try again.");
+  }
   if (!response.ok) {
     // Storage providers answer with an XML <Error><Code>…</Code></Error> body.
     // Surfacing that code turns an unactionable "File upload failed" into
-    // something diagnosable — EntityTooLarge (over the size cap) and
-    // AccessDenied / CORS rejections look identical to a user otherwise.
+    // something diagnosable.
     const body = await response.text().catch(() => "");
     const code = body.match(/<Code>([^<]+)<\/Code>/)?.[1];
     const detail = code ?? `HTTP ${response.status}`;
