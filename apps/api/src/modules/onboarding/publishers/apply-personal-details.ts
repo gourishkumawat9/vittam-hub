@@ -2,6 +2,8 @@ import { BadRequestException } from "@nestjs/common";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { personalDetailsInputSchema } from "@vittamhub/types";
 
+import { issueMessages } from "./issue-messages";
+
 type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
 /**
@@ -13,7 +15,7 @@ export async function applyPersonalDetails(tx: Tx, userId: string, rawPersonalDe
   const parsed = personalDetailsInputSchema.safeParse(rawPersonalDetails);
   if (!parsed.success) {
     throw new BadRequestException({
-      message: `Personal details: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
+      message: `Personal details: ${issueMessages(parsed.error)}`,
     });
   }
   const details = parsed.data;

@@ -6,6 +6,7 @@ import { createInvestorInputSchema } from "@vittamhub/types";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 
 import { applyPersonalDetails } from "./apply-personal-details";
+import { issueMessages } from "./issue-messages";
 
 @Injectable()
 export class InvestorPublisher {
@@ -17,7 +18,7 @@ export class InvestorPublisher {
   async publish(userId: string, draft: Record<string, unknown>) {
     const parsed = createInvestorInputSchema.safeParse(draft.investorInfo ?? {});
     if (!parsed.success) {
-      throw new BadRequestException(parsed.error.issues.map((i) => i.message).join(", "));
+      throw new BadRequestException(issueMessages(parsed.error));
     }
     const input = parsed.data;
 
