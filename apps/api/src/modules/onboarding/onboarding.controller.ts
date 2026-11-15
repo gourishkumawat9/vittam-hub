@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UsePipes } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Patch, Post, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { saveOnboardingDraftInputSchema, type SaveOnboardingDraftInput } from "@vittamhub/types";
 
@@ -16,14 +16,20 @@ export class OnboardingController {
   @Get("state")
   @ApiOperation({ summary: "Get the caller's onboarding progress and saved draft" })
   getState(@CurrentUser() user: AuthenticatedUser) {
-    return this.onboardingService.getState(user.sub);
+    return this.onboardingService.getState(user.sub, user.role);
   }
 
   @Patch("draft")
   @UsePipes(new ZodValidationPipe(saveOnboardingDraftInputSchema))
   @ApiOperation({ summary: "Autosave one wizard section into the onboarding draft" })
   saveDraft(@CurrentUser() user: AuthenticatedUser, @Body() input: SaveOnboardingDraftInput) {
-    return this.onboardingService.saveDraft(user.sub, input);
+    return this.onboardingService.saveDraft(user.sub, user.role, input);
+  }
+
+  @Delete("draft")
+  @ApiOperation({ summary: "Discard unsaved wizard edits to a profile that is already published" })
+  discardEdits(@CurrentUser() user: AuthenticatedUser) {
+    return this.onboardingService.discardEdits(user.sub);
   }
 
   @Post("publish")

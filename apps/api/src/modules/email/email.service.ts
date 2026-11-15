@@ -72,12 +72,28 @@ export class EmailService {
   }
 }
 
-function emailShell(bodyHtml: string): string {
+/**
+ * Everything dropped into an email body goes through this first. The device
+ * name in a sign-in alert is derived from the browser's User-Agent header,
+ * which the person signing in controls completely.
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+const IGNORE_NOTE = "If you didn't request this, you can safely ignore this email.";
+
+function emailShell(bodyHtml: string, footnote: string = IGNORE_NOTE): string {
   return `
     <div style="font-family: -apple-system, Inter, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; color: #111827;">
       <p style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #5F89C8; margin: 0 0 24px;">VittamHub</p>
       ${bodyHtml}
-      <p style="font-size: 12px; color: #6B7280; margin-top: 32px;">If you didn't request this, you can safely ignore this email.</p>
+      <p style="font-size: 12px; color: #6B7280; margin-top: 32px;">${footnote}</p>
     </div>
   `;
 }
@@ -85,8 +101,8 @@ function emailShell(bodyHtml: string): string {
 function otpEmailTemplate(code: string, purpose: string): string {
   return emailShell(`
     <h1 style="font-size: 20px; margin: 0 0 12px;">Your verification code</h1>
-    <p style="font-size: 14px; color: #374151; margin: 0 0 20px;">Use this code to ${purpose}. It expires in 10 minutes.</p>
-    <p style="font-size: 32px; font-weight: 700; letter-spacing: 0.2em; background: #F8FAFC; border-radius: 12px; padding: 16px 24px; text-align: center;">${code}</p>
+    <p style="font-size: 14px; color: #374151; margin: 0 0 20px;">Use this code to ${escapeHtml(purpose)}. It expires in 10 minutes.</p>
+    <p style="font-size: 32px; font-weight: 700; letter-spacing: 0.2em; background: #F8FAFC; border-radius: 12px; padding: 16px 24px; text-align: center;">${escapeHtml(code)}</p>
   `);
 }
 
@@ -94,16 +110,20 @@ function passwordResetEmailTemplate(resetUrl: string): string {
   return emailShell(`
     <h1 style="font-size: 20px; margin: 0 0 12px;">Reset your password</h1>
     <p style="font-size: 14px; color: #374151; margin: 0 0 20px;">Click the button below to choose a new password. This link expires in 30 minutes.</p>
-    <a href="${resetUrl}" style="display: inline-block; background: #5F89C8; color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 12px;">Reset password</a>
+    <a href="${escapeHtml(resetUrl)}" style="display: inline-block; background: #5F89C8; color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 12px;">Reset password</a>
   `);
 }
 
 function loginAlertEmailTemplate(deviceLabel: string, ipAddress: string, timestamp: string): string {
-  return emailShell(`
-    <h1 style="font-size: 20px; margin: 0 0 12px;">New sign-in detected</h1>
-    <p style="font-size: 14px; color: #374151; margin: 0 0 4px;"><strong>Device:</strong> ${deviceLabel}</p>
-    <p style="font-size: 14px; color: #374151; margin: 0 0 4px;"><strong>IP address:</strong> ${ipAddress}</p>
-    <p style="font-size: 14px; color: #374151; margin: 0 0 20px;"><strong>Time:</strong> ${timestamp}</p>
-    <p style="font-size: 14px; color: #374151;">If this wasn't you, reset your password immediately and review your active sessions.</p>
-  `);
+  // Its own footnote: the default one says "you can safely ignore this", the opposite of what this email is for.
+  return emailShell(
+    `
+    <h1 style="font-size: 20px; margin: 0 0 12px;">New sign-in to your account</h1>
+    <p style="font-size: 14px; color: #374151; margin: 0 0 4px;"><strong>Device:</strong> ${escapeHtml(deviceLabel)}</p>
+    <p style="font-size: 14px; color: #374151; margin: 0 0 4px;"><strong>IP address:</strong> ${escapeHtml(ipAddress)}</p>
+    <p style="font-size: 14px; color: #374151; margin: 0 0 20px;"><strong>Time:</strong> ${escapeHtml(timestamp)}</p>
+    <p style="font-size: 14px; color: #374151;">If this was you, there is nothing to do. If it wasn't, reset your password straight away: that signs every device out.</p>
+  `,
+    "You get this email when your account is signed in to from a browser or network we haven't seen before.",
+  );
 }

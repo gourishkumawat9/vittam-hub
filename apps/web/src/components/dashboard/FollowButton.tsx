@@ -6,7 +6,8 @@ import { UserCheck, UserPlus } from "lucide-react";
 
 export function FollowButton({ userId }: { userId: string }) {
   const { data: currentUser } = useCurrentUser();
-  const { data } = useIsFollowing(userId);
+  // Not asked for a signed-out visitor (the public startup page), who got a 401 for it on every visit.
+  const { data } = useIsFollowing(userId, !!currentUser && currentUser.id !== userId);
   const follow = useFollowUser();
   const unfollow = useUnfollowUser();
 

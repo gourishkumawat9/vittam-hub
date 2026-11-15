@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UsePipes } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import {
   communityFeedFiltersSchema,
   createCommentInputSchema,
@@ -10,6 +11,7 @@ import {
 } from "@vittamhub/types";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { ACCOUNT_THROTTLER, UserThrottlerGuard } from "../../common/guards/user-throttler.guard";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
@@ -40,6 +42,8 @@ export class CommunityController {
   }
 
   @Post("posts")
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ [ACCOUNT_THROTTLER]: { limit: 20, ttl: 60 * 60_000 } })
   @UsePipes(new ZodValidationPipe(createPostInputSchema))
   @ApiOperation({ summary: "Create a post (founders post updates, admins post announcements)" })
   createPost(@CurrentUser() user: AuthenticatedUser, @Body() input: CreatePostInput) {
@@ -47,18 +51,20 @@ export class CommunityController {
   }
 
   @Delete("posts/:id")
-  @ApiOperation({ summary: "Delete one of the caller's own posts" })
+  @ApiOperation({ summary: "Delete one of the caller's own posts (an admin can remove any post)" })
   removePost(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
-    return this.postsService.remove(user.sub, id);
+    return this.postsService.remove(user.sub, user.role, id);
   }
 
   @Get("posts/:id/comments")
   @ApiOperation({ summary: "List a post's comments" })
-  listComments(@Param("id") id: string) {
-    return this.commentsService.list(id);
+  listComments(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.commentsService.list(id, user.sub);
   }
 
   @Post("posts/:id/comments")
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ [ACCOUNT_THROTTLER]: { limit: 60, ttl: 60 * 60_000 } })
   @UsePipes(new ZodValidationPipe(createCommentInputSchema))
   @ApiOperation({ summary: "Comment on a post" })
   addComment(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: CreateCommentInput) {

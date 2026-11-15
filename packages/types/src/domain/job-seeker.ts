@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { AvailabilityType, Currency } from "./enums";
+import { httpUrlSchema } from "./url";
 
 export const workExperienceEntrySchema = z.object({
   company: z.string().min(1, "Company is required").max(160),
@@ -24,7 +25,7 @@ export const jobSeekerProfileSchema = z.object({
   id: z.string().uuid(),
   ownerId: z.string().uuid(),
   headline: z.string().max(160).nullable(),
-  resumeUrl: z.string().url().nullable(),
+  resumeUrl: httpUrlSchema.nullable(),
   skills: z.array(z.string()),
   preferredRoles: z.array(z.string()),
   currency: z.nativeEnum(Currency).default(Currency.INR),
@@ -39,7 +40,7 @@ export type JobSeekerProfileRecord = z.infer<typeof jobSeekerProfileSchema>;
 
 export const createJobSeekerInputSchema = z.object({
   headline: z.string().min(1, "Add a short headline").max(160),
-  resumeUrl: z.string().url().optional(),
+  resumeUrl: httpUrlSchema.optional(),
   skills: z.array(z.string().max(60)).min(1, "Add at least one skill"),
   experience: z.array(workExperienceEntrySchema).default([]),
   education: z.array(educationEntrySchema).default([]),

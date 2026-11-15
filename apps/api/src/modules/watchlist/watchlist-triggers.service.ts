@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { CreateWatchlistTriggerInput } from "@vittamhub/types";
 
+import { isDemoViewer } from "../../common/demo/demo-scope";
+import { findListableStartup, listableStartupWhere } from "../../common/startups/startup-visibility";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /**
@@ -14,20 +16,27 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 export class WatchlistTriggersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listForInvestor(investorId: string) {
+  async listForInvestor(investorId: string) {
     return this.prisma.watchlistTrigger.findMany({
-      where: { investorId },
+      where: { investorId, startup: listableStartupWhere(await isDemoViewer(this.prisma, investorId)) },
       orderBy: { createdAt: "desc" },
       include: { startup: { select: { id: true, name: true, logoUrl: true, slug: true } } },
     });
   }
 
   async create(investorId: string, input: CreateWatchlistTriggerInput) {
+    await findListableStartup(this.prisma, input.startupId, investorId);
     const startup = await this.prisma.startup.findUnique({
       where: { id: input.startupId },
       include: { teamMembers: true, traction: true },
     });
     if (!startup) throw new NotFoundException("Startup not found");
+    // "Tell me when revenue passes X" answers a question about revenue. A
+    // founder who hides their numbers hasn't agreed to answer it, and a few
+    // alerts at different amounts would read the figure out.
+    if (input.type === "REVENUE_ABOVE" && startup.metricsVisibility === "HIDDEN") {
+      throw new ForbiddenException("This startup keeps its revenue private, so a revenue alert can't be set on it");
+    }
 
     let baselineValue: number | undefined;
     if (input.type === "HEADCOUNT_DOUBLED") baselineValue = startup.teamSize;

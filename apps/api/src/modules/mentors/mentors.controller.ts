@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post, Query, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, UseGuards, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import {
   createFounderReviewInputSchema,
   createMentorBookingInputSchema,
@@ -16,6 +17,7 @@ import {
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { ACCOUNT_THROTTLER, UserThrottlerGuard } from "../../common/guards/user-throttler.guard";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
@@ -64,6 +66,8 @@ export class MentorsController {
 
   @Post(":id/book")
   @Roles("FOUNDER")
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ [ACCOUNT_THROTTLER]: { limit: 10, ttl: 60 * 60_000 } })
   @UsePipes(new ZodValidationPipe(createMentorBookingInputSchema))
   @ApiOperation({ summary: "Request a session with a mentor" })
   book(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: CreateMentorBookingInput) {

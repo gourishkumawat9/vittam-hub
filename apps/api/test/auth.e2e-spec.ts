@@ -111,28 +111,78 @@ describe("Auth (e2e)", () => {
   });
 
   describe("refresh + logout lifecycle", () => {
-    it("refreshes a session, then rejects reuse of the rotated token, and logout ends the session", async () => {
+    const refresh = (cookies: string[]) =>
+      request(app.getHttpServer()).post("/v1/auth/refresh").set("Cookie", cookieHeader(cookies)).set("X-CSRF-Token", CSRF_TOKEN);
+    const cookieNames = (res: { headers: Record<string, unknown> }) =>
+      normalizeSetCookie(res.headers["set-cookie"] as string[] | undefined).map((cookie) => cookie.split("=")[0]);
+
+    it("rotates the refresh token on every renewal", async () => {
       const reg = await registerViaApi(app);
 
-      const refreshed = await request(app.getHttpServer())
-        .post("/v1/auth/refresh")
-        .set("Cookie", cookieHeader(reg.cookies))
-        .set("X-CSRF-Token", CSRF_TOKEN);
+      const refreshed = await refresh(reg.cookies);
       expect(refreshed.status).toBe(200);
+      expect(cookieNames(refreshed)).toEqual(expect.arrayContaining(["vh_session", "vh_refresh"]));
 
-      // Rotation: the original refresh cookie must no longer work.
-      const reused = await request(app.getHttpServer())
-        .post("/v1/auth/refresh")
-        .set("Cookie", cookieHeader(reg.cookies))
-        .set("X-CSRF-Token", CSRF_TOKEN);
-      expect(reused.status).toBe(401);
+      const [retired, successor] = await testDb.refreshToken.findMany({ orderBy: { createdAt: "asc" } });
+      expect(retired?.revokedAt).not.toBeNull();
+      expect(retired?.rotatedAt).not.toBeNull();
+      expect(successor?.revokedAt).toBeNull();
+      // Both belong to the one sign-in, so they can be ended together.
+      expect(successor?.familyId).toBe(retired?.familyId);
+    });
 
-      const rotatedCookies = normalizeSetCookie(refreshed.headers["set-cookie"]);
+    it("answers the same token again within moments (two tabs renewing at once) without signing anyone out", async () => {
+      const reg = await registerViaApi(app);
+      await refresh(reg.cookies);
+
+      const again = await refresh(reg.cookies);
+
+      expect(again.status).toBe(200);
+      // A fresh access token, but no second refresh token: the browser keeps the one the first answer set.
+      expect(cookieNames(again)).toContain("vh_session");
+      expect(cookieNames(again)).not.toContain("vh_refresh");
+      expect(await testDb.refreshToken.count()).toBe(2);
+    });
+
+    it("treats a retired token turning up later as stolen and ends that whole sign-in", async () => {
+      const reg = await registerViaApi(app);
+      const refreshed = await refresh(reg.cookies);
+      const successorCookies = normalizeSetCookie(refreshed.headers["set-cookie"]);
+
+      // Move the rotation into the past, beyond the few seconds two tabs could overlap.
+      await testDb.refreshToken.updateMany({
+        where: { rotatedAt: { not: null } },
+        data: { rotatedAt: new Date(Date.now() - 5 * 60_000) },
+      });
+
+      expect((await refresh(reg.cookies)).status).toBe(401);
+      // Whoever holds the successor, thief or owner, is signed out too.
+      expect((await refresh(successorCookies)).status).toBe(401);
+      expect(await testDb.refreshToken.count({ where: { revokedAt: null } })).toBe(0);
+    });
+
+    it("logout ends the session: the refresh token can't renew it afterwards", async () => {
+      const reg = await registerViaApi(app);
+
       const loggedOut = await request(app.getHttpServer())
         .post("/v1/auth/logout")
-        .set("Cookie", cookieHeader(rotatedCookies))
+        .set("Cookie", cookieHeader(reg.cookies))
         .set("X-CSRF-Token", CSRF_TOKEN);
       expect(loggedOut.status).toBe(200);
+
+      expect((await refresh(reg.cookies)).status).toBe(401);
+    });
+
+    it("a token retired by rotation can't renew after logout, even moments later", async () => {
+      const reg = await registerViaApi(app);
+      const refreshed = await refresh(reg.cookies);
+
+      await request(app.getHttpServer())
+        .post("/v1/auth/logout")
+        .set("Cookie", cookieHeader(normalizeSetCookie(refreshed.headers["set-cookie"])))
+        .set("X-CSRF-Token", CSRF_TOKEN);
+
+      expect((await refresh(reg.cookies)).status).toBe(401);
     });
   });
 

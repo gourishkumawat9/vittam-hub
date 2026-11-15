@@ -60,7 +60,7 @@ export class StartupsController {
   @UsePipes(new ZodValidationPipe(startupSearchFiltersSchema))
   @ApiOperation({ summary: "Discover startups — advanced filters, smart search, Trust Score + Match Score for investors" })
   async search(@CurrentUser() user: AuthenticatedUser, @Query() filters: StartupSearchFilters) {
-    const result = await this.startupsService.search(filters, user.sub);
+    const result = await this.startupsService.search(filters, user.sub, user.role === "INVESTOR");
 
     // Scored once for the whole page, not once per row: scoreManyForInvestor
     // does a single investor lookup and then scores in memory, so calling it

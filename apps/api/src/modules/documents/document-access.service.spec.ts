@@ -19,6 +19,7 @@ function setup() {
     documentGrant: { findUnique: jest.fn(), upsert: jest.fn(), update: jest.fn(), findMany: jest.fn() },
     documentView: { create: jest.fn(), groupBy: jest.fn() },
     user: { findUnique: jest.fn() },
+    connection: { findFirst: jest.fn() },
   };
   const eventEmitter = { emit: jest.fn() };
   const auditLog = { record: jest.fn().mockResolvedValue(undefined) };
@@ -134,5 +135,48 @@ describe("DocumentAccessService.access", () => {
     expect(result.fileUrl).toBe(SIGNED_URL);
     expect(prisma.documentView.create).toHaveBeenCalledWith({ data: { documentId: DOCUMENT_ID, viewerId: VIEWER_ID } });
     expect(mediaService.getSignedDownloadUrl).toHaveBeenCalledWith("documents/some-uuid", 300, "vittamhub-docs");
+  });
+});
+
+describe("DocumentAccessService.grant", () => {
+  const input = { grantedToId: VIEWER_ID, expiresInDays: 14, requireNda: false };
+
+  /**
+   * CLAUDE.md §4: document sharing unlocks only after a connect request is
+   * accepted. Sharing used to work with any user id, which made it a way to
+   * reach any investor directly, with no request and no monthly limit.
+   */
+  it("refuses to share with someone who hasn't accepted a connect request", async () => {
+    const { service, prisma } = setup();
+    prisma.document.findUnique.mockResolvedValue(baseDocument());
+    prisma.user.findUnique.mockResolvedValue({ id: VIEWER_ID, deletedAt: null });
+    prisma.connection.findFirst.mockResolvedValue(null);
+
+    await expect(service.grant(OWNER_ID, DOCUMENT_ID, input)).rejects.toThrow(ForbiddenException);
+    expect(prisma.documentGrant.upsert).not.toHaveBeenCalled();
+  });
+
+  it("shares once the two are connected, and only looks for an accepted connection between exactly these two", async () => {
+    const { service, prisma } = setup();
+    prisma.document.findUnique.mockResolvedValue(baseDocument());
+    prisma.user.findUnique.mockResolvedValue({ id: VIEWER_ID, deletedAt: null });
+    prisma.connection.findFirst.mockResolvedValue({ id: "conn-1" });
+    prisma.documentGrant.upsert.mockResolvedValue({ id: "grant-1" });
+
+    await expect(service.grant(OWNER_ID, DOCUMENT_ID, input)).resolves.toEqual({ id: "grant-1" });
+
+    const where = prisma.connection.findFirst.mock.calls[0][0].where;
+    expect(where.status).toBe("ACCEPTED");
+    expect(where.OR).toEqual([
+      { requesterId: OWNER_ID, recipientId: VIEWER_ID },
+      { requesterId: VIEWER_ID, recipientId: OWNER_ID },
+    ]);
+  });
+
+  it("won't share a document the caller doesn't own", async () => {
+    const { service, prisma } = setup();
+    prisma.document.findUnique.mockResolvedValue({ ...baseDocument(), userId: "someone-else" });
+
+    await expect(service.grant(OWNER_ID, DOCUMENT_ID, input)).rejects.toThrow(NotFoundException);
   });
 });

@@ -11,29 +11,54 @@ interface CompletionCheckContext {
   hasWebsite: boolean;
   hasRevenueData: boolean;
   hasRecentMilestone: boolean;
+  /** "Registered" on the profile, or an incorporation certificate uploaded. */
+  hasRegistrationProof: boolean;
 }
 
 interface CompletionCheck {
   key: string;
-  label: string;
-  href: string;
+  label: string | ((ctx: CompletionCheckContext) => string);
+  href: string | ((ctx: CompletionCheckContext) => string);
   isComplete: (ctx: CompletionCheckContext) => boolean;
 }
 
 const RECENT_MILESTONE_WINDOW_DAYS = 90;
 
+/**
+ * `href` is where the founder fixes that item. Every one used to be
+ * "/founder", the dashboard the list is shown on, so "Fix" went nowhere. The
+ * wizard opens a live profile on the step named in `?step=`.
+ */
 const CHECKS: CompletionCheck[] = [
-  { key: "website", label: "Missing website", href: "/founder", isComplete: (ctx) => ctx.hasWebsite },
-  { key: "pitchDeck", label: "Missing pitch deck", href: "/founder", isComplete: (ctx) => ctx.hasPitchDeck },
-  { key: "team", label: "Missing team", href: "/founder", isComplete: (ctx) => ctx.teamCount > 0 },
-  { key: "verification", label: "Missing verification", href: "/founder", isComplete: (ctx) => ctx.isVerified },
-  { key: "productDemo", label: "Missing product demo", href: "/founder", isComplete: (ctx) => ctx.hasDemo },
-  { key: "revenueData", label: "Add your monthly revenue", href: "/founder", isComplete: (ctx) => ctx.hasRevenueData },
+  { key: "website", label: "Add your website", href: "/onboarding/founder?step=startup-info", isComplete: (ctx) => ctx.hasWebsite },
+  { key: "pitchDeck", label: "Upload your pitch deck", href: "/founder/documents", isComplete: (ctx) => ctx.hasPitchDeck },
+  { key: "team", label: "Add your team", href: "/onboarding/founder?step=team", isComplete: (ctx) => ctx.teamCount > 0 },
+  { key: "productDemo", label: "Add a product demo video", href: "/onboarding/founder?step=product", isComplete: (ctx) => ctx.hasDemo },
   {
+    key: "revenueData",
+    label: "Add your monthly revenue",
+    href: "/onboarding/founder?step=traction",
+    isComplete: (ctx) => ctx.hasRevenueData,
+  },
+  {
+    // The dashboard opens its "Add milestone" dialog for this one.
     key: "recentMilestone",
-    label: "Update your milestones — nothing added in the last 90 days",
+    label: "Add a milestone from the last 90 days",
     href: "/founder",
     isComplete: (ctx) => ctx.hasRecentMilestone,
+  },
+  {
+    // Awarded automatically (VerificationEngineService) for: a pitch deck,
+    // 80% of this list, and either "registered" on the profile or the
+    // incorporation certificate. Nobody reviews it by hand, so the line says
+    // which of those is still missing instead of "missing verification".
+    key: "verification",
+    label: (ctx) =>
+      ctx.hasRegistrationProof
+        ? "Verified badge: added automatically once the rest of this list is done"
+        : "Verified badge: upload your incorporation certificate",
+    href: (ctx) => (ctx.hasRegistrationProof ? "/founder" : "/founder/documents"),
+    isComplete: (ctx) => ctx.isVerified,
   },
 ];
 
@@ -52,9 +77,10 @@ export class ProfileCompletionService {
     const recentMilestoneSince = new Date();
     recentMilestoneSince.setDate(recentMilestoneSince.getDate() - RECENT_MILESTONE_WINDOW_DAYS);
 
-    const [pitchDeck, recentMilestone] = await Promise.all([
+    const [pitchDeck, recentMilestone, incorporationCertificate] = await Promise.all([
       this.prisma.document.findFirst({ where: { userId: startup.ownerId, type: "PITCH_DECK" } }),
       this.prisma.startupMilestone.findFirst({ where: { startupId, achievedAt: { gte: recentMilestoneSince } } }),
+      this.prisma.document.findFirst({ where: { userId: startup.ownerId, type: "INCORPORATION_CERTIFICATE" } }),
     ]);
 
     const ctx: CompletionCheckContext = {
@@ -65,12 +91,13 @@ export class ProfileCompletionService {
       hasWebsite: !!startup.website,
       hasRevenueData: startup.traction?.monthlyRevenueAmount != null,
       hasRecentMilestone: !!recentMilestone,
+      hasRegistrationProof: startup.registrationStatus === "REGISTERED" || !!incorporationCertificate,
     };
 
     const missing: MissingProfileItem[] = CHECKS.filter((check) => !check.isComplete(ctx)).map((check) => ({
       key: check.key,
-      label: check.label,
-      href: check.href,
+      label: typeof check.label === "function" ? check.label(ctx) : check.label,
+      href: typeof check.href === "function" ? check.href(ctx) : check.href,
     }));
 
     const percent = Math.round(((CHECKS.length - missing.length) / CHECKS.length) * 100);

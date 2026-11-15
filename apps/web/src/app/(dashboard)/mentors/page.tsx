@@ -7,6 +7,7 @@ import { GraduationCap, Star } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 
 export default function MentorsDirectoryPage() {
@@ -38,7 +39,10 @@ export default function MentorsDirectoryPage() {
             <Link key={mentor.id} href={`/mentors/${mentor.id}`}>
               <Card interactive className="flex h-full flex-col gap-4">
                 <div>
-                  <h3 className="font-heading text-sm font-semibold text-text-primary">{mentor.owner.fullName}</h3>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <h3 className="font-heading text-sm font-semibold text-text-primary">{mentor.owner.fullName}</h3>
+                    <VerifiedBadge status={mentor.verificationStatus} />
+                  </div>
                   <p className="text-xs text-text-secondary">{mentor.headline ?? "Mentor"}</p>
                   {mentor.reputation?.averageRating != null ? (
                     <div className="mt-1 flex items-center gap-1 text-xs text-text-secondary">

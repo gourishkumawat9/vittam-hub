@@ -3,6 +3,7 @@
 import {
   useConnections,
   useFollowStartup,
+  useOpenConnectionAttachment,
   useRequestMoreInfo,
   useRespondToConnection,
   useScheduleMeeting,
@@ -17,6 +18,9 @@ import { useForm } from "react-hook-form";
 
 import { ConnectionStatusBadge } from "@/components/connections/ConnectionStatusBadge";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
+import { localInputToIso, nowForLocalInput } from "@/lib/datetime";
+import { openFetchedLink } from "@/lib/open-link";
+import { externalHref } from "@/lib/safe-url";
 
 interface MeetingFormValues {
   scheduledAt: string;
@@ -29,7 +33,9 @@ function ScheduleMeetingDialog({ connectionId, open, onOpenChange }: { connectio
   const { register, handleSubmit, reset } = useForm<MeetingFormValues>();
 
   const onSubmit = handleSubmit(async (data) => {
-    await scheduleMeeting.mutateAsync(data);
+    // The picker's value has no time zone. Sent as it was, the API read it as
+    // UTC, so a 3 pm meeting proposed from India was stored as 8:30 pm.
+    await scheduleMeeting.mutateAsync({ ...data, scheduledAt: localInputToIso(data.scheduledAt) ?? data.scheduledAt });
     reset();
     onOpenChange(false);
   });
@@ -51,7 +57,7 @@ function ScheduleMeetingDialog({ connectionId, open, onOpenChange }: { connectio
       }
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <Input label="Date & time" type="datetime-local" {...register("scheduledAt", { required: true })} />
+        <Input label="Date & time" type="datetime-local" min={nowForLocalInput()} {...register("scheduledAt", { required: true })} />
         <Input label="Video call link (optional)" placeholder="https://…" {...register("videoCallUrl")} />
         <Textarea label="Notes (optional)" rows={2} {...register("notes")} />
       </form>
@@ -66,6 +72,11 @@ function PendingRequestCard({ connection }: { connection: ConnectionWithRelation
   const { toast } = useToast();
   const [actioning, setActioning] = useState<"ACCEPT" | "DECLINE" | "IGNORE" | null>(null);
   const [meetingOpen, setMeetingOpen] = useState(false);
+  const openAttachment = useOpenConnectionAttachment();
+
+  // An uploaded deck sits in private storage, so its stored address opens nothing; a short-lived link is fetched on the click.
+  const viewAttachment = (kind: "pitch-deck" | "executive-summary") =>
+    openFetchedLink(async () => (await openAttachment.mutateAsync({ id: connection.id, kind })).url);
 
   const act = async (action: "ACCEPT" | "DECLINE" | "IGNORE") => {
     setActioning(action);
@@ -110,17 +121,17 @@ function PendingRequestCard({ connection }: { connection: ConnectionWithRelation
           <span>Raising {formatMoney(connection.fundingRequirementAmount, connection.currency)}</span>
         )}
         {connection.pitchDeckUrl && (
-          <a href={connection.pitchDeckUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-primary hover:underline">
-            <FileText className="h-3.5 w-3.5" /> Pitch deck
-          </a>
+          <button type="button" onClick={() => void viewAttachment("pitch-deck")} className="flex items-center gap-1 text-brand-primary hover:underline">
+            <FileText className="h-3.5 w-3.5" aria-hidden /> Pitch deck
+          </button>
         )}
         {connection.executiveSummaryUrl && (
-          <a href={connection.executiveSummaryUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-primary hover:underline">
-            <FileText className="h-3.5 w-3.5" /> One-pager
-          </a>
+          <button type="button" onClick={() => void viewAttachment("executive-summary")} className="flex items-center gap-1 text-brand-primary hover:underline">
+            <FileText className="h-3.5 w-3.5" aria-hidden /> One-pager
+          </button>
         )}
         {connection.demoLinkUrl && (
-          <a href={connection.demoLinkUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-primary hover:underline">
+          <a href={externalHref(connection.demoLinkUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-primary hover:underline">
             <PlayCircle className="h-3.5 w-3.5" /> Demo
           </a>
         )}

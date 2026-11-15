@@ -15,6 +15,8 @@ import type {
 
 import { apiRequest } from "../http";
 
+export type OAuthProviderId = "google" | "linkedin" | "github";
+
 export type LoginResult =
   | { mfaRequired: true; challengeToken: string }
   | { mfaRequired: false; user: User };
@@ -55,6 +57,8 @@ export const authApi = {
   revokeOtherSessions: () => apiRequest<{ revoked: boolean }>("/v1/auth/sessions", { method: "DELETE" }),
 
   captchaSiteKey: () => apiRequest<{ siteKey: string | null }>("/v1/auth/captcha-site-key"),
+  /** Which "Continue with ..." providers this deployment is set up for. */
+  oauthProviders: () => apiRequest<{ providers: OAuthProviderId[] }>("/v1/auth/providers"),
 
   /** Fired once on app load so the csrf_token cookie exists before any mutating request — see docs/09-authentication-security.md §CSRF. */
   csrfBootstrap: () => apiRequest<{ ok: boolean }>("/v1/auth/csrf"),

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ConnectionStatus, Currency } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 /**
  * The Smart Connect Request — the only channel a founder has to reach an
@@ -17,9 +18,9 @@ export const connectionSchema = z.object({
   introduction: z.string().max(1000).nullable(),
   currency: z.nativeEnum(Currency).default(Currency.INR),
   fundingRequirementAmount: z.number().nonnegative().nullable(),
-  pitchDeckUrl: z.string().url().nullable(),
-  executiveSummaryUrl: z.string().url().nullable(),
-  demoLinkUrl: z.string().url().nullable(),
+  pitchDeckUrl: httpUrlSchema.nullable(),
+  executiveSummaryUrl: httpUrlSchema.nullable(),
+  demoLinkUrl: httpUrlSchema.nullable(),
   infoRequestedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   respondedAt: z.string().datetime().nullable(),
@@ -29,10 +30,7 @@ export type Connection = z.infer<typeof connectionSchema>;
 // Optional URL fields arrive as "" from empty form inputs — `.url().optional()`
 // rejects "" (optional only permits undefined), which silently fails the whole
 // form and makes the Send button do nothing. Accept "" and normalize to undefined.
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 export const createConnectionInputSchema = z.object({
   recipientId: z.string().uuid(),

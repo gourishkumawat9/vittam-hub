@@ -23,22 +23,22 @@ export type MentorProfileRecord = z.infer<typeof mentorProfileSchema>;
 
 export const createMentorInputSchema = z.object({
   headline: z.string().min(1, "Add a short headline").max(160),
-  expertise: z.array(z.string().max(60)).min(1, "Select at least one area of expertise"),
-  industries: z.array(z.string().max(80)).min(1, "Select at least one industry"),
+  expertise: z.array(z.string().max(60)).min(1, "Select at least one area of expertise").max(30),
+  industries: z.array(z.string().max(80)).min(1, "Select at least one industry").max(40),
   yearsExperience: z.coerce.number().int().min(0).max(80),
   availability: z.string().min(1, "Describe your availability").max(200),
-  sessionTypes: z.array(z.nativeEnum(SessionType)).min(1, "Select at least one session type"),
+  sessionTypes: z.array(z.nativeEnum(SessionType)).min(1, "Select at least one session type").max(10),
   pricingModel: z.string().min(1, "Pricing model is required").max(80),
-  languages: z.array(z.string().max(40)).min(1, "Select at least one language"),
-  pastStartups: z.array(z.string().max(120)).default([]),
+  languages: z.array(z.string().max(40)).min(1, "Select at least one language").max(30),
+  pastStartups: z.array(z.string().max(120)).max(100).default([]),
 });
 export type CreateMentorInput = z.infer<typeof createMentorInputSchema>;
 
 /** Mentor directory filters — same shape family as investorSearchFiltersSchema. */
 export const mentorSearchFiltersSchema = z.object({
   query: z.string().max(200).optional(),
-  expertise: z.array(z.string()).optional(),
-  industries: z.array(z.string()).optional(),
+  expertise: z.array(z.string().max(60)).max(50).optional(),
+  industries: z.array(z.string().max(80)).max(50).optional(),
   sessionTypes: z.array(z.nativeEnum(SessionType)).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),

@@ -12,6 +12,7 @@ import {
   StartupStage,
   VerificationStatus,
 } from "./enums";
+import { httpUrlSchema } from "./url";
 
 export const startupSchema = z.object({
   id: z.string().uuid(),
@@ -20,8 +21,8 @@ export const startupSchema = z.object({
   slug: z.string().min(1).max(140),
   tagline: z.string().max(160),
   description: z.string().max(5000),
-  logoUrl: z.string().url().nullable(),
-  website: z.string().url().nullable(),
+  logoUrl: httpUrlSchema.nullable(),
+  website: httpUrlSchema.nullable(),
   industry: z.nativeEnum(Industry),
   stage: z.nativeEnum(StartupStage),
   // Self-reported vs. computed stage axes (CLAUDE.md — declared vs. verified). New/optional; no UI built for these yet.
@@ -78,17 +79,17 @@ export const startupSearchFiltersSchema = z.object({
   location: z.string().optional(),
   isFundraising: z.boolean().optional(),
   businessModel: z.array(z.nativeEnum(CustomerModel)).optional(),
-  technology: z.array(z.string()).optional(),
+  technology: z.array(z.string().max(60)).max(30).optional(),
   minFundingRequirementAmount: z.coerce.number().nonnegative().optional(),
   hasRevenue: z.coerce.boolean().optional(),
   foundedYearMin: z.coerce.number().int().min(1990).optional(),
   foundedYearMax: z.coerce.number().int().min(1990).optional(),
   teamSizeMin: z.coerce.number().int().min(1).optional(),
   teamSizeMax: z.coerce.number().int().min(1).optional(),
-  // Caller-controlled opt-in — public/anonymous callers still only ever see
-  // VERIFIED startups (enforced server-side in StartupsService.search);
-  // this only lets an authenticated investor widen the net to PENDING too.
-  verificationStatus: z.array(z.nativeEnum(VerificationStatus)).optional(),
+  // Narrows the list, to ["VERIFIED"] for "verified startups only". Left out,
+  // every published startup is listed, verified first. A REJECTED profile is
+  // never returned, whatever is asked for (StartupsService.search).
+  verificationStatus: z.array(z.nativeEnum(VerificationStatus)).max(4).optional(),
   growthRateMin: z.coerce.number().optional(),
   founderExperienceMin: z.coerce.number().int().nonnegative().optional(),
   matchMyPreferences: z.coerce.boolean().optional(),

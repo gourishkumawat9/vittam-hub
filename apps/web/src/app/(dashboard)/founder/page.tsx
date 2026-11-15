@@ -8,20 +8,21 @@ import {
   useMyStartup,
   useMyGrowthBenchmark,
   useMyStartupHealth,
-  useMyTrustPreview,
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
 import type { InvestorSearchFilters } from "@vittamhub/types";
-import { Badge, Button, Card, EmptyState } from "@vittamhub/ui";
+import { Badge, Button, Card, EmptyState, Skeleton } from "@vittamhub/ui";
 import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Handshake, Inbox, MessageCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ConnectionStatusBadge } from "@/components/connections/ConnectionStatusBadge";
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { AddMilestoneDialog } from "@/components/dashboard/founder/AddMilestoneDialog";
 import { FounderActivityCard } from "@/components/dashboard/founder/FounderActivityCard";
 import { FounderReputationCard } from "@/components/dashboard/founder/FounderReputationCard";
 import { GrowthBenchmarkCard } from "@/components/dashboard/founder/GrowthBenchmarkCard";
@@ -33,7 +34,6 @@ import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentPro
 import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
 import { StartupHealthCard } from "@/components/dashboard/founder/StartupHealthCard";
 import { TrustScoreCard } from "@/components/dashboard/founder/TrustScoreCard";
-import { TrustScoreV2PreviewCard } from "@/components/dashboard/founder/TrustScoreV2PreviewCard";
 import { VisibilitySettingsCard } from "@/components/dashboard/founder/VisibilitySettingsCard";
 
 function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; onConnect: (investor: InvestorWithOwner) => void }) {
@@ -41,7 +41,10 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-heading text-sm font-semibold text-text-primary">{investor.owner.fullName}</h3>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <h3 className="font-heading text-sm font-semibold text-text-primary">{investor.owner.fullName}</h3>
+                    <VerifiedBadge status={investor.verificationStatus} />
+                  </div>
           <p className="text-xs text-text-secondary">{investor.firmName ?? "Independent investor"}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -88,7 +91,6 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
 export default function FounderDashboardPage() {
   const { data: startup, isLoading: startupLoading, isError: startupError } = useMyStartup();
   const { data: health } = useMyStartupHealth();
-  const { data: trustPreview } = useMyTrustPreview();
   const { data: benchmark } = useMyGrowthBenchmark();
   const [investorFilters, setInvestorFilters] = useState<InvestorSearchFilters>({ matchMyStartup: true, page: 1, pageSize: 20 });
   const { data: investorResults, isLoading: investorsLoading } = useInvestors(investorFilters);
@@ -98,6 +100,9 @@ export default function FounderDashboardPage() {
   const { data: quota } = useConnectionQuota();
   const { data: recommendations, isLoading: recommendationsLoading } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
+  // One "Add milestone" dialog, opened from Next actions, Quick actions and Profile completion.
+  const [milestoneOpen, setMilestoneOpen] = useState(false);
+  const openMilestone = () => setMilestoneOpen(true);
 
   return (
     <div className="flex flex-col gap-8">
@@ -130,24 +135,22 @@ export default function FounderDashboardPage() {
 
       {quota?.remaining === 0 && (
         <Card className="flex items-center justify-between gap-4 border-warning-200 bg-warning-50">
+          {/* A disabled "Upgrade (coming soon)" button stood here: there is nothing to buy yet (CLAUDE.md §5). */}
           <p className="text-sm text-text-primary">
-            You&apos;ve used all your connect requests for this month on the {quota.plan} plan.
+            You&apos;ve used all your connect requests for this month. More become available on the 1st of next month.
           </p>
-          <Button size="sm" variant="secondary" disabled>
-            Upgrade (coming soon)
-          </Button>
         </Card>
       )}
 
       {/* 1 — What to do next. Deliberately the first thing on the page: the
           dashboard's job is to answer "what moves my startup forward?", and
           burying that under status tiles made every card compete equally. */}
-      {startup && trustPreview && (
+      {startup && (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <NextActionsCard preview={trustPreview} />
+            {health ? <NextActionsCard trustScore={health.trustScore} onAddMilestone={openMilestone} /> : <Skeleton className="h-full min-h-48 w-full" />}
           </div>
-          <QuickActionsCard startupSlug={startup.slug} />
+          <QuickActionsCard startupSlug={startup.slug} onAddMilestone={openMilestone} />
         </div>
       )}
 
@@ -158,7 +161,7 @@ export default function FounderDashboardPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <StartupHealthCard startup={startup} />
             {health && <TrustScoreCard trustScore={health.trustScore} />}
-            {health && <ProfileCompletionCard completion={health.profileCompletion} />}
+            {health && <ProfileCompletionCard completion={health.profileCompletion} onAddMilestone={openMilestone} />}
             {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
             {health && <FounderReputationCard founderReputation={health.founderReputation} />}
             <VisibilitySettingsCard startup={startup} />
@@ -175,10 +178,9 @@ export default function FounderDashboardPage() {
               <FounderActivityCard />
             </div>
             <RecentProfileViewsCard />
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
               <RecentUpdatesCard milestones={startup.milestones} />
             </div>
-            {trustPreview && <TrustScoreV2PreviewCard preview={trustPreview} />}
           </div>
         </section>
       )}
@@ -255,6 +257,8 @@ export default function FounderDashboardPage() {
           <EmptyState icon={Inbox} title="No connect requests yet" description="Send your first request to an investor above." />
         )}
       </section>
+
+      <AddMilestoneDialog open={milestoneOpen} onOpenChange={setMilestoneOpen} />
 
       {connectingTo && (
         <SendConnectRequestDialog investor={connectingTo} open={!!connectingTo} onOpenChange={(open) => !open && setConnectingTo(null)} />

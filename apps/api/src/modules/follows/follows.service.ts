@@ -5,6 +5,9 @@ import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Generic user-to-user follow — separate from StartupFollow (investor→startup watchlist). */
+/** The most rows a follower / following list returns in one go. */
+const MAX_LISTED = 500;
+
 @Injectable()
 export class FollowsService {
   constructor(
@@ -17,16 +20,18 @@ export class FollowsService {
 
     const following = await this.prisma.user.findUnique({ where: { id: followingId } });
     // Demo and real accounts never interact (common/demo/demo-scope.ts).
-    if (!following || !(await inSameSandbox(this.prisma, followerId, followingId))) throw new NotFoundException("User not found");
+    if (!following || following.deletedAt || !(await inSameSandbox(this.prisma, followerId, followingId))) {
+      throw new NotFoundException("User not found");
+    }
 
-    const follower = await this.prisma.user.findUnique({ where: { id: followerId } });
+    const where = { followerId_followingId: { followerId, followingId } };
+    const existing = await this.prisma.follow.findUnique({ where });
+    if (existing) return existing;
 
-    const record = await this.prisma.follow.upsert({
-      where: { followerId_followingId: { followerId, followingId } },
-      create: { followerId, followingId },
-      update: {},
-    });
+    const record = await this.prisma.follow.upsert({ where, create: { followerId, followingId }, update: {} });
 
+    // Only a new follow is news. Tapping "Follow" on someone already followed used to notify them again each time.
+    const follower = await this.prisma.user.findUnique({ where: { id: followerId }, select: { fullName: true } });
     this.eventEmitter.emit("user.followed", { followingId, followerName: follower?.fullName ?? "Someone" });
     return record;
   }
@@ -46,6 +51,7 @@ export class FollowsService {
     return this.prisma.follow.findMany({
       where: { followerId },
       orderBy: { createdAt: "desc" },
+      take: MAX_LISTED,
       include: { following: { select: { id: true, fullName: true, avatarUrl: true, role: true } } },
     });
   }
@@ -54,6 +60,7 @@ export class FollowsService {
     return this.prisma.follow.findMany({
       where: { followingId },
       orderBy: { createdAt: "desc" },
+      take: MAX_LISTED,
       include: { follower: { select: { id: true, fullName: true, avatarUrl: true, role: true } } },
     });
   }

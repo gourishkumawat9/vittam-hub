@@ -24,7 +24,8 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
         <RadixDialog.Overlay className="fixed inset-0 z-modal bg-slate-950/50 data-[state=open]:animate-in data-[state=open]:fade-in data-[state=closed]:animate-out data-[state=closed]:fade-out" />
         <RadixDialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-modal w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-card border border-border bg-surface p-6 shadow-lg focus:outline-none",
+            // On a phone: a gutter either side, and a tall form scrolls inside the dialog instead of running off the screen.
+            "fixed left-1/2 top-1/2 z-modal max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-border bg-surface p-5 shadow-lg focus:outline-none sm:p-6",
             className,
           )}
         >
@@ -45,7 +46,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
 
           <div className="mt-4">{children}</div>
 
-          {footer && <div className="mt-6 flex justify-end gap-3">{footer}</div>}
+          {footer && <div className="mt-6 flex flex-wrap justify-end gap-3">{footer}</div>}
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>

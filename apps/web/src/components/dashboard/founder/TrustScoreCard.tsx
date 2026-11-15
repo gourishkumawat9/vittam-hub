@@ -5,18 +5,7 @@ import { Badge, Card, CardHeader, CardTitle } from "@vittamhub/ui";
 import { CheckCircle2, Circle, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
-function scoreColor(score: number) {
-  if (score >= 80) return "text-success-600";
-  if (score >= 50) return "text-warning-600";
-  return "text-danger-600";
-}
-
-const BAND_BADGE_VARIANT: Record<string, "success" | "warning" | "danger" | "neutral"> = {
-  EXCELLENT: "success",
-  HIGH: "success",
-  MEDIUM: "warning",
-  LOW: "danger",
-};
+import { scoreBand, scoreColor } from "./score-band";
 
 /** Trust Score is always computed server-side (TrustScoreService) — this card only renders it, never assigns it. */
 export function TrustScoreCard({ trustScore }: { trustScore: TrustScore }) {
@@ -28,7 +17,7 @@ export function TrustScoreCard({ trustScore }: { trustScore: TrustScore }) {
         <CardTitle className="flex items-center gap-2 text-base">
           <ShieldCheck className="h-4 w-4 text-brand-primary" /> Trust Score
         </CardTitle>
-        <Badge variant={BAND_BADGE_VARIANT[trustScore.band] ?? "neutral"}>{trustScore.band}</Badge>
+        <Badge variant={scoreBand(trustScore.band).badge}>{scoreBand(trustScore.band).label}</Badge>
       </CardHeader>
 
       <div className="flex items-center gap-4">

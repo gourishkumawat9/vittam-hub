@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma, TrustBand as PrismaTrustBand } from "@prisma/client";
 
+import { persistTrustSnapshot } from "../../common/trust/persist-trust-snapshot";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 import { InvestorMetricsService } from "./investor-metrics.service";
@@ -46,6 +47,8 @@ export class InvestorTrustService {
       this.prisma.verificationRecord.findMany({
         where: {
           status: "VERIFIED",
+          // A verification that has run out no longer counts.
+          AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }],
           OR: [
             { entityType: "User", entityId: investorOwnerId, field: "workEmail" },
             { entityType: "Investor", entityId: investor.id, method: { in: ["SEBI_API", "MCA_API"] } },
@@ -77,8 +80,12 @@ export class InvestorTrustService {
     );
     const band = this.deriveBand(score);
 
-    await this.prisma.trustScoreSnapshot.create({
-      data: { entityType: "Investor", entityId: investor.id, score, band, breakdown: { factors } as unknown as Prisma.InputJsonValue },
+    await persistTrustSnapshot(this.prisma, {
+      entityType: "Investor",
+      entityId: investor.id,
+      score,
+      band,
+      breakdown: { factors } as unknown as Prisma.InputJsonValue,
     });
 
     return { score, band, factors };

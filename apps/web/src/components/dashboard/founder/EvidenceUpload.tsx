@@ -5,6 +5,8 @@ import { Button, Input } from "@vittamhub/ui";
 import { FileText, Link2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { externalHref } from "@/lib/safe-url";
+
 const MAX_EVIDENCE_ITEMS = 6;
 
 function isImageUrl(url: string) {
@@ -16,7 +18,7 @@ interface EvidenceUploadProps {
   onChange: (urls: string[]) => void;
 }
 
-/** Milestone "Evidence (optional)" — photos/documents uploaded via the existing presigned-upload flow, or external links pasted in directly. */
+/** Milestone "Evidence (optional)": photos uploaded to the public picture store, or links pasted in directly (a document goes in as a link). */
 export function EvidenceUpload({ value, onChange }: EvidenceUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [linkDraft, setLinkDraft] = useState("");
@@ -37,10 +39,11 @@ export function EvidenceUpload({ value, onChange }: EvidenceUploadProps) {
     setError(null);
     setIsUploading(true);
     try {
-      const url = await uploadFile(file, "documents");
+      // A public picture folder: evidence is shown on the public profile, so it can't live with the private documents.
+      const url = await uploadFile(file, "pictures");
       addUrl(url);
-    } catch {
-      setError("Upload failed. Please try again");
+    } catch (cause) {
+      setError(cause instanceof Error && cause.message ? cause.message : "Upload failed. Please try again");
     } finally {
       setIsUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -64,7 +67,7 @@ export function EvidenceUpload({ value, onChange }: EvidenceUploadProps) {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-sm font-medium text-text-primary">Evidence (optional)</span>
-      <p className="text-xs text-text-secondary">Photos, documents, or links that back up this milestone.</p>
+      <p className="text-xs text-text-secondary">Photos or links that back up this milestone. Anyone who can see your profile can open them.</p>
 
       {value.length > 0 && (
         <ul className="flex flex-col gap-1.5">
@@ -76,7 +79,7 @@ export function EvidenceUpload({ value, onChange }: EvidenceUploadProps) {
               ) : (
                 <FileText className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
               )}
-              <a href={url} target="_blank" rel="noreferrer" className="flex-1 truncate text-brand-primary hover:underline">
+              <a href={externalHref(url)} target="_blank" rel="noreferrer" className="flex-1 truncate text-brand-primary hover:underline">
                 {url}
               </a>
               <button type="button" onClick={() => removeUrl(url)} aria-label="Remove evidence">
@@ -95,17 +98,25 @@ export function EvidenceUpload({ value, onChange }: EvidenceUploadProps) {
             onChange={(e) => setLinkDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addLink())}
           />
-          <Button type="button" size="sm" variant="secondary" onClick={addLink}>
-            <Link2 className="h-3.5 w-3.5" />
+          <Button type="button" size="sm" variant="secondary" onClick={addLink} aria-label="Add this link">
+            <Link2 className="h-3.5 w-3.5" aria-hidden />
           </Button>
-          <Button type="button" size="sm" variant="secondary" isLoading={isUploading} onClick={() => inputRef.current?.click()}>
-            {!isUploading && <Upload className="h-3.5 w-3.5" />}
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            isLoading={isUploading}
+            onClick={() => inputRef.current?.click()}
+            aria-label="Upload a photo"
+          >
+            {!isUploading && <Upload className="h-3.5 w-3.5" aria-hidden />}
           </Button>
           <input
             ref={inputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp,application/pdf"
+            accept="image/png,image/jpeg,image/webp"
             className="hidden"
+            tabIndex={-1}
             onChange={(e) => handleFile(e.target.files?.[0])}
           />
         </div>

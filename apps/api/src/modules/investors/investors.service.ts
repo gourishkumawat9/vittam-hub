@@ -5,6 +5,8 @@ import type { CreateInvestorInput, InvestorSearchFilters } from "@vittamhub/type
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
 import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
+import { discardProfileEditDraft } from "../../common/onboarding/discard-edit-draft";
+import { LISTED_VERIFICATION, VERIFIED_FIRST } from "../../common/verification/listed-profiles";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 @Injectable()
@@ -33,7 +35,11 @@ export class InvestorsService {
   }
 
   async update(ownerId: string, input: Partial<CreateInvestorInput>) {
-    const investor = await this.prisma.investor.update({ where: { ownerId }, data: input });
+    const investor = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.investor.update({ where: { ownerId }, data: input });
+      await discardProfileEditDraft(tx, ownerId);
+      return updated;
+    });
     this.eventEmitter.emit("profile.upserted", { ownerId });
     return investor;
   }
@@ -61,6 +67,7 @@ export class InvestorsService {
     const where: Prisma.InvestorWhereInput = {
       isPublic: true,
       AND: [sameSandbox(viewerIsDemo)], // demo and real accounts never see each other
+      verificationStatus: LISTED_VERIFICATION,
       ...(industry?.length ? { preferredIndustries: { hasSome: industry } } : {}),
       ...(filters.country?.length ? { preferredGeography: { hasSome: filters.country } } : {}),
       ...(stage?.length ? { preferredStages: { hasSome: stage } } : {}),
@@ -86,7 +93,7 @@ export class InvestorsService {
         where,
         skip,
         take,
-        orderBy: { [filters.sortBy ?? "createdAt"]: filters.sortDir ?? "desc" },
+        orderBy: filters.sortBy ? { [filters.sortBy]: filters.sortDir ?? "desc" } : [VERIFIED_FIRST, { createdAt: filters.sortDir ?? "desc" }],
         include: { owner: { select: { fullName: true, avatarUrl: true } } },
       }),
       this.prisma.investor.count({ where }),

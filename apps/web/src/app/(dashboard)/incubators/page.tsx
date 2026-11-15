@@ -8,6 +8,7 @@ import { Building2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 
 const KIND_TABS: { label: string; value: IncubatorKind[] | undefined }[] = [
@@ -64,7 +65,10 @@ export default function IncubatorsDirectoryPage() {
             <Link key={incubator.id} href={`/incubators/${incubator.id}`}>
               <Card interactive className="flex h-full flex-col gap-4">
                 <div>
-                  <h3 className="font-heading text-sm font-semibold text-text-primary">{incubator.organizationName}</h3>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <h3 className="font-heading text-sm font-semibold text-text-primary">{incubator.organizationName}</h3>
+                    <VerifiedBadge status={incubator.verificationStatus} />
+                  </div>
                   <p className="text-xs text-text-secondary">{incubator.programs.length} program(s)</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">

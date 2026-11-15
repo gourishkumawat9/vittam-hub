@@ -1,4 +1,5 @@
 {
   "root": true,
-  "extends": ["../../packages/config/eslint-preset/index.js", "next/core-web-vitals"]
+  "extends": ["../../packages/config/eslint-preset/index.js", "next/core-web-vitals"],
+  "ignorePatterns": ["next-env.d.ts"]
 }

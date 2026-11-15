@@ -37,10 +37,13 @@ export function SendConnectRequestDialog({ investor, open, onOpenChange }: SendC
 
   const handleUpload = async (field: "pitchDeckUrl" | "executiveSummaryUrl", file: File | undefined) => {
     if (!file) return;
+    setSubmitError(null);
     setUploadingField(field);
     try {
       const url = await uploadFile(file, "documents");
       setValue(field, url);
+    } catch (cause) {
+      setSubmitError(cause instanceof Error && cause.message ? cause.message : "That file couldn't be uploaded. Please try again.");
     } finally {
       setUploadingField(null);
     }

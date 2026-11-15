@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type {
   ConnectionListFilters,
   ConnectionResponseAction,
@@ -19,13 +19,21 @@ import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
+import { MediaService } from "../media/media.service";
 import { PlanLimitsService } from "../plan-limits/plan-limits.service";
+
+/** The two files a founder can attach to a connect request, by the name used in the route. */
+export const CONNECTION_ATTACHMENTS = { "pitch-deck": "pitchDeckUrl", "executive-summary": "executiveSummaryUrl" } as const;
+export type ConnectionAttachmentKind = keyof typeof CONNECTION_ATTACHMENTS;
 
 const RESPONSE_ACTION_TO_STATUS: Record<ConnectionResponseAction, "ACCEPTED" | "DECLINED" | "IGNORED"> = {
   ACCEPT: "ACCEPTED",
   DECLINE: "DECLINED",
   IGNORE: "IGNORED",
 };
+
+const CLOCK_SLACK_MS = 5 * 60_000;
+const MAX_UPCOMING_MEETINGS = 10;
 
 function startOfCurrentMonth(): Date {
   const now = new Date();
@@ -39,7 +47,20 @@ export class ConnectionsService {
     private readonly planLimits: PlanLimitsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly auditLog: AuditLogService,
+    private readonly mediaService: MediaService,
   ) {}
+
+  /**
+   * An attachment is either a link the founder pasted or a file they uploaded
+   * to our own storage. For a file, it has to be their own upload: the
+   * attachment route hands a signed link to both people on the request, so
+   * accepting someone else's stored file here would be a way to read it.
+   */
+  private assertOwnAttachment(requesterId: string, url: string | undefined) {
+    if (url && this.mediaService.isStorageUrl(url) && !this.mediaService.isOwnedBy(url, requesterId)) {
+      throw new BadRequestException("That attachment isn't a file uploaded from your account. Please upload it again.");
+    }
+  }
 
   /**
    * The only way a founder can reach an investor — see docs/12-connect-requests.md.
@@ -51,57 +72,75 @@ export class ConnectionsService {
     if (!startup) {
       throw new BadRequestException("Complete your startup profile before sending connect requests.");
     }
+    this.assertOwnAttachment(requesterId, input.pitchDeckUrl);
+    this.assertOwnAttachment(requesterId, input.executiveSummaryUrl);
 
     const recipient = await this.prisma.user.findUnique({ where: { id: input.recipientId } });
     // A demo account and a real one never interact (common/demo/demo-scope.ts); "not found" so neither side can probe the other.
-    if (!recipient || !(await inSameSandbox(this.prisma, requesterId, recipient.id))) throw new NotFoundException("Investor not found");
+    // A deleted account is "not found" too, so a request (and a slot of the monthly limit) is never spent on nobody.
+    if (!recipient || recipient.deletedAt || !(await inSameSandbox(this.prisma, requesterId, recipient.id))) {
+      throw new NotFoundException("Investor not found");
+    }
     if (recipient.role !== "INVESTOR") {
       throw new BadRequestException("Connect requests can only be sent to investors.");
     }
 
-    await this.assertUnderMonthlyQuota(requesterId);
-
-    try {
-      const connection = await this.prisma.connection.create({
-        data: {
-          requesterId,
-          recipientId: input.recipientId,
-          startupId: startup.id,
-          introduction: input.introduction,
-          fundingRequirementAmount: input.fundingRequirementAmount,
-          pitchDeckUrl: input.pitchDeckUrl,
-          executiveSummaryUrl: input.executiveSummaryUrl,
-          demoLinkUrl: input.demoLinkUrl,
-        },
-      });
-
-      const requester = await this.prisma.user.findUniqueOrThrow({ where: { id: requesterId } });
-      this.eventEmitter.emit("connection.requested", {
-        recipientId: recipient.id,
-        requesterName: requester.fullName,
-        startupName: startup.name,
-      });
-
-      return connection;
-    } catch {
-      throw new ConflictException("A connection request already exists between these users");
-    }
-  }
-
-  private async assertUnderMonthlyQuota(founderId: string) {
-    const subscription = await this.prisma.subscription.findUnique({ where: { userId: founderId } });
+    const subscription = await this.prisma.subscription.findUnique({ where: { userId: requesterId } });
     const plan = subscription?.plan ?? "FREE";
     const limit = await this.planLimits.getMonthlyConnectRequestLimit(plan);
-    if (limit === null) return; // unlimited
 
-    const sentThisMonth = await this.prisma.connection.count({
-      where: { requesterId: founderId, createdAt: { gte: startOfCurrentMonth() } },
-    });
-    if (sentThisMonth >= limit) {
-      throw new ForbiddenException(
-        `You've reached your ${limit} connect request${limit === 1 ? "" : "s"} this month on the ${plan} plan. Upgrade to send more.`,
-      );
+    let connection;
+    try {
+      // The limit check and the insert have to be one step. As two, a founder
+      // who fired several requests at the same instant got every one of them
+      // past "have I sent fewer than N?" before any was counted. The lock is
+      // per founder and is released when the transaction ends, so it only ever
+      // makes one person's own simultaneous requests wait for each other.
+      connection = await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`connect-request:${requesterId}`}))`;
+
+        if (limit !== null) {
+          const sentThisMonth = await tx.connection.count({
+            where: { requesterId, createdAt: { gte: startOfCurrentMonth() } },
+          });
+          if (sentThisMonth >= limit) {
+            throw new ForbiddenException(
+              `You've reached your ${limit} connect request${limit === 1 ? "" : "s"} this month on the ${plan} plan. Upgrade to send more.`,
+            );
+          }
+        }
+
+        return tx.connection.create({
+          data: {
+            requesterId,
+            recipientId: input.recipientId,
+            startupId: startup.id,
+            introduction: input.introduction,
+            fundingRequirementAmount: input.fundingRequirementAmount,
+            pitchDeckUrl: input.pitchDeckUrl,
+            executiveSummaryUrl: input.executiveSummaryUrl,
+            demoLinkUrl: input.demoLinkUrl,
+          },
+        });
+      });
+    } catch (error) {
+      // Only the unique (founder, investor, startup) constraint means "already
+      // requested". Catching everything here used to report a database outage
+      // as "a request already exists".
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictException("You've already sent this investor a connect request");
+      }
+      throw error;
     }
+
+    const requester = await this.prisma.user.findUniqueOrThrow({ where: { id: requesterId } });
+    this.eventEmitter.emit("connection.requested", {
+      recipientId: recipient.id,
+      requesterName: requester.fullName,
+      startupName: startup.name,
+    });
+
+    return connection;
   }
 
   async respond(connectionId: string, recipientId: string, action: ConnectionResponseAction) {
@@ -165,6 +204,9 @@ export class ConnectionsService {
     const connection = await this.prisma.connection.findUnique({ where: { id: connectionId } });
     if (!connection) throw new NotFoundException("Connection request not found");
     if (connection.recipientId !== recipientId) throw new ForbiddenException("Not your connection request");
+    if (connection.status !== "PENDING") throw new ConflictException("This connection request has already been responded to");
+    // Asking once is enough: a second click must not notify the founder again.
+    if (connection.infoRequestedAt) return connection;
 
     const updated = await this.prisma.connection.update({
       where: { id: connectionId },
@@ -181,10 +223,24 @@ export class ConnectionsService {
   }
 
   /**
-   * Membership-only check — deliberately does NOT require ACCEPTED, unlike
-   * assertCanMessage: meetings can be proposed before a formal Accept (an
-   * intro call ahead of the decision), messaging cannot.
+   * Where to open a connect request's pitch deck or one-pager. An uploaded
+   * file sits in the private bucket, so the address stored on the request
+   * opens nothing by itself (it answered "access denied" to the investor it
+   * was sent to). Both people on the request get a link that works for five
+   * minutes; a link the founder pasted is passed through unchanged.
    */
+  async attachmentUrl(connectionId: string, callerId: string, kind: ConnectionAttachmentKind) {
+    const connection = await this.assertConnectionMember(connectionId, callerId);
+    const stored = connection[CONNECTION_ATTACHMENTS[kind]];
+    if (!stored) throw new NotFoundException("Nothing is attached here");
+    if (!this.mediaService.isStorageUrl(stored)) return { url: stored };
+    // Checked again on the way out, for requests created before `create` checked it.
+    if (!this.mediaService.isOwnedBy(stored, connection.requesterId)) throw new NotFoundException("Nothing is attached here");
+    const key = this.mediaService.extractKeyFromPublicUrl(stored);
+    return { url: await this.mediaService.getSignedDownloadUrl(key, 300, this.mediaService.bucketForUrl(stored)) };
+  }
+
+  /** Membership only: who may read a connection's meetings. Proposing one has its own, stricter rule in `scheduleMeeting`. */
   private async assertConnectionMember(connectionId: string, callerId: string) {
     const connection = await this.prisma.connection.findUnique({ where: { id: connectionId } });
     if (!connection) throw new NotFoundException("Connection not found");
@@ -194,14 +250,41 @@ export class ConnectionsService {
     return connection;
   }
 
-  /** Either party can propose a time — allowed before acceptance too (an intro call can happen ahead of a formal Accept). */
+  /**
+   * A meeting carries free text and a link, so proposing one is a way of
+   * writing to the other person. That makes it subject to the same rule as
+   * messages (CLAUDE.md §4): a founder can only do it once the investor has
+   * accepted. The investor is the one being approached, so they may also
+   * propose an intro call while the request is still pending, before deciding.
+   * Nobody can on a request that was declined or ignored.
+   */
   async scheduleMeeting(connectionId: string, callerId: string, input: ScheduleMeetingInput) {
     const connection = await this.assertConnectionMember(connectionId, callerId);
+    const callerIsInvestor = connection.recipientId === callerId;
+    const allowed = connection.status === "ACCEPTED" || (connection.status === "PENDING" && callerIsInvestor);
+    if (!allowed) {
+      throw new ForbiddenException(
+        callerIsInvestor
+          ? "This request is closed, so a meeting can't be proposed on it"
+          : "You can propose a meeting once the investor has accepted your connect request",
+      );
+    }
+
+    const scheduledAt = new Date(input.scheduledAt);
+    // A few minutes of slack for a slow form and a device clock that runs fast.
+    if (scheduledAt.getTime() < Date.now() - CLOCK_SLACK_MS) {
+      throw new BadRequestException("Pick a time in the future");
+    }
+    // Each proposal notifies the other person, so there is a ceiling on how many can be outstanding.
+    const upcoming = await this.prisma.meeting.count({ where: { connectionId, scheduledAt: { gte: new Date() } } });
+    if (upcoming >= MAX_UPCOMING_MEETINGS) {
+      throw new BadRequestException("This connection already has several meetings coming up. Wait for one to pass before proposing another.");
+    }
 
     const meeting = await this.prisma.meeting.create({
       data: {
         connectionId,
-        scheduledAt: new Date(input.scheduledAt),
+        scheduledAt,
         notes: input.notes,
         videoCallUrl: input.videoCallUrl,
       },

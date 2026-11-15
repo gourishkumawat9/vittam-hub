@@ -40,10 +40,15 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/incubators", label: "Incubators", icon: Building2 },
     { href: "/universities", label: "Universities", icon: GraduationCap },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/onboarding/founder", label: "Edit Startup Profile", icon: UserCircle },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
   MENTOR: [
     { href: "/mentors/bookings", label: "Session Requests", icon: CalendarClock },
+    { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/onboarding/mentor", label: "Edit Mentor Profile", icon: UserCircle },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
   INVESTOR: [
     { href: "/investor", label: "Dashboard", icon: LayoutDashboard },
@@ -62,27 +67,37 @@ const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof Layou
     { href: "/investor/recommendations", label: "AI Recommendations", icon: Sparkles },
     { href: "/investor/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/investor/documents", label: "Documents", icon: FolderLock },
-    { href: "/investor/profile", label: "Profile", icon: UserCircle },
-    { href: "/investor/settings", label: "Settings", icon: Settings },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/investor/profile", label: "Edit Investor Profile", icon: UserCircle },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
-  ADMIN: [{ href: "/admin", label: "Admin", icon: Shield }],
+  ADMIN: [
+    { href: "/admin", label: "Admin", icon: Shield },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
   INCUBATOR: [
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/incubators", label: "Incubators", icon: Building2 },
     { href: "/universities", label: "Universities", icon: GraduationCap },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/onboarding/incubator", label: "Edit Incubator Profile", icon: UserCircle },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
   UNIVERSITY: [
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/incubators", label: "Incubators", icon: Building2 },
     { href: "/universities", label: "Universities", icon: GraduationCap },
     { href: "/community", label: "Community", icon: Users },
+    { href: "/onboarding/university", label: "Edit University Profile", icon: UserCircle },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
 };
 
 /** Roles paused until after the growth stage (service providers, job seekers) keep a way into the community. */
-const FALLBACK_NAV = [{ href: "/community", label: "Community", icon: Users }];
+const FALLBACK_NAV = [
+  { href: "/community", label: "Community", icon: Users },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
 
 /**
  * Nav content shared by the persistent desktop `<aside>` and the mobile

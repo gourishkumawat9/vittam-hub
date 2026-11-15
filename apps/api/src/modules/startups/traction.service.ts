@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import type { UpdateTractionInput } from "@vittamhub/types";
 
+import { discardProfileEditDraft } from "../../common/onboarding/discard-edit-draft";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 import { recordTractionObservations } from "./metric-observations.util";
@@ -30,6 +31,7 @@ export class TractionService {
         update: input,
       });
       await recordTractionObservations(tx, startup.id, input, startup.currency, "self-declared:update");
+      await discardProfileEditDraft(tx, founderId);
       return traction;
     });
 

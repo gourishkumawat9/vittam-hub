@@ -17,6 +17,6 @@ export class SearchController {
   @UsePipes(new ZodValidationPipe(globalSearchFiltersSchema))
   @ApiOperation({ summary: "Global cross-entity search — startups, investors, mentors, incubators, jobs, 5 results per group" })
   search(@CurrentUser() user: AuthenticatedUser, @Query() filters: GlobalSearchFilters) {
-    return this.searchService.search(filters, user.sub);
+    return this.searchService.search(filters, user.sub, user.role === "INVESTOR");
   }
 }

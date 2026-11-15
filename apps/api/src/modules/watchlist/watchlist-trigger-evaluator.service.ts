@@ -53,7 +53,12 @@ export class WatchlistTriggerEvaluatorService {
     switch (trigger.type) {
       case "REVENUE_ABOVE": {
         if (trigger.thresholdAmount == null) return false;
-        const traction = await this.prisma.startupTraction.findUnique({ where: { startupId: trigger.startupId } });
+        const traction = await this.prisma.startupTraction.findUnique({
+          where: { startupId: trigger.startupId },
+          include: { startup: { select: { metricsVisibility: true } } },
+        });
+        // An alert set while the numbers were visible must not keep reporting on them once the founder hides them.
+        if (traction?.startup.metricsVisibility === "HIDDEN") return false;
         return !!traction?.monthlyRevenueAmount && Number(traction.monthlyRevenueAmount) > Number(trigger.thresholdAmount);
       }
       case "TRUST_BAND_REACHES": {

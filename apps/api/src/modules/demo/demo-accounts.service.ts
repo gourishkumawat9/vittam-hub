@@ -21,6 +21,23 @@ type DemoAccount = {
 const now = () => new Date();
 
 /**
+ * What the wizard's first step asks everyone for. Filled in so that "Edit
+ * profile" on a demo account opens complete and can be saved straight away:
+ * with these blank, saving any edit failed on "Personal details: Required".
+ * Placeholder values, like everything else on a demo account.
+ */
+const DEMO_PERSONAL_DETAILS = {
+  mobileNumber: "0000000000",
+  dateOfBirth: new Date("1995-01-01T00:00:00.000Z"),
+  gender: "PREFER_NOT_TO_SAY" as const,
+  nationality: "Indian",
+  city: "Jaipur",
+  state: "Rajasthan",
+  country: "India",
+  bio: "Demo account for trying VittamHub.",
+};
+
+/**
  * One login per stakeholder, so the owner can click through every dashboard
  * on the live site. Every name says "Demo" (CLAUDE.md §2), and every account
  * is `isDemo`, which seals it into the demo sandbox (common/demo/demo-scope.ts):
@@ -44,8 +61,12 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         industry: "EDTECH" as const,
         stage: "MVP" as const,
         declaredStage: "MVP" as const,
+        productStatus: "BETA" as const,
+        revenueStatus: "NONE" as const,
+        fundingStatus: "BOOTSTRAPPED" as const,
         foundedYear: 2026,
         location: "Jaipur, India",
+        headquarters: "Jaipur, India",
         isFundraising: true,
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
@@ -68,10 +89,15 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         tagline: "UPI savings app for first-time earners (demo profile)",
         description: "Demo profile for trying VittamHub. Rounds up everyday UPI payments into a savings goal.",
         industry: "FINTECH" as const,
-        stage: "IDEA" as const,
-        declaredStage: "IDEA" as const,
+        // What the three statuses below work out to (stage.util.ts), so saving the profile unchanged doesn't move it.
+        stage: "VALIDATION" as const,
+        declaredStage: "VALIDATION" as const,
+        productStatus: "CONCEPT" as const,
+        revenueStatus: "NONE" as const,
+        fundingStatus: "BOOTSTRAPPED" as const,
         foundedYear: 2026,
         location: "Bengaluru, India",
+        headquarters: "Bengaluru, India",
         isFundraising: false,
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
@@ -116,7 +142,9 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         expertise: ["Product", "Pricing", "Go-to-market"],
         industries: ["EDTECH", "FINTECH"],
         yearsExperience: 8,
+        availability: "Weekday evenings (demo)",
         sessionTypes: ["ONE_ON_ONE" as const],
+        pricingModel: "Free",
         languages: ["English", "Hindi"],
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
@@ -159,6 +187,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     profile: (tx, ownerId) => {
       const data = {
         institutionName: "Demo University",
+        affiliationType: "Private",
         incubationCellName: "Demo University Startup Cell",
         departments: ["Management", "Engineering"],
         programsOffered: ["Student startup programme"],
@@ -233,10 +262,12 @@ export class DemoAccountsService implements OnApplicationBootstrap {
           create: { email: account.email, ...fields },
         });
         // Straight to the dashboard on login: /onboarding sends anyone whose wizard isn't COMPLETED back into it.
+        // Edits a visitor started and left unsaved are dropped along with everything else a boot resets.
+        const profile = { onboardingStatus: "COMPLETED" as const, onboardingDraft: Prisma.JsonNull, ...DEMO_PERSONAL_DETAILS };
         await tx.userProfile.upsert({
           where: { userId: user.id },
-          update: { onboardingStatus: "COMPLETED" },
-          create: { userId: user.id, onboardingStatus: "COMPLETED" },
+          update: profile,
+          create: { userId: user.id, ...profile },
         });
         await account.profile?.(tx, user.id);
       });

@@ -1,6 +1,6 @@
 "use client";
 
-import { getApiBaseUrl, waitForApi } from "@vittamhub/api-client";
+import { getApiBaseUrl, useOAuthProviders, waitForApi } from "@vittamhub/api-client";
 import { Github, Linkedin } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { useState } from "react";
 import { StatusScreen } from "@/components/StatusScreen";
 import { WakingProgress } from "@/components/WakingProgress";
 import { CinematicLoader } from "@/components/loader/CinematicLoader";
+import { cn } from "@/lib/utils";
 
 const PROVIDERS = [
   { id: "google", label: "Continue with Google", icon: GoogleIcon },
@@ -44,11 +45,17 @@ function GoogleIcon({ className }: { className?: string }) {
  * minute, and a down API showed the host's raw error page. So the button
  * first waits for the API's health check behind a VittamHub loading screen,
  * then redirects — or goes to /unavailable if the API never answers.
+ *
+ * Only providers the API holds keys for are offered. All three buttons used
+ * to show regardless, and one that wasn't set up led to that provider's own
+ * error page. With none set up, this renders nothing at all, divider included.
  */
-export function OAuthButtons() {
+export function OAuthButtons({ className }: { className?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [connecting, setConnecting] = useState<string | null>(null);
+  const { data } = useOAuthProviders();
+  const providers = PROVIDERS.filter((provider) => data?.providers.includes(provider.id));
 
   const startOAuth = async (event: React.MouseEvent<HTMLAnchorElement>, label: string) => {
     // Let modified clicks (new tab etc.) behave like the plain link they are.
@@ -64,9 +71,16 @@ export function OAuthButtons() {
     }
   };
 
+  if (providers.length === 0) return null;
+
   return (
-    <div className="flex flex-col gap-2.5">
-      {PROVIDERS.map((provider) => (
+    <div className={cn("flex flex-col gap-2.5", className)}>
+      <div className="mb-3.5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs text-text-secondary">OR</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      {providers.map((provider) => (
         <a
           key={provider.id}
           href={`${getApiBaseUrl()}/v1/auth/${provider.id}`}

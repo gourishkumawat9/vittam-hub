@@ -15,6 +15,11 @@ export type VerifiableEntityType =
   | "UniversityProfile"
   | "ServiceProviderProfile";
 
+const WORK_EMAIL_METHOD = "DOMAIN_EMAIL_HEURISTIC";
+const WORK_EMAIL_FIELD = "workEmail";
+/** Ledger fields only the platform's own checks may write. */
+const SYSTEM_FIELDS = new Set(["overall", "phone", WORK_EMAIL_FIELD]);
+
 /** Runs one registered VerificationProvider by method name and writes the resulting VerificationRecord row — the write side of the ledger VerificationEngineService reads from. */
 @Injectable()
 export class VerificationOrchestratorService {
@@ -55,59 +60,96 @@ export class VerificationOrchestratorService {
     method: string,
     input: Record<string, string>,
   ) {
+    const provider = this.registry.get(method);
+    if (!provider) throw new BadRequestException(`Unknown verification method "${method}"`);
+
+    // The work-email check is about the account's own, confirmed address and
+    // nothing else. It used to run on whatever address the caller typed, so
+    // anyone could post "partner@a-well-known-fund.com" and receive a verified
+    // work-email record on their own profile.
+    if (method === WORK_EMAIL_METHOD) {
+      const record = await this.ensureWorkEmailRecord(callerId);
+      if (!record) throw new BadRequestException("Confirm your email address first, then try again");
+      return record;
+    }
+
     const ownerId = await this.resolveOwnerId(entityType, entityId);
     if (!ownerId) throw new NotFoundException("Profile not found");
     if (ownerId !== callerId) throw new ForbiddenException("You can only request verification for your own profile");
 
-    const provider = this.registry.get(method);
-    if (!provider) throw new BadRequestException(`Unknown verification method "${method}"`);
+    // These are written by the platform itself (overall status, the phone
+    // code, the work-email check). A caller naming one of them would be
+    // writing a row that reads as the platform's own finding.
+    if (SYSTEM_FIELDS.has(field)) {
+      throw new BadRequestException(`"${field}" can't be checked this way`);
+    }
 
     const result = await provider.verify(input);
+    const data = {
+      tier: result.tier,
+      status: result.status,
+      verifiedAt: result.status === "VERIFIED" ? new Date() : null,
+      expiresAt: result.expiresAt ?? null,
+      verifiedBy: `provider:${method}`,
+      rawResponse: result.rawResponse as Prisma.InputJsonValue,
+    };
 
-    return this.prisma.verificationRecord.create({
-      data: {
-        entityType,
-        entityId,
-        field,
-        tier: result.tier,
-        method,
-        status: result.status,
-        verifiedAt: result.status === "VERIFIED" ? new Date() : null,
-        expiresAt: result.expiresAt ?? null,
-        verifiedBy: `provider:${method}`,
-        rawResponse: result.rawResponse as Prisma.InputJsonValue,
-      },
+    // One open row per check, refreshed in place. Every provider but the
+    // work-email one answers PENDING until its registry key is configured, so
+    // creating a row per request let one account add rows without end.
+    const open = await this.prisma.verificationRecord.findFirst({
+      where: { entityType, entityId, field, method, status: { in: ["PENDING", "FAILED"] } },
+      orderBy: { createdAt: "desc" },
     });
+    if (open) return this.prisma.verificationRecord.update({ where: { id: open.id }, data });
+
+    return this.prisma.verificationRecord.create({ data: { entityType, entityId, field, method, ...data } });
   }
 
   /**
    * The one automated check that runs itself: work-domain email costs nothing
    * and needs no config, so every profile write gets it for free instead of
-   * waiting on the owner to hit the checks endpoint. Skipped once a record
-   * already exists for this user — an email rarely changes, and this keeps
-   * the ledger from growing a row on every autosave-triggered profile write.
+   * waiting on the owner to hit the checks endpoint. It also runs the moment
+   * an address is confirmed.
    */
   @OnEvent("profile.upserted")
+  @OnEvent("user.email-verified")
   async runWorkDomainEmailCheck(payload: { ownerId: string }) {
+    await this.ensureWorkEmailRecord(payload.ownerId);
+  }
+
+  /**
+   * Returns the account's work-email record, creating it on first use. Null
+   * while the address is unconfirmed: until the emailed code comes back,
+   * nothing shows the person owns the address they signed up with, so its
+   * domain says nothing about where they work. Skipped once a record exists,
+   * as an email rarely changes and this keeps the ledger from growing a row
+   * on every autosave-triggered profile write.
+   */
+  private async ensureWorkEmailRecord(userId: string) {
     const existing = await this.prisma.verificationRecord.findFirst({
-      where: { entityType: "User", entityId: payload.ownerId, field: "workEmail" },
+      where: { entityType: "User", entityId: userId, field: WORK_EMAIL_FIELD },
+      orderBy: { createdAt: "desc" },
     });
-    if (existing) return;
+    if (existing) return existing;
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.ownerId }, select: { email: true } });
-    if (!user) return;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, emailVerifiedAt: true, deletedAt: true },
+    });
+    if (!user || user.deletedAt || !user.emailVerifiedAt) return null;
 
-    const provider = this.registry.get("DOMAIN_EMAIL_HEURISTIC");
-    if (!provider) return;
+    const provider = this.registry.get(WORK_EMAIL_METHOD);
+    if (!provider) return null;
     const result = await provider.verify({ email: user.email });
 
-    await this.prisma.verificationRecord.create({
+    return this.prisma.verificationRecord.create({
       data: {
         entityType: "User",
-        entityId: payload.ownerId,
-        field: "workEmail",
+        entityId: userId,
+        field: WORK_EMAIL_FIELD,
         tier: result.tier,
-        method: "DOMAIN_EMAIL_HEURISTIC",
+        method: WORK_EMAIL_METHOD,
         status: result.status,
         verifiedAt: result.status === "VERIFIED" ? new Date() : null,
         expiresAt: result.expiresAt ?? null,

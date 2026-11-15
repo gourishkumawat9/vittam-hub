@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ServiceCategory, VerificationStatus } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 export const serviceProviderProfileSchema = z.object({
   id: z.string().uuid(),
@@ -11,8 +12,8 @@ export const serviceProviderProfileSchema = z.object({
   pricingModel: z.string().max(80).nullable(),
   yearsExperience: z.number().int().nonnegative().nullable(),
   clientsServed: z.number().int().nonnegative().nullable(),
-  website: z.string().url().nullable(),
-  logoUrl: z.string().url().nullable(),
+  website: httpUrlSchema.nullable(),
+  logoUrl: httpUrlSchema.nullable(),
   verificationStatus: z.nativeEnum(VerificationStatus),
   isPublic: z.boolean(),
   createdAt: z.string().datetime(),
@@ -20,10 +21,7 @@ export const serviceProviderProfileSchema = z.object({
 });
 export type ServiceProviderProfileRecord = z.infer<typeof serviceProviderProfileSchema>;
 
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 export const createServiceProviderInputSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(160),

@@ -7,6 +7,7 @@ import { GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 
 export default function UniversitiesDirectoryPage() {
@@ -38,7 +39,10 @@ export default function UniversitiesDirectoryPage() {
             <Link key={university.id} href={`/universities/${university.id}`}>
               <Card interactive className="flex h-full flex-col gap-4">
                 <div>
-                  <h3 className="font-heading text-sm font-semibold text-text-primary">{university.institutionName}</h3>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <h3 className="font-heading text-sm font-semibold text-text-primary">{university.institutionName}</h3>
+                    <VerifiedBadge status={university.verificationStatus} />
+                  </div>
                   <p className="text-xs text-text-secondary">{university.incubationCellName ?? university.affiliationType ?? "University"}</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">

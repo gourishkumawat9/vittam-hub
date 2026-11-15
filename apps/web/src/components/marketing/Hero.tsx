@@ -1,13 +1,11 @@
 "use client";
 
 import { motion, useTransform } from "framer-motion";
-import { ArrowRight, PlayCircle } from "lucide-react";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 
 import { useParallax } from "@/hooks/useParallax";
 
-import { DemoModal } from "./hero/DemoModal";
 import { GradientOrbs } from "./hero/GradientOrbs";
 import { HeroFilm } from "./hero/HeroFilm";
 
@@ -17,7 +15,6 @@ const fadeUp = {
 };
 
 export function Hero() {
-  const [demoOpen, setDemoOpen] = useState(false);
   const { x, y } = useParallax();
   const parallaxX = useTransform(x, (value) => value * 24);
   const parallaxY = useTransform(y, (value) => value * 24);
@@ -75,16 +72,16 @@ export function Hero() {
               className="inline-flex items-center justify-center gap-2 rounded-button bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
               Get started
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <button
-              type="button"
-              onClick={() => setDemoOpen(true)}
+            {/* Was "Watch demo", which opened a box saying the video was coming soon. */}
+            <a
+              href="#how-it-works"
               className="inline-flex items-center justify-center gap-2 rounded-button border border-border bg-surface px-6 py-3.5 text-sm font-semibold text-text-primary transition-colors hover:bg-background-secondary"
             >
-              <PlayCircle className="h-4 w-4" />
-              Watch demo
-            </button>
+              See how it works
+              <ArrowDown className="h-4 w-4" aria-hidden="true" />
+            </a>
           </motion.div>
         </div>
 
@@ -100,7 +97,6 @@ export function Hero() {
         </motion.div>
       </div>
 
-      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
     </section>
   );
 }

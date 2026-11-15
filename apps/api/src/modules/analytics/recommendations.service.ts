@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import type { Industry } from "@vittamhub/types";
 
 import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
+import { listableStartupWhere, projectStartups } from "../../common/startups/startup-visibility";
+import { LISTED_VERIFICATION, VERIFIED_FIRST } from "../../common/verification/listed-profiles";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { InvestorMetricsService } from "../investors/investor-metrics.service";
 import { MatchScoreService } from "../investors/match-score.service";
@@ -26,10 +28,15 @@ export class RecommendationsService {
   async getForInvestor(investorId: string) {
     const investor = await this.prisma.investor.findUnique({ where: { ownerId: investorId } });
 
+    // The same "may appear in a list" rule as discovery: public, not private
+    // or stealth, same sandbox. Without the visibility part a stealth startup
+    // could surface here as a recommendation.
+    // Every published startup can be suggested, verified or not yet (see
+    // common/verification/listed-profiles.ts): with verified-only suggestions
+    // this page stayed empty until a founder had uploaded company papers.
     const baseWhere = {
-      isPublic: true,
-      verificationStatus: "VERIFIED" as const,
-      ...sameSandbox(await isDemoViewer(this.prisma, investorId)),
+      ...listableStartupWhere(await isDemoViewer(this.prisma, investorId)),
+      verificationStatus: LISTED_VERIFICATION,
     };
 
     const [highPotential, fastestGrowing, recentlyFundraising, portfolio, recentlyVerified, recentlyActiveIds] = await Promise.all([
@@ -40,11 +47,12 @@ export class RecommendationsService {
             ? { industry: { in: investor.preferredIndustries as Industry[] } }
             : {}),
         },
-        orderBy: { updatedAt: "desc" },
+        orderBy: [VERIFIED_FIRST, { updatedAt: "desc" }],
         take: 6,
       }),
       this.prisma.startup.findMany({
-        where: { ...baseWhere, traction: { growthRatePercent: { gt: 0 } } },
+        // Ranking by growth reads the growth figure, so startups that hide their numbers stay out of this list.
+        where: { ...baseWhere, metricsVisibility: { not: "HIDDEN" }, traction: { growthRatePercent: { gt: 0 } } },
         include: { traction: true },
         orderBy: { traction: { growthRatePercent: "desc" } },
         take: 6,
@@ -56,7 +64,7 @@ export class RecommendationsService {
       }),
       this.prisma.investment.findMany({ where: { investorId }, include: { startup: true } }),
       this.prisma.startup.findMany({
-        where: { ...baseWhere, verifiedAt: { not: null } },
+        where: { ...baseWhere, verificationStatus: "VERIFIED", verifiedAt: { not: null } },
         orderBy: { verifiedAt: "desc" },
         take: 6,
       }),
@@ -90,7 +98,7 @@ export class RecommendationsService {
       highPotentialStartups: highPotential,
       trendingIndustries,
       emergingMarkets: this.topLocations(recentlyFundraising),
-      fastestGrowingCompanies: fastestGrowing,
+      fastestGrowingCompanies: projectStartups(fastestGrowing, { userId: investorId, isInvestor: true }),
       similarToPreviousInvestments: similarToPortfolio,
       recentlyVerifiedStartups: recentlyVerified,
       recentlyActiveFounders,
@@ -113,7 +121,9 @@ export class RecommendationsService {
     const candidates = await this.prisma.investor.findMany({
       where: {
         isPublic: true,
-        verificationStatus: "VERIFIED",
+        // An investor had no way to become VERIFIED (nothing on the site takes
+        // the ID it asks for), so no founder was ever recommended a real one.
+        verificationStatus: LISTED_VERIFICATION,
         openForPitches: true,
         ...sameSandbox(await isDemoViewer(this.prisma, founderId)),
         OR: [{ preferredIndustries: { has: startup.industry } }, { preferredStages: { has: startup.stage } }],

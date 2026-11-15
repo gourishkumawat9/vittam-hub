@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Prisma } from "@prisma/client";
 import {
@@ -17,10 +17,28 @@ import { slugify } from "@vittamhub/utils";
 import { ZodError } from "zod";
 
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { recordTractionObservations } from "../../startups/metric-observations.util";
+import { MediaService } from "../../media/media.service";
+import { recordTractionObservations, type TractionMetricsInput } from "../../startups/metric-observations.util";
 import { deriveOverallStage } from "../../startups/stage.util";
 
 import { applyPersonalDetails } from "./apply-personal-details";
+
+const TRACKED_METRICS = ["monthlyRevenueAmount", "arrAmount", "mrrAmount", "totalUsers", "totalCustomers", "downloads"] as const;
+
+/** The metrics whose value differs from what is stored (all of them, the first time). */
+function changedMetrics(
+  next: TractionMetricsInput,
+  stored: Partial<Record<(typeof TRACKED_METRICS)[number], Prisma.Decimal | number | null>> | null,
+): TractionMetricsInput {
+  const changed: TractionMetricsInput = {};
+  for (const key of TRACKED_METRICS) {
+    const value = next[key];
+    if (value === undefined || value === null) continue;
+    const before = stored?.[key];
+    if (before === undefined || before === null || Number(before) !== Number(value)) changed[key] = value;
+  }
+  return changed;
+}
 
 /**
  * Step 10 "Publish" — validates the fully-accumulated wizard draft against
@@ -33,12 +51,22 @@ export class StartupPublisher {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly mediaService: MediaService,
   ) {}
 
   async publish(userId: string, rawDraft: StartupOnboardingDraft, confirmation: unknown) {
-    const confirm = publishStartupInputSchema.safeParse(confirmation);
-    if (!confirm.success) {
-      throw new BadRequestException(confirm.error.issues.map((i) => i.message).join(", "));
+    // Publishing again is how a founder edits a live profile. It used to be
+    // refused outright ("already published"), which left no way at all to
+    // change a startup's name, description, product or team after going live.
+    const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId }, include: { traction: true } });
+
+    // The terms are agreed to, and signed, when the profile first goes live.
+    // Fixing a typo afterwards doesn't ask for the signature again.
+    if (!existing) {
+      const confirm = publishStartupInputSchema.safeParse(confirmation);
+      if (!confirm.success) {
+        throw new BadRequestException(confirm.error.issues.map((i) => i.message).join(", "));
+      }
     }
 
     // Only the startup's own identity is genuinely required to go live —
@@ -48,19 +76,29 @@ export class StartupPublisher {
     // they could have a profile at all, and an untouched step produced an
     // "incomplete" error naming a section they had deliberately skipped.
     const startupInfo = this.parseStep(startupInfoStepSchema, rawDraft.startupInfo, "Startup information");
-    const product = productStepSchema.parse(rawDraft.product ?? {});
-    const market = marketStepSchema.parse(rawDraft.market ?? {});
+    // An untouched section parses to its defaults. One that holds something
+    // invalid (a half-typed link saved by autosave, say) has to come back as a
+    // message naming the field: a bare `.parse()` here threw a ZodError that
+    // reached the founder as "something went wrong" on the very last step.
+    const product = this.parseStep(productStepSchema, rawDraft.product, "Product", true);
+    const market = this.parseStep(marketStepSchema, rawDraft.market, "Market", true);
     const team = this.parseLenient(teamStepPublishSchema, rawDraft.team);
-    const traction = tractionStepSchema.parse(rawDraft.traction ?? {});
-    const funding = fundingStepSchema.parse(rawDraft.funding ?? {});
-    const verification = verificationStepSchema.parse(rawDraft.verification ?? {});
+    const traction = this.parseStep(tractionStepSchema, rawDraft.traction, "Traction", true);
+    const funding = this.parseStep(fundingStepSchema, rawDraft.funding, "Funding", true);
+    const verification = this.parseStep(verificationStepSchema, rawDraft.verification, "Verification", true);
     const preferences = this.parseLenient(preferencesStepPublishSchema, rawDraft.preferences);
 
-    const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId } });
-    if (existing?.publishedAt) {
-      throw new ConflictException("This startup profile has already been published");
+    // The draft is free-form JSON, so the file links in it are whatever the
+    // browser sent. Only keep documents this founder uploaded themselves.
+    for (const document of verification.documents) {
+      if (!this.mediaService.isOwnedBy(document.fileUrl, userId)) {
+        throw new BadRequestException(`"${document.fileName}" isn't a file uploaded from your account. Please remove it and upload it again.`);
+      }
     }
 
+    const now = new Date();
+
+    // The page's address stays the same through a rename: links already shared keep working.
     const slug = existing?.slug ?? (await this.generateUniqueSlug(startupInfo.name));
 
     const startup = await this.prisma.$transaction(async (tx) => {
@@ -92,8 +130,9 @@ export class StartupPublisher {
         teamSize: team.teamSize,
         hiringStatus: team.hiringStatus,
         openRoles: team.openRoles,
-        termsAcceptedAt: new Date(),
-        publishedAt: new Date(),
+        termsAcceptedAt: existing?.termsAcceptedAt ?? now,
+        // The day it first went live, not the day of the latest edit.
+        publishedAt: existing?.publishedAt ?? now,
       };
 
       const startup = await tx.startup.upsert({
@@ -131,7 +170,9 @@ export class StartupPublisher {
         create: { startupId: startup.id, ...traction },
         update: traction,
       });
-      await recordTractionObservations(tx, startup.id, traction, "INR", "self-declared:onboarding");
+      // History gets a new point only for a number that changed, so saving
+      // an edit to the description doesn't log this month's revenue again.
+      await recordTractionObservations(tx, startup.id, changedMetrics(traction, existing?.traction ?? null), "INR", "self-declared:onboarding");
 
       await tx.startupFunding.upsert({
         where: { startupId: startup.id },
@@ -146,9 +187,16 @@ export class StartupPublisher {
       });
 
       if (verification.documents.length > 0) {
-        await tx.document.createMany({
-          data: verification.documents.map((doc) => ({ ...doc, userId })),
+        // A file already on record isn't added a second time when the profile is saved again.
+        const onFile = await tx.document.findMany({
+          where: { userId, fileUrl: { in: verification.documents.map((doc) => doc.fileUrl) } },
+          select: { fileUrl: true },
         });
+        const known = new Set(onFile.map((doc) => doc.fileUrl));
+        const fresh = verification.documents.filter((doc) => !known.has(doc.fileUrl));
+        if (fresh.length > 0) {
+          await tx.document.createMany({ data: fresh.map((doc) => ({ ...doc, userId })) });
+        }
       }
 
       await tx.userProfile.update({
@@ -177,7 +225,8 @@ export class StartupPublisher {
     return schema.safeParse({}).data as T;
   }
 
-  private parseStep<T>(schema: { parse: (input: unknown) => T }, value: unknown, label: string): T {
+  /** `optional` is for a section a founder may skip: an empty one is fine, only a wrong value in it stops publishing. */
+  private parseStep<T>(schema: { parse: (input: unknown) => T }, value: unknown, label: string, optional = false): T {
     try {
       return schema.parse(value ?? {});
     } catch (err) {
@@ -197,6 +246,9 @@ export class StartupPublisher {
           : fields.length > 0
             ? ` Check: ${fields.join(", ")}.`
             : "";
+      if (optional) {
+        throw new BadRequestException(`Something in the ${label} step isn't valid — please correct it before publishing.${detail}`);
+      }
       throw new BadRequestException(`${label} is incomplete — please finish this step before publishing.${detail}`);
     }
   }

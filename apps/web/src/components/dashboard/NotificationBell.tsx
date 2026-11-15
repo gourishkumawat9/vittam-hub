@@ -12,6 +12,8 @@ import { Bell, CheckCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { safeInternalPath } from "@/lib/safe-url";
+
 const PAGE_SIZE_STEP = 20;
 
 export function NotificationBell() {
@@ -79,7 +81,7 @@ export function NotificationBell() {
                     </div>
                   );
                   return notification.linkUrl ? (
-                    <Link key={notification.id} href={notification.linkUrl} onClick={() => setOpen(false)}>
+                    <Link key={notification.id} href={safeInternalPath(notification.linkUrl, "/community")} onClick={() => setOpen(false)}>
                       {content}
                     </Link>
                   ) : (

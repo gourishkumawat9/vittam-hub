@@ -23,11 +23,13 @@ export class SearchService {
     private readonly incubatorsService: IncubatorsService,
   ) {}
 
-  async search(filters: GlobalSearchFilters, callerId: string) {
+  async search(filters: GlobalSearchFilters, callerId: string, callerIsInvestor: boolean) {
     const paged = { query: filters.query, page: 1, pageSize: RESULTS_PER_GROUP };
 
     const [startups, investors, mentors, incubators] = await Promise.all([
-      this.startupsService.search(paged, callerId),
+      // The projected search, not the raw one: a search box must not hand a
+      // founder's burn rate and valuation to whoever types their name.
+      this.startupsService.searchProjected(paged, { userId: callerId, isInvestor: callerIsInvestor }),
       this.investorsService.list(paged, callerId),
       this.mentorsService.list(paged, callerId),
       this.incubatorsService.list(paged, callerId),

@@ -10,7 +10,7 @@ export const notificationSchema = z.object({
   type: notificationTypeSchema,
   title: z.string().max(160),
   body: z.string().max(500),
-  linkUrl: z.string().url().nullable(),
+  linkUrl: z.string().nullable(),
   readAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
 });

@@ -6,18 +6,28 @@ import { loginInputSchema, type LoginInput } from "@vittamhub/types";
 import { Button, Checkbox, Input, OtpInput, PasswordInput } from "@vittamhub/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { AuthShell } from "@/components/auth/AuthShell";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { SecurityBadges } from "@/components/auth/SecurityBadges";
 import { Turnstile } from "@/components/auth/Turnstile";
+import { safeInternalPath } from "@/lib/safe-url";
+
+const OAUTH_ERRORS: Record<string, string> = {
+  oauth_unavailable: "That sign-in option isn't available right now. Use your email and password instead.",
+  oauth_email:
+    "We couldn't get a verified email address from that account. Verify your email with the provider, or use your email and password.",
+  oauth_closed: "That account has been deleted. You can create a new one.",
+  oauth_failed: "That sign-in didn't complete. Please try again.",
+};
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") ?? "/onboarding";
+  // The address bar is the only source of this value, so anyone can put anything in it: keep in-app paths only.
+  const redirectTo = safeInternalPath(searchParams.get("redirectTo"), "/onboarding");
 
   const { data: captcha } = useCaptchaSiteKey();
   const loginMutation = useLogin();
@@ -26,6 +36,19 @@ export default function LoginPage() {
   const [mfaChallengeToken, setMfaChallengeToken] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaError, setMfaError] = useState<string | null>(null);
+
+  // A Google / GitHub / LinkedIn sign-in that didn't go through comes back here with a short reason code.
+  const oauthError = OAUTH_ERRORS[searchParams.get("error") ?? ""];
+
+  // An account with two-factor on that signed in through a provider arrives
+  // with its challenge in the address fragment: pick it up, then remove it
+  // from the address bar so it isn't bookmarked or shared.
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.hash.slice(1)).get("mfa");
+    if (!token) return;
+    setMfaChallengeToken(token);
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, []);
 
   const {
     register,
@@ -113,8 +136,14 @@ export default function LoginPage() {
 
             {captcha?.siteKey && <Turnstile siteKey={captcha.siteKey} onVerify={(token) => setValue("captchaToken", token)} />}
 
+            {oauthError && !loginMutation.isError && (
+              <p role="alert" className="text-sm text-danger-600">
+                {oauthError}
+              </p>
+            )}
+
             {loginMutation.isError && (
-              <p className="text-sm text-danger-600">
+              <p role="alert" className="text-sm text-danger-600">
                 {loginMutation.error instanceof Error ? loginMutation.error.message : "Invalid email or password"}
               </p>
             )}
@@ -123,12 +152,6 @@ export default function LoginPage() {
               Log in
             </Button>
           </form>
-
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-text-secondary">OR</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
 
           <OAuthButtons />
 

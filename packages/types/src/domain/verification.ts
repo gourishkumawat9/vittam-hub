@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DocumentType, VerificationStatus } from "./enums";
+
 /** Mirrors VerificationOrchestratorService's VerifiableEntityType — the 6 profile types plus the user record itself. */
 export const verifiableEntityTypeSchema = z.enum([
   "User",
@@ -21,9 +23,13 @@ export type VerifiableEntityType = z.infer<typeof verifiableEntityTypeSchema>;
 export const runVerificationCheckInputSchema = z.object({
   entityType: verifiableEntityTypeSchema,
   entityId: z.string().uuid(),
-  field: z.string().min(1).max(200),
-  method: z.string().min(1).max(100),
-  input: z.record(z.string(), z.string()).default({}),
+  field: z.string().regex(/^[A-Za-z][A-Za-z0-9_.-]{0,63}$/, "Use letters, numbers, dots, dashes and underscores"),
+  method: z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/, "Unknown verification method"),
+  // A handful of short identifiers (a CIN, a GSTIN, a registration number). It is stored with the result, so it is kept small.
+  input: z
+    .record(z.string().max(64), z.string().max(500))
+    .default({})
+    .refine((value) => Object.keys(value).length <= 10, { message: "Too many fields" }),
 });
 export type RunVerificationCheckInput = z.infer<typeof runVerificationCheckInputSchema>;
 
@@ -43,3 +49,20 @@ export const verificationRecordSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type VerificationRecordDto = z.infer<typeof verificationRecordSchema>;
+
+/** One thing a profile needs for the Verified badge, and whether it has it (GET /v1/verification/mine). */
+export const verificationRequirementSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  met: z.boolean(),
+  /** Set when the requirement is met by uploading a document of this type. */
+  documentType: z.nativeEnum(DocumentType).optional(),
+});
+export type VerificationRequirement = z.infer<typeof verificationRequirementSchema>;
+
+export const verificationProgressSchema = z.object({
+  entityType: verifiableEntityTypeSchema,
+  status: z.nativeEnum(VerificationStatus),
+  requirements: z.array(verificationRequirementSchema),
+});
+export type VerificationProgress = z.infer<typeof verificationProgressSchema>;

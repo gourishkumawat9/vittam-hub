@@ -3,13 +3,14 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 
 import { AppController } from "./app.controller";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { CsrfGuard } from "./common/guards/csrf.guard";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
+import { ACCOUNT_THROTTLER, IpThrottlerGuard } from "./common/guards/user-throttler.guard";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
 import { validateEnv } from "./config/env.validation";
@@ -50,9 +51,13 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     ThrottlerModule.forRoot([
       {
+        name: "default",
         ttl: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000),
         limit: Number(process.env.RATE_LIMIT_MAX ?? 100),
       },
+      // Per signed-in account, and only on routes that use UserThrottlerGuard,
+      // which set their own number. This is the ceiling for one that doesn't.
+      { name: ACCOUNT_THROTTLER, ttl: 60_000, limit: 120 },
     ]),
     EventEmitterModule.forRoot(),
     BullModule.forRoot({ connection: { url: process.env.REDIS_URL } }),
@@ -102,7 +107,7 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
   providers: [
     // Order matters: rate-limit first, then CSRF (reject forged mutations
     // before touching auth/business logic), then authenticate, then authorize.
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: IpThrottlerGuard },
     { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

@@ -20,11 +20,23 @@ const META: RequestMeta = { userAgent: "jest", ipAddress: "127.0.0.1" };
 /** Builds an AuthService with jest-mocked collaborators. Argon2 runs for real so password hashing/verification is genuinely exercised. */
 function setup() {
   const prisma = {
-    user: { create: jest.fn(), findUniqueOrThrow: jest.fn() },
-    refreshToken: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
-    auditLog: { create: jest.fn() },
-    oAuthAccount: { create: jest.fn() },
+    user: { create: jest.fn(), findUniqueOrThrow: jest.fn(), update: jest.fn() },
+    refreshToken: {
+      findUnique: jest.fn(),
+      create: jest.fn().mockResolvedValue({}),
+      update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      // 1 = only the session just issued, i.e. a sign-in from somewhere new.
+      count: jest.fn().mockResolvedValue(1),
+    },
+    auditLog: { create: jest.fn().mockResolvedValue({}) },
+    oAuthAccount: { create: jest.fn().mockResolvedValue({}) },
+    passwordResetToken: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    mfaRecoveryCode: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    // Interactive transactions run against the same mock.
+    $transaction: jest.fn(),
   };
+  prisma.$transaction.mockImplementation((run: (tx: typeof prisma) => unknown) => run(prisma));
   const usersService = { findByEmail: jest.fn(), findByOAuthAccount: jest.fn() };
   const jwtService = { sign: jest.fn().mockReturnValue("signed.jwt.token"), verify: jest.fn() };
   const configService = {
@@ -59,10 +71,19 @@ function fakeUser(overrides: Record<string, unknown> = {}) {
     role: "FOUNDER",
     passwordHash: null,
     twoFactorEnabled: false,
+    emailVerifiedAt: null,
+    isDemo: false,
     deletedAt: null,
     ...overrides,
   };
 }
+
+const GOOGLE_PROFILE = {
+  email: "person@example.com",
+  fullName: "Person",
+  provider: "google" as const,
+  providerAccountId: "google-123",
+};
 
 describe("AuthService", () => {
   describe("register", () => {
@@ -114,6 +135,31 @@ describe("AuthService", () => {
       expect(emailQueueService.enqueueLoginAlert).toHaveBeenCalledTimes(1); // login alert is queued, not sent inline
     });
 
+    it("sends no login alert for a browser and network this account has signed in from before", async () => {
+      const { service, usersService, prisma, emailQueueService } = setup();
+      usersService.findByEmail.mockResolvedValue(fakeUser({ passwordHash: await argon2.hash(PASSWORD) }));
+      prisma.refreshToken.count.mockResolvedValue(2); // this session plus an earlier one from the same place
+
+      await service.login({ email: "person@example.com", password: PASSWORD, rememberMe: false }, META);
+
+      expect(prisma.auditLog.create).toHaveBeenCalledTimes(1); // still recorded
+      expect(emailQueueService.enqueueLoginAlert).not.toHaveBeenCalled();
+    });
+
+    it("still runs a password check for an unknown email, so timing doesn't reveal which emails exist", async () => {
+      const { service, usersService } = setup();
+      usersService.findByEmail.mockResolvedValue(null);
+      const decoy = jest.spyOn(service as unknown as { getDecoyPasswordHash: () => Promise<string> }, "getDecoyPasswordHash");
+
+      await expect(service.login({ email: "nobody@example.com", password: PASSWORD, rememberMe: false }, META)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+
+      // The throwaway hash is a real Argon2 hash, so verifying against it costs what a real check costs.
+      expect(decoy).toHaveBeenCalledTimes(1);
+      expect(await decoy.mock.results[0]!.value).toMatch(/^\$argon2/);
+    });
+
     it("rejects an unknown email with 401", async () => {
       const { service, usersService } = setup();
       usersService.findByEmail.mockResolvedValue(null);
@@ -163,24 +209,75 @@ describe("AuthService", () => {
   });
 
   describe("refresh", () => {
-    it("rotates the token: revokes the old one and issues a new session", async () => {
+    const liveToken = (overrides: Record<string, unknown> = {}) => ({
+      id: "rt-1",
+      revokedAt: null,
+      rotatedAt: null,
+      familyId: "family-1",
+      expiresAt: new Date(Date.now() + 60_000),
+      rememberMe: false,
+      user: fakeUser(),
+      ...overrides,
+    });
+
+    it("rotates the token: retires the old one and issues a new session in the same family", async () => {
       const { service, prisma } = setup();
-      prisma.refreshToken.findUnique.mockResolvedValue({
-        id: "rt-1",
-        revokedAt: null,
-        expiresAt: new Date(Date.now() + 60_000),
-        rememberMe: false,
-        user: fakeUser(),
-      });
-      prisma.refreshToken.update.mockResolvedValue({});
-      prisma.refreshToken.create.mockResolvedValue({});
+      prisma.refreshToken.findUnique.mockResolvedValue(liveToken());
 
       const result = await service.refresh("raw-refresh-token", META);
 
-      expect(prisma.refreshToken.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: "rt-1" }, data: { revokedAt: expect.any(Date) } }),
+      // Retired with a conditional update, so two simultaneous requests can't both rotate it.
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: "rt-1", revokedAt: null },
+        data: { revokedAt: expect.any(Date), rotatedAt: expect.any(Date), familyId: "family-1" },
+      });
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ familyId: "family-1" }) }),
       );
       expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+    });
+
+    it("answers a second request for a token rotated a moment ago with an access token only", async () => {
+      const { service, prisma } = setup();
+      prisma.refreshToken.findUnique.mockResolvedValue(
+        liveToken({ revokedAt: new Date(), rotatedAt: new Date(Date.now() - 2_000) }),
+      );
+      prisma.refreshToken.count.mockResolvedValue(1); // the successor is still live
+
+      const result = await service.refresh("raw", META);
+
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeUndefined(); // the browser keeps the cookie the winning request set
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("treats a rotated token used again later as stolen: ends that whole sign-in", async () => {
+      const { service, prisma } = setup();
+      prisma.refreshToken.findUnique.mockResolvedValue(
+        liveToken({ revokedAt: new Date(Date.now() - 600_000), rotatedAt: new Date(Date.now() - 600_000) }),
+      );
+      prisma.refreshToken.count.mockResolvedValue(1);
+
+      await expect(service.refresh("raw", META)).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { familyId: "family-1", revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it("never renews a token that was signed out, even within the grace period", async () => {
+      const { service, prisma } = setup();
+      // Rotated two seconds ago, but the person has since signed out: nothing in the family is live.
+      prisma.refreshToken.findUnique.mockResolvedValue(
+        liveToken({ revokedAt: new Date(), rotatedAt: new Date(Date.now() - 2_000) }),
+      );
+      prisma.refreshToken.count.mockResolvedValue(0);
+
+      await expect(service.refresh("raw", META)).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it("rejects a missing refresh token with 401", async () => {
@@ -196,37 +293,133 @@ describe("AuthService", () => {
 
     it("rejects an already-revoked refresh token with 401", async () => {
       const { service, prisma } = setup();
-      prisma.refreshToken.findUnique.mockResolvedValue({
-        id: "rt-1",
-        revokedAt: new Date(),
-        expiresAt: new Date(Date.now() + 60_000),
-        rememberMe: false,
-        user: fakeUser(),
-      });
+      prisma.refreshToken.findUnique.mockResolvedValue(liveToken({ revokedAt: new Date() }));
       await expect(service.refresh("raw", META)).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
     });
 
     it("rejects an expired refresh token with 401", async () => {
       const { service, prisma } = setup();
-      prisma.refreshToken.findUnique.mockResolvedValue({
-        id: "rt-1",
-        revokedAt: null,
-        expiresAt: new Date(Date.now() - 60_000),
-        rememberMe: false,
-        user: fakeUser(),
-      });
+      prisma.refreshToken.findUnique.mockResolvedValue(liveToken({ expiresAt: new Date(Date.now() - 60_000) }));
       await expect(service.refresh("raw", META)).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it("rejects a refresh token belonging to a deleted account with 401", async () => {
+      const { service, prisma } = setup();
+      prisma.refreshToken.findUnique.mockResolvedValue(liveToken({ user: fakeUser({ deletedAt: new Date() }) }));
+      await expect(service.refresh("raw", META)).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("findOrCreateOAuthUser", () => {
+    it("refuses a provider profile with no verified email", async () => {
+      const { service, prisma, usersService } = setup();
+      await expect(service.findOrCreateOAuthUser({ ...GOOGLE_PROFILE, email: undefined }, META)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(usersService.findByEmail).not.toHaveBeenCalled();
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it("signs in the account already linked to that provider account", async () => {
+      const { service, prisma, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(fakeUser({ emailVerifiedAt: new Date() }));
+
+      const result = await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META);
+
+      expect(result).toMatchObject({ mfaRequired: false });
+      expect(prisma.oAuthAccount.create).not.toHaveBeenCalled();
+    });
+
+    it("links to an existing account whose email is confirmed and leaves its password alone", async () => {
+      const { service, prisma, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(null);
+      usersService.findByEmail.mockResolvedValue(fakeUser({ passwordHash: "stored", emailVerifiedAt: new Date() }));
+
+      const result = await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META);
+
+      expect(result).toMatchObject({ mfaRequired: false });
+      expect(prisma.oAuthAccount.create).toHaveBeenCalledWith({
+        data: { userId: "user-1", provider: "google", providerAccountId: "google-123" },
+      });
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it("takes over an account that never confirmed its email: password, sessions and two-factor are cleared", async () => {
+      const { service, prisma, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(null);
+      // Someone signed up with this address and a password of their own, and never proved they own it.
+      usersService.findByEmail.mockResolvedValue(fakeUser({ passwordHash: "set-by-someone-else", twoFactorEnabled: true }));
+      prisma.user.update.mockResolvedValue(fakeUser({ emailVerifiedAt: new Date() }));
+
+      const result = await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: { emailVerifiedAt: expect.any(Date), passwordHash: null, twoFactorEnabled: false, twoFactorSecret: null },
+      });
+      // Every session the earlier holder had is ended before the new one is issued.
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: "user-1", revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(result).toMatchObject({ mfaRequired: false });
+    });
+
+    it("asks for the second factor instead of signing in when the account has two-factor on", async () => {
+      const { service, prisma, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(fakeUser({ emailVerifiedAt: new Date(), twoFactorEnabled: true }));
+
+      const result = await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META);
+
+      expect(result).toMatchObject({ mfaRequired: true });
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses a deleted account and a demo account", async () => {
+      const { service, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(fakeUser({ deletedAt: new Date() }));
+      await expect(service.findOrCreateOAuthUser(GOOGLE_PROFILE, META)).rejects.toBeInstanceOf(UnauthorizedException);
+
+      usersService.findByOAuthAccount.mockResolvedValue(null);
+      usersService.findByEmail.mockResolvedValue(fakeUser({ isDemo: true, emailVerifiedAt: new Date() }));
+      await expect(service.findOrCreateOAuthUser(GOOGLE_PROFILE, META)).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it("creates a new, email-verified founder account when nothing matches", async () => {
+      const { service, prisma, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(null);
+      usersService.findByEmail.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(fakeUser({ emailVerifiedAt: new Date() }));
+
+      await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META);
+
+      const created = prisma.user.create.mock.calls[0][0].data;
+      expect(created).toMatchObject({ email: "person@example.com", role: "FOUNDER", emailVerifiedAt: expect.any(Date) });
+      expect(created.passwordHash).toBeUndefined();
     });
   });
 
   describe("logout", () => {
-    it("revokes the session for the given refresh token", async () => {
+    it("revokes the session for the given refresh token, along with the rest of that sign-in", async () => {
       const { service, prisma } = setup();
-      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: "rt-1", familyId: "family-1" });
       await service.logout("raw-refresh-token");
-      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { revokedAt: expect.any(Date) } }),
-      );
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { familyId: "family-1", revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it("revokes just that token when it predates sign-in families", async () => {
+      const { service, prisma } = setup();
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: "rt-1", familyId: null });
+      await service.logout("raw-refresh-token");
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: "rt-1", revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
     });
 
     it("is a no-op when no refresh token is present", async () => {

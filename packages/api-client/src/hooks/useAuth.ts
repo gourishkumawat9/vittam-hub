@@ -1,6 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+
+import type { User } from "@vittamhub/types";
 
 import { authApi } from "../endpoints/auth";
 
@@ -11,11 +13,27 @@ export function useCurrentUser() {
   return useQuery({ queryKey: meKey, queryFn: authApi.me, retry: false, staleTime: 60_000 });
 }
 
+/** The few cached answers that are the same for everyone, signed in or not. */
+const PUBLIC_AUTH_KEYS = new Set(["captcha-site-key", "oauth-providers"]);
+
+/**
+ * Called the moment someone signs in: drops everything cached for whoever
+ * used this tab before. Without it, a second person signing in within a few
+ * minutes was shown the first person's dashboard, notifications and
+ * onboarding answers from the cache until each one happened to refetch.
+ */
+function startSession(queryClient: QueryClient, user: User) {
+  queryClient.removeQueries({
+    predicate: (query) => !(query.queryKey[0] === "auth" && PUBLIC_AUTH_KEYS.has(String(query.queryKey[1]))),
+  });
+  queryClient.setQueryData(meKey, user);
+}
+
 export function useRegister() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: authApi.register,
-    onSuccess: ({ user }) => queryClient.setQueryData(meKey, user),
+    onSuccess: ({ user }) => startSession(queryClient, user),
   });
 }
 
@@ -25,7 +43,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: authApi.login,
     onSuccess: (result) => {
-      if (!result.mfaRequired) queryClient.setQueryData(meKey, result.user);
+      if (!result.mfaRequired) startSession(queryClient, result.user);
     },
   });
 }
@@ -34,16 +52,18 @@ export function useCompleteMfaChallenge() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: authApi.completeMfaChallenge,
-    onSuccess: ({ user }) => queryClient.setQueryData(meKey, user),
+    onSuccess: ({ user }) => startSession(queryClient, user),
   });
 }
 
+/**
+ * Signs out on the server. The caller should then load the next page afresh
+ * (`window.location.assign`), which is what clears this tab's cached data;
+ * emptying the cache here instead would make every screen still on the page
+ * refetch as a signed-out visitor first.
+ */
 export function useLogout() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => queryClient.setQueryData(meKey, null),
-  });
+  return useMutation({ mutationFn: authApi.logout });
 }
 
 export function useResendVerificationEmail() {
@@ -66,12 +86,23 @@ export function useResetPassword() {
   return useMutation({ mutationFn: authApi.resetPassword });
 }
 
+/** Changing the password signs every other device out, so the list of them is refetched. The form shows the error itself. */
 export function useChangePassword() {
-  return useMutation({ mutationFn: authApi.changePassword });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: authApi.changePassword,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: sessionsKey }),
+    onError: () => undefined,
+  });
 }
 
 export function useCaptchaSiteKey() {
   return useQuery({ queryKey: ["auth", "captcha-site-key"], queryFn: authApi.captchaSiteKey, staleTime: Infinity });
+}
+
+/** The sign-in providers the API holds keys for. Empty until it answers, so a button never appears that can't work. */
+export function useOAuthProviders() {
+  return useQuery({ queryKey: ["auth", "oauth-providers"], queryFn: authApi.oauthProviders, staleTime: Infinity });
 }
 
 // ─── MFA enrollment ─────────────────────────────────────────────────────

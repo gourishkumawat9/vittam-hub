@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import type { FollowStartupInput, UpdateWatchlistEntryInput } from "@vittamhub/types";
 
+import { isDemoViewer } from "../../common/demo/demo-scope";
+import { findListableStartup, listableStartupWhere } from "../../common/startups/startup-visibility";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 
@@ -12,17 +14,17 @@ export class WatchlistService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  listForInvestor(investorId: string) {
+  /** Only startups the investor could still find in discovery: one that went private or stealth leaves the list. */
+  async listForInvestor(investorId: string) {
     return this.prisma.startupFollow.findMany({
-      where: { investorId },
+      where: { investorId, startup: listableStartupWhere(await isDemoViewer(this.prisma, investorId)) },
       orderBy: { createdAt: "desc" },
       include: { startup: true },
     });
   }
 
   async follow(investorId: string, input: FollowStartupInput) {
-    const startup = await this.prisma.startup.findUnique({ where: { id: input.startupId } });
-    if (!startup) throw new NotFoundException("Startup not found");
+    await findListableStartup(this.prisma, input.startupId, investorId);
 
     return this.prisma.startupFollow.upsert({
       where: { investorId_startupId: { investorId, startupId: input.startupId } },

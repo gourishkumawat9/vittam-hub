@@ -74,7 +74,7 @@ function ExampleRequest() {
  */
 export function ConnectRequestsBand() {
   return (
-    <section id="connect-requests" className="border-y border-border bg-brand-50 dark:bg-background-secondary">
+    <section id="connect-requests" className="overflow-hidden border-y border-border bg-brand-50 dark:bg-background-secondary">
       <div className="mx-auto grid max-w-content items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:gap-16 lg:py-24">
         <div className="flex flex-col items-start gap-6">
           <span className="text-xs font-semibold uppercase tracking-wider text-brand-primary">Smart connect requests</span>

@@ -4,6 +4,9 @@ import { useUniversity } from "@vittamhub/api-client";
 import { Badge, Card, CardContent, CardHeader, CardTitle, ErrorState, Skeleton } from "@vittamhub/ui";
 import { useParams } from "next/navigation";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { externalHref } from "@/lib/safe-url";
+
 export default function UniversityDetailPage() {
   const params = useParams<{ id: string }>();
   const { data: university, isLoading, isError } = useUniversity(params.id);
@@ -33,7 +36,10 @@ export default function UniversityDetailPage() {
           <img src={university.logoUrl} alt="" className="h-14 w-14 rounded-card object-cover" />
         )}
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-text-primary">{university.institutionName}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="font-heading text-2xl font-semibold text-text-primary">{university.institutionName}</h1>
+            <VerifiedBadge status={university.verificationStatus} />
+          </div>
           {university.incubationCellName && <p className="text-sm text-text-secondary">{university.incubationCellName}</p>}
         </div>
       </div>
@@ -61,7 +67,7 @@ export default function UniversityDetailPage() {
             </ul>
           )}
           {university.website && (
-            <a href={university.website} target="_blank" rel="noreferrer" className="mt-2 font-semibold text-brand-primary hover:underline">
+            <a href={externalHref(university.website)} target="_blank" rel="noreferrer" className="mt-2 font-semibold text-brand-primary hover:underline">
               Visit website
             </a>
           )}

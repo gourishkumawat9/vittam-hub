@@ -4,6 +4,7 @@ import type { MentorSearchFilters } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
 import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
+import { LISTED_VERIFICATION, VERIFIED_FIRST } from "../../common/verification/listed-profiles";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Mirrors InvestorsService's shape (search + get-by-id) — see docs/07-backend-architecture.md. */
@@ -17,7 +18,7 @@ export class MentorsService {
     const where: Prisma.MentorProfileWhereInput = {
       isPublic: true,
       AND: [sameSandbox(viewerIsDemo)],
-      verificationStatus: "VERIFIED",
+      verificationStatus: LISTED_VERIFICATION,
       ...(filters.expertise?.length ? { expertise: { hasSome: filters.expertise } } : {}),
       ...(filters.industries?.length ? { industries: { hasSome: filters.industries } } : {}),
       ...(filters.sessionTypes?.length ? { sessionTypes: { hasSome: filters.sessionTypes } } : {}),
@@ -37,7 +38,7 @@ export class MentorsService {
         where,
         skip,
         take,
-        orderBy: { createdAt: "desc" },
+        orderBy: [VERIFIED_FIRST, { createdAt: "desc" }],
         include: { owner: { select: { fullName: true, avatarUrl: true } } },
       }),
       this.prisma.mentorProfile.count({ where }),

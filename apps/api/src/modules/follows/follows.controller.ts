@@ -1,7 +1,9 @@
-import { Controller, Delete, Get, Param, Post } from "@nestjs/common";
+import { Controller, Delete, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { ACCOUNT_THROTTLER, UserThrottlerGuard } from "../../common/guards/user-throttler.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { FollowsService } from "./follows.service";
@@ -30,6 +32,8 @@ export class FollowsController {
   }
 
   @Post(":userId")
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ [ACCOUNT_THROTTLER]: { limit: 60, ttl: 60 * 60_000 } })
   @ApiOperation({ summary: "Follow a user" })
   follow(@CurrentUser() user: AuthenticatedUser, @Param("userId") userId: string) {
     return this.followsService.follow(user.sub, userId);

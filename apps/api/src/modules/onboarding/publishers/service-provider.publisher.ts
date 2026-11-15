@@ -5,6 +5,7 @@ import { createServiceProviderInputSchema } from "@vittamhub/types";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 
 import { applyPersonalDetails } from "./apply-personal-details";
+import { issueMessages } from "./issue-messages";
 
 @Injectable()
 export class ServiceProviderPublisher {
@@ -13,7 +14,7 @@ export class ServiceProviderPublisher {
   async publish(userId: string, draft: Record<string, unknown>) {
     const parsed = createServiceProviderInputSchema.safeParse(draft.serviceProviderInfo ?? {});
     if (!parsed.success) {
-      throw new BadRequestException(parsed.error.issues.map((i) => i.message).join(", "));
+      throw new BadRequestException(issueMessages(parsed.error));
     }
     const input = parsed.data;
 

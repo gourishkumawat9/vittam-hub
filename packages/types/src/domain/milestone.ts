@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { MilestoneType } from "./enums";
+import { httpUrlSchema } from "./url";
 
 /** A founder-curated point on the startup's public timeline — see docs/12-connect-requests.md's sibling, the dashboard architecture doc. */
 export const startupMilestoneSchema = z.object({
@@ -10,7 +11,7 @@ export const startupMilestoneSchema = z.object({
   title: z.string().max(160),
   description: z.string().max(1000).nullable(),
   achievedAt: z.string().datetime(),
-  evidenceUrls: z.array(z.string().url()),
+  evidenceUrls: z.array(httpUrlSchema),
   createdAt: z.string().datetime(),
 });
 export type StartupMilestone = z.infer<typeof startupMilestoneSchema>;
@@ -20,7 +21,7 @@ export const createMilestoneInputSchema = z.object({
   title: z.string().min(1, "Give the milestone a title").max(160),
   description: z.string().max(1000).optional(),
   achievedAt: z.string().min(1, "Date is required"),
-  evidenceUrls: z.array(z.string().url()).max(6).default([]),
+  evidenceUrls: z.array(httpUrlSchema).max(6).default([]),
   // Opt-in, not automatic — a milestone and a community post serve different
   // audiences/tones; the founder decides per-milestone whether to also post it.
   shareToCommunity: z.boolean().default(false),

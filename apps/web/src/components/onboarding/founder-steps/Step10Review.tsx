@@ -1,14 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { usePublishOnboarding } from "@vittamhub/api-client";
 import { publishStartupInputSchema, STARTUP_WIZARD_STEPS, type PublishStartupInput } from "@vittamhub/types";
 import { Checkbox, Input } from "@vittamhub/ui";
 import { Pencil } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 
+import { usePublishProfile } from "@/hooks/usePublishProfile";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
@@ -27,14 +26,20 @@ function summarize(section: Record<string, unknown>): SummaryRow[] {
     }));
 }
 
+/** "PRE_REVENUE" is how a choice is stored; "Pre revenue" is how it reads. */
+function readable(value: unknown): string {
+  const text = String(value);
+  return /^[A-Z][A-Z0-9_]*$/.test(text) && text.length > 1 ? text.charAt(0) + text.slice(1).toLowerCase().replace(/_/g, " ") : text;
+}
+
 function formatValue(value: unknown): string {
   if (Array.isArray(value)) {
     return value
-      .map((item) => (typeof item === "object" && item !== null ? Object.values(item).filter(Boolean).join(", ") : String(item)))
+      .map((item) => (typeof item === "object" && item !== null ? Object.values(item).filter(Boolean).map(readable).join(", ") : readable(item)))
       .join(", ");
   }
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  return String(value);
+  return readable(value);
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -61,36 +66,36 @@ const SECTION_STEP_INDEX: Record<string, number> = {
   preferences: 8,
 };
 
+/** The terms are agreed to once, when the profile first goes live. Saving an edit asks for nothing more. */
+const editConfirmationSchema = z.object({
+  acceptedTerms: z.boolean().optional(),
+  signatureFullName: z.string().optional(),
+});
+
 interface StepProps {
   onBack: () => void;
+  /** The startup is already live: this saves changes to it. */
+  isEditing?: boolean;
 }
 
-export function Step10Review({ onBack }: StepProps) {
-  const router = useRouter();
-  const { draft, setStep, reset } = useOnboardingStore();
-  const publish = usePublishOnboarding();
-  const [publishError, setPublishError] = useState<string | null>(null);
+export function Step10Review({ onBack, isEditing = false }: StepProps) {
+  const { draft, setStep } = useOnboardingStore();
+  const { publishProfile, isPublishing, error: publishError } = usePublishProfile();
 
   const {
     register,
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<PublishStartupInput>({
-    resolver: zodResolver(publishStartupInputSchema),
+  } = useForm<Partial<PublishStartupInput>>({
+    resolver: zodResolver(isEditing ? editConfirmationSchema : publishStartupInputSchema),
     defaultValues: { acceptedTerms: undefined, signatureFullName: "" },
   });
 
-  const onSubmit = handleSubmit(async (confirmation) => {
-    setPublishError(null);
-    try {
-      await publish.mutateAsync({ ...draft, ...confirmation });
-      reset();
-      router.push("/founder?published=true");
-    } catch {
-      setPublishError("We couldn't publish your profile. Please check your details and try again.");
-    }
-  });
+  const onSubmit = handleSubmit((confirmation) =>
+    // The answers reviewed on this page are the ones that get published.
+    publishProfile(isEditing ? { ...draft } : { ...draft, ...confirmation }, { isEditing, redirectTo: () => "/founder" }),
+  );
 
   const sections = STARTUP_WIZARD_STEPS.filter((id) => id !== "review" && id !== "personal-details").map((id) => {
     const key = toSectionKey(id);
@@ -101,8 +106,12 @@ export function Step10Review({ onBack }: StepProps) {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Review & publish</h2>
-        <p className="mt-1 text-sm text-text-secondary">Check everything below, then publish your startup profile.</p>
+        <h2 className="font-heading text-xl font-semibold text-text-primary">{isEditing ? "Review & save" : "Review & publish"}</h2>
+        <p className="mt-1 text-sm text-text-secondary">
+          {isEditing
+            ? "Check your changes below, then save them. Your profile page updates straight away."
+            : "Check everything below, then publish your startup profile. You can change any of it later."}
+        </p>
       </div>
 
       <div className="flex flex-col divide-y divide-border rounded-card border border-border">
@@ -117,29 +126,46 @@ export function Step10Review({ onBack }: StepProps) {
         ))}
       </div>
 
-      <div className="flex flex-col gap-4 rounded-card border border-border bg-background-secondary p-4">
-        <Controller
-          control={control}
-          name="acceptedTerms"
-          render={({ field }) => (
-            <Checkbox
-              checked={field.value === true}
-              onCheckedChange={field.onChange}
-              label="I confirm the information above is accurate and I accept the Terms of Service and Privacy Policy"
-              error={errors.acceptedTerms?.message}
-            />
-          )}
-        />
-        <Input
-          label="Type your full legal name to sign"
-          error={errors.signatureFullName?.message}
-          {...register("signatureFullName")}
-        />
-      </div>
+      {!isEditing && (
+        <div className="flex flex-col gap-4 rounded-card border border-border bg-background-secondary p-4">
+          <Controller
+            control={control}
+            name="acceptedTerms"
+            render={({ field }) => (
+              <Checkbox
+                checked={field.value === true}
+                onCheckedChange={field.onChange}
+                label={
+                  <>
+                    I confirm the information above is accurate and I accept the{" "}
+                    <a href="/terms" target="_blank" rel="noopener" className="text-brand-primary underline">
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a href="/privacy" target="_blank" rel="noopener" className="text-brand-primary underline">
+                      Privacy Policy
+                    </a>
+                  </>
+                }
+                error={errors.acceptedTerms?.message}
+              />
+            )}
+          />
+          <Input
+            label="Type your full legal name to sign"
+            error={errors.signatureFullName?.message}
+            {...register("signatureFullName")}
+          />
+        </div>
+      )}
 
-      {publishError && <p className="text-sm text-danger-600">{publishError}</p>}
+      {publishError && (
+        <p role="alert" className="rounded-button border border-danger-600/30 bg-danger-50 px-3 py-2 text-sm text-danger-600">
+          {publishError}
+        </p>
+      )}
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={publish.isPending} nextLabel="Publish startup profile" />
+      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={isPublishing} nextLabel={isEditing ? "Save changes" : "Publish startup profile"} />
     </form>
   );
 }

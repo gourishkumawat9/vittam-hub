@@ -1,7 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type { Prisma, TrustBand as PrismaTrustBand } from "@prisma/client";
 
+import { persistTrustSnapshot } from "../../common/trust/persist-trust-snapshot";
 import { PrismaService } from "../../database/prisma/prisma.service";
+import { FREE_EMAIL_DOMAINS } from "../verification/providers/work-domain-email.provider";
 
 import { computeTrust, type TrustBand, type TrustResult, type TrustSignals, type TrustStage } from "./trust-model";
 
@@ -66,16 +68,6 @@ export class TrustEngineService {
     PLATINUM: "Platinum",
   };
 
-  // Cheap, automatable-today proxy for Bundle 1's "work email, not gmail" V2
-  // check (spec §5) — a real domain-ownership/MX check is Phase 2.
-  private static readonly FREE_EMAIL_DOMAINS = new Set([
-    "gmail.com",
-    "yahoo.com",
-    "outlook.com",
-    "hotmail.com",
-    "icloud.com",
-    "protonmail.com",
-  ]);
 
   /** Best-effort: never throw into a caller's request path over a shadow-mode write. */
   async computeAndPersistForStartupSafely(startupId: string): Promise<void> {
@@ -128,11 +120,13 @@ export class TrustEngineService {
     // Falls back to the local heuristic (real, no DB dependency) if the async
     // ledger check (VerificationOrchestratorService's profile.upserted listener)
     // hasn't run for this owner yet — e.g. right after a fresh signup.
+    // Either way it only counts for an address the owner has confirmed: the
+    // domain of an address nobody has proved they own says nothing.
     const workDomainEmailRecord = userRecords.find((r) => r.field === "workEmail" && r.method === "DOMAIN_EMAIL_HEURISTIC");
     const emailDomain = startup.owner.email.split("@")[1]?.toLowerCase();
     const workDomainEmail = workDomainEmailRecord
       ? true
-      : !!emailDomain && !TrustEngineService.FREE_EMAIL_DOMAINS.has(emailDomain);
+      : !!startup.owner.emailVerifiedAt && !!emailDomain && !FREE_EMAIL_DOMAINS.has(emailDomain);
 
     const mcaVerified = startupRecords.some((r) => r.method === "MCA_API");
     const dpiitVerified = startupRecords.some((r) => r.method === "DPIIT_API");
@@ -188,14 +182,12 @@ export class TrustEngineService {
 
     const result = computeTrust(signals, stage, penalties, previousBand);
 
-    await this.prisma.trustScoreSnapshot.create({
-      data: {
-        entityType: "Startup",
-        entityId: startupId,
-        score: result.score,
-        band: TrustEngineService.BAND_TO_PRISMA[result.band],
-        breakdown: result as unknown as Prisma.InputJsonValue,
-      },
+    await persistTrustSnapshot(this.prisma, {
+      entityType: "Startup",
+      entityId: startupId,
+      score: result.score,
+      band: TrustEngineService.BAND_TO_PRISMA[result.band],
+      breakdown: result as unknown as Prisma.InputJsonValue,
     });
 
     return result;

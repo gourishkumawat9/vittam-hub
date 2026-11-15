@@ -1,5 +1,5 @@
 import { InjectQueue } from "@nestjs/bullmq";
-import { Controller, Get, ServiceUnavailableException } from "@nestjs/common";
+import { Controller, Get, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ApiExcludeEndpoint } from "@nestjs/swagger";
 import type { Queue } from "bullmq";
 
@@ -12,6 +12,8 @@ const REDIS_PROBE_TIMEOUT_MS = 2_000;
 
 @Controller()
 export class AppController {
+  private readonly logger = new Logger(AppController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(EMAIL_QUEUE_NAME) private readonly emailQueue: Queue,
@@ -39,11 +41,14 @@ export class AppController {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
     } catch (err) {
+      // The driver's message names the database host, port and user. This
+      // route is public, so it goes to the server log and not into the answer.
+      this.logger.error(`Health check could not reach Postgres: ${err instanceof Error ? err.message : String(err)}`);
       throw new ServiceUnavailableException({
         status: "error",
         service: "api",
         database: "unreachable",
-        message: err instanceof Error ? err.message : String(err),
+        message: "The database is unreachable",
       });
     }
 

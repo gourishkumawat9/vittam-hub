@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
+import { isDemoViewer } from "../../common/demo/demo-scope";
+import { INVESTOR_VIEWER, listableStartupWhere, projectStartup } from "../../common/startups/startup-visibility";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Read-only — Investment rows are only ever created by PipelineService when a deal reaches CLOSED (closed-won), or edited directly for exit tracking. */
@@ -7,12 +9,19 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 export class PortfolioService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listForInvestor(investorId: string) {
-    return this.prisma.investment.findMany({
-      where: { investorId },
+  /**
+   * A holding is something the investor recorded themselves (closing a deal on
+   * their own pipeline), not something the founder confirmed. So it earns no
+   * more access than any other investor has: the startup shows as its profile
+   * would, and drops off if it has since gone private or stealth.
+   */
+  async listForInvestor(investorId: string) {
+    const holdings = await this.prisma.investment.findMany({
+      where: { investorId, startup: listableStartupWhere(await isDemoViewer(this.prisma, investorId)) },
       orderBy: { investedAt: "desc" },
       include: { startup: { include: { traction: true } } },
     });
+    return holdings.map((holding) => ({ ...holding, startup: projectStartup(holding.startup, INVESTOR_VIEWER) }));
   }
 
   async recordExit(investorId: string, startupId: string, exitValueAmount: number | undefined) {
@@ -38,8 +47,14 @@ export class PortfolioService {
    * feed, and CLAUDE.md §2 rules out inventing one.
    */
   async getDashboard(investorId: string) {
-    const holdings = await this.prisma.investment.findMany({ where: { investorId } });
+    const holdings = await this.prisma.investment.findMany({
+      where: { investorId, startup: listableStartupWhere(await isDemoViewer(this.prisma, investorId)) },
+      include: { startup: { select: { metricsVisibility: true } } },
+    });
     const startupIds = holdings.map((h) => h.startupId);
+    // Growth and revenue come from the startup's own numbers, so a startup
+    // that hides them is left out of those two aggregates.
+    const metricStartupIds = holdings.filter((h) => h.startup.metricsVisibility !== "HIDDEN").map((h) => h.startupId);
     const active = holdings.filter((h) => !h.exitedAt);
     const exited = holdings.filter((h) => h.exitedAt);
 
@@ -64,7 +79,7 @@ export class PortfolioService {
     }
 
     const [tractions, milestones, verificationRecords, upcomingFollowUps, trustSnapshotsByStartup] = await Promise.all([
-      this.prisma.startupTraction.findMany({ where: { startupId: { in: startupIds } }, select: { startupId: true, growthRatePercent: true } }),
+      this.prisma.startupTraction.findMany({ where: { startupId: { in: metricStartupIds } }, select: { startupId: true, growthRatePercent: true } }),
       this.prisma.startupMilestone.findMany({
         where: { startupId: { in: startupIds } },
         orderBy: { achievedAt: "desc" },
@@ -111,7 +126,7 @@ export class PortfolioService {
 
     // Revenue improvements: last two MONTHLY_REVENUE observations per startup, where the latest is higher.
     const revenueObservations = await this.prisma.metricObservation.findMany({
-      where: { startupId: { in: startupIds }, metricKey: "MONTHLY_REVENUE" },
+      where: { startupId: { in: metricStartupIds }, metricKey: "MONTHLY_REVENUE" },
       orderBy: { periodStart: "desc" },
     });
     const revenueByStartup = new Map<string, typeof revenueObservations>();

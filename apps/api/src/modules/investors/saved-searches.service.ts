@@ -52,14 +52,14 @@ export class SavedSearchesService {
   async run(investorId: string, id: string) {
     const saved = await this.assertOwned(investorId, id);
     const filters = { ...(saved.filters as object), page: 1, pageSize: PREVIEW_PAGE_SIZE } as StartupSearchFilters;
-    return this.startupsService.search(filters, investorId);
+    return this.startupsService.searchProjected(filters, { userId: investorId, isInvestor: true });
   }
 
   /** "Number of new startups matching" since the investor last opened this search. */
   async newMatchesCount(investorId: string, id: string): Promise<number> {
     const saved = await this.assertOwned(investorId, id);
     const filters = { ...(saved.filters as object), page: 1, pageSize: PREVIEW_PAGE_SIZE } as StartupSearchFilters;
-    const result = await this.startupsService.search(filters, investorId);
+    const result = await this.startupsService.searchProjected(filters, { userId: investorId, isInvestor: true });
     return result.items.filter((item) => item.publishedAt && new Date(item.publishedAt) > saved.lastViewedAt).length;
   }
 

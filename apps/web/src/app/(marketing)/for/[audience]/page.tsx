@@ -13,7 +13,7 @@ import { cta } from "@/components/marketing/cta";
 import { AUDIENCES, findAudience } from "@/data/audiences";
 import { PRODUCT_SHOTS, type ProductShotKey } from "@/data/product-shots";
 
-type Params = { params: { audience: string } };
+type Params = { params: Promise<{ audience: string }> };
 
 export const dynamicParams = false;
 
@@ -21,8 +21,8 @@ export function generateStaticParams() {
   return AUDIENCES.map((audience) => ({ audience: audience.id }));
 }
 
-export function generateMetadata({ params }: Params): Metadata {
-  const audience = findAudience(params.audience);
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const audience = findAudience((await params).audience);
   if (!audience) return {};
   return {
     title: audience.eyebrow,
@@ -38,8 +38,8 @@ export function generateMetadata({ params }: Params): Metadata {
  * lives in data/audiences.ts; founders and investors also get the connect
  * request band, since it's the loop between them.
  */
-export default function AudiencePage({ params }: Params) {
-  const audience = findAudience(params.audience);
+export default async function AudiencePage({ params }: Params) {
+  const audience = findAudience((await params).audience);
   if (!audience) notFound();
 
   const registerHref = `/register?role=${audience.registerRole}`;

@@ -15,11 +15,9 @@ import {
   StartupStage,
   TeamMemberCategory,
 } from "./enums";
+import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal("")])
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+const urlOrEmpty = optionalHttpUrlSchema;
 
 const optionalString = (max: number) => z.string().max(max).optional();
 
@@ -61,7 +59,7 @@ export const productStepSchema = z.object({
   playStoreUrl: urlOrEmpty,
   demoVideoUrl: urlOrEmpty,
   pitchVideoUrl: urlOrEmpty,
-  screenshots: z.array(z.string().url()).max(10).default([]),
+  screenshots: z.array(httpUrlSchema).max(10).default([]),
   technologyStack: z.array(z.string().max(40)).max(30).default([]),
   hasApi: z.boolean().default(false),
 });
@@ -83,7 +81,7 @@ export const marketStepSchema = z.object({
   targetAudience: optionalString(500),
   targetGeography: z.array(z.string().max(80)).max(50).default([]),
   primaryCustomer: optionalString(200),
-  customerModel: z.array(z.nativeEnum(CustomerModel)).default([]),
+  customerModel: z.array(z.nativeEnum(CustomerModel)).max(10).default([]),
   tamAmount: z.coerce.number().nonnegative().optional(),
   samAmount: z.coerce.number().nonnegative().optional(),
   somAmount: z.coerce.number().nonnegative().optional(),
@@ -138,7 +136,7 @@ export type UpdateTractionInput = z.infer<typeof updateTractionInputSchema>;
 // ─── Step 7 — Funding ─────────────────────────────────────────────────────
 
 export const fundingStepSchema = z.object({
-  fundingTypes: z.array(z.nativeEnum(FundingType)).default([]),
+  fundingTypes: z.array(z.nativeEnum(FundingType)).max(30).default([]),
   currentRaiseAmount: z.coerce.number().nonnegative().optional(),
   fundingGoalAmount: z.coerce.number().nonnegative().optional(),
   valuationAmount: z.coerce.number().nonnegative().optional(),
@@ -161,7 +159,7 @@ export type VerificationStepInput = z.infer<typeof verificationStepSchema>;
 // ─── Step 9 — Preferences ──────────────────────────────────────────────────
 
 export const preferencesStepSchema = z.object({
-  lookingFor: z.array(z.nativeEnum(LookingForType)).min(1, "Select at least one option"),
+  lookingFor: z.array(z.nativeEnum(LookingForType)).min(1, "Select at least one option").max(30),
 });
 export type PreferencesStepInput = z.infer<typeof preferencesStepSchema>;
 
@@ -184,7 +182,7 @@ export const teamStepPublishSchema = teamStepSchema.extend({
 });
 
 export const preferencesStepPublishSchema = z.object({
-  lookingFor: z.array(z.nativeEnum(LookingForType)).default([]),
+  lookingFor: z.array(z.nativeEnum(LookingForType)).max(30).default([]),
 });
 
 // ─── Step 10 — Review & publish ───────────────────────────────────────────

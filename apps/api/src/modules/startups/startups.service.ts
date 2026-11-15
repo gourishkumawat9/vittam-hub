@@ -4,8 +4,16 @@ import type { Prisma } from "@prisma/client";
 import type { CreateStartupInput, Industry, StartupSearchFilters, UpdateStartupVisibilityInput } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset, slugify } from "@vittamhub/utils";
 
-import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
+import { isDemoViewer } from "../../common/demo/demo-scope";
+import { listableStartupWhere, projectStartups } from "../../common/startups/startup-visibility";
+import { LISTED_VERIFICATION, VERIFIED_FIRST } from "../../common/verification/listed-profiles";
 import { PrismaService } from "../../database/prisma/prisma.service";
+
+/** Who is searching. Decides which rows come back and which filters they may use. */
+export interface StartupSearchViewer {
+  userId?: string | null;
+  isInvestor: boolean;
+}
 
 @Injectable()
 export class StartupsService {
@@ -20,8 +28,12 @@ export class StartupsService {
    * defaults industry/stage to the caller's own Investor preferences when
    * neither is explicitly set, same pattern as InvestorsService.list's
    * `matchMyStartup`. See docs/14-investor-portal.md.
+   *
+   * Returns raw rows, exact figures included. Nothing outside this module may
+   * send them to a client: use `searchProjected`, which is this query plus the
+   * public projection for the person asking.
    */
-  async search(filters: StartupSearchFilters, callerId?: string) {
+  async search(filters: StartupSearchFilters, callerId?: string | null, viewerIsInvestor = false) {
     let industry = filters.industry;
     let stage = filters.stage;
 
@@ -33,21 +45,32 @@ export class StartupsService {
       }
     }
 
-    // Anyone browsing can widen the net beyond VERIFIED by passing an explicit
-    // verificationStatus filter (e.g. an investor who wants to see PENDING
-    // profiles too) — the default stays VERIFIED-only when nothing is passed.
-    const verificationStatus = filters.verificationStatus?.length ? { in: filters.verificationStatus } : ("VERIFIED" as const);
+    // Every published startup is listed, verified ones first (see
+    // common/verification/listed-profiles.ts). The filter narrows that, to
+    // "verified only" for instance; it can never bring a REJECTED profile back.
+    const verificationStatus = filters.verificationStatus?.length
+      ? { in: filters.verificationStatus.filter((status) => status !== "REJECTED") }
+      : LISTED_VERIFICATION;
 
-    const tractionWhere: Prisma.StartupTractionWhereInput = {
-      ...(filters.hasRevenue ? { monthlyRevenueAmount: { gt: 0 } } : {}),
-      ...(filters.growthRateMin !== undefined ? { growthRatePercent: { gte: filters.growthRateMin } } : {}),
-    };
+    // Filtering on a figure is a way of reading it: "raising at least X" run a
+    // few times pins down a funding goal the profile itself withholds. So the
+    // money filters are for investors (who see those figures anyway), and never
+    // match a startup that has hidden its numbers.
+    const tractionWhere: Prisma.StartupTractionWhereInput = viewerIsInvestor
+      ? {
+          ...(filters.hasRevenue ? { monthlyRevenueAmount: { gt: 0 } } : {}),
+          ...(filters.growthRateMin !== undefined ? { growthRatePercent: { gte: filters.growthRateMin } } : {}),
+        }
+      : {};
+    const filtersOnTraction = Object.keys(tractionWhere).length > 0;
+    const minFundingGoal = viewerIsInvestor ? filters.minFundingRequirementAmount : undefined;
 
     const viewerIsDemo = await isDemoViewer(this.prisma, callerId);
     const where: Prisma.StartupWhereInput = {
-      isPublic: true,
-      AND: [sameSandbox(viewerIsDemo)], // demo and real accounts never see each other
-      visibility: { notIn: ["PRIVATE", "STEALTH"] }, // INVESTOR_ONLY still needs the per-viewer check in the controller (role isn't known to a shared query)
+      // Public, not deleted, not private/stealth, and demo and real accounts
+      // never see each other. INVESTOR_ONLY still needs the per-viewer check
+      // (the role isn't known to a shared query) — see `searchProjected`.
+      AND: [listableStartupWhere(viewerIsDemo), ...(filtersOnTraction ? [{ metricsVisibility: { not: "HIDDEN" as const } }] : [])],
       verificationStatus,
       ...(industry?.length ? { industry: { in: industry } } : {}),
       ...(stage?.length ? { stage: { in: stage } } : {}),
@@ -61,10 +84,8 @@ export class StartupsService {
         : {}),
       ...(filters.businessModel?.length ? { market: { customerModel: { hasSome: filters.businessModel } } } : {}),
       ...(filters.technology?.length ? { product: { technologyStack: { hasSome: filters.technology } } } : {}),
-      ...(filters.minFundingRequirementAmount !== undefined
-        ? { funding: { fundingGoalAmount: { gte: filters.minFundingRequirementAmount } } }
-        : {}),
-      ...(Object.keys(tractionWhere).length ? { traction: tractionWhere } : {}),
+      ...(minFundingGoal !== undefined ? { funding: { fundingGoalAmount: { gte: minFundingGoal } } } : {}),
+      ...(filtersOnTraction ? { traction: tractionWhere } : {}),
       ...(filters.founderExperienceMin !== undefined
         ? { owner: { profile: { yearsOfExperience: { gte: filters.founderExperienceMin } } } }
         : {}),
@@ -85,13 +106,27 @@ export class StartupsService {
         where,
         skip,
         take,
-        orderBy: { [filters.sortBy ?? "createdAt"]: filters.sortDir ?? "desc" },
+        // An order the investor picked is used as it is; the default puts verified profiles on top.
+        orderBy: filters.sortBy ? { [filters.sortBy]: filters.sortDir ?? "desc" } : [VERIFIED_FIRST, { createdAt: filters.sortDir ?? "desc" }],
         include: { funding: true, traction: true, owner: { select: { fullName: true } } },
       }),
       this.prisma.startup.count({ where }),
     ]);
 
     return buildPaginatedResult(items, totalItems, filters.page, filters.pageSize);
+  }
+
+  /**
+   * `search`, with every row passed through the public projection for the
+   * person asking: investor-only profiles are dropped for everyone else, and
+   * burn, valuation, the raise and exact revenue are banded or removed as the
+   * founder chose. This is the only form of search results that may leave the
+   * API — the global search and the discovery feed used to return `search`
+   * as-is, exact figures and all, to any signed-in account.
+   */
+  async searchProjected(filters: StartupSearchFilters, viewer: StartupSearchViewer) {
+    const result = await this.search(filters, viewer.userId, viewer.isInvestor);
+    return { ...result, items: projectStartups(result.items, viewer) };
   }
 
   async getBySlug(slug: string) {

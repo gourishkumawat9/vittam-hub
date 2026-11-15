@@ -89,3 +89,14 @@ export function useScheduleMeeting(connectionId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: connectionKeys.meetings(connectionId) }),
   });
 }
+
+/**
+ * Opens a connect request's pitch deck or one-pager. The link is fetched on
+ * the click, since a signed one only lasts five minutes. Failures are
+ * announced by the app's own error message.
+ */
+export function useOpenConnectionAttachment() {
+  return useMutation({
+    mutationFn: ({ id, kind }: { id: string; kind: "pitch-deck" | "executive-summary" }) => connectionsApi.attachment(id, kind),
+  });
+}

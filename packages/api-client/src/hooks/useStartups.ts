@@ -36,8 +36,9 @@ export function useStartup(slug: string) {
   });
 }
 
-export function useMyStartup() {
-  return useQuery({ queryKey: startupKeys.mine, queryFn: startupsApi.getMine, retry: false });
+/** Founders only: the API answers 403 to every other role, so pass `enabled: false` on screens other roles also see. */
+export function useMyStartup({ enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ queryKey: startupKeys.mine, queryFn: startupsApi.getMine, retry: false, enabled });
 }
 
 export function useMyStartupHealth() {
