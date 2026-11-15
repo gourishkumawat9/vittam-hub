@@ -59,6 +59,15 @@ import { SessionService } from "./services/session.service";
 import { REFRESH_COOKIE_NAME, clearSessionCookies, setSessionCookies } from "./session-cookies";
 
 
+/**
+ * The password hash never leaves the API (TransformInterceptor strips it), but
+ * the settings page needs to know whether there is one: an account made with
+ * Google has no current password to ask for.
+ */
+function withHasPassword<T extends { passwordHash: string | null }>(user: T): T & { hasPassword: boolean } {
+  return { ...user, hasPassword: Boolean(user.passwordHash) };
+}
+
 @ApiTags("auth")
 @Controller("v1/auth")
 export class AuthController {
@@ -83,7 +92,7 @@ export class AuthController {
   async register(@Body() input: RegisterInput, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const { accessToken, refreshToken, user } = await this.authService.register(input, this.requestMeta(req));
     this.setSessionCookies(res, accessToken, refreshToken, false);
-    return { user, requiresEmailVerification: true };
+    return { user: withHasPassword(user), requiresEmailVerification: true };
   }
 
   @Public()
@@ -100,7 +109,7 @@ export class AuthController {
     }
 
     this.setSessionCookies(res, result.accessToken, result.refreshToken, input.rememberMe);
-    return { mfaRequired: false, user: result.user };
+    return { mfaRequired: false, user: withHasPassword(result.user) };
   }
 
   @Public()
@@ -120,7 +129,7 @@ export class AuthController {
       this.requestMeta(req),
     );
     this.setSessionCookies(res, accessToken, refreshToken, rememberMe);
-    return { user };
+    return { user: withHasPassword(user) };
   }
 
   @Public()
@@ -158,7 +167,9 @@ export class AuthController {
   @Get("me")
   @ApiOperation({ summary: "Return the currently authenticated user" })
   async me(@CurrentUser() user: AuthenticatedUser) {
-    return this.usersService.findById(user.sub);
+    const account = await this.usersService.findById(user.sub);
+    if (!account || account.deletedAt) throw new UnauthorizedException();
+    return withHasPassword(account);
   }
 
   // ─── Email verification (OTP) ────────────────────────────────────────
@@ -273,6 +284,7 @@ export class AuthController {
   }
 
   @Delete("sessions/:id")
+  @UseGuards(NotDemoGuard)
   @ApiOperation({ summary: "Revoke a specific session" })
   async revokeSession(@CurrentUser() user: AuthenticatedUser, @Param("id") sessionId: string) {
     await this.sessionService.revokeSession(user.sub, sessionId);
@@ -280,6 +292,7 @@ export class AuthController {
   }
 
   @Delete("sessions")
+  @UseGuards(NotDemoGuard)
   @ApiOperation({ summary: "Log out of every other device" })
   async revokeOtherSessions(@CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
     const currentTokenHash = this.hashCookie(req.cookies?.[REFRESH_COOKIE_NAME]);

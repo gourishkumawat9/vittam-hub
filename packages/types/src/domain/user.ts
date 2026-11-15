@@ -12,6 +12,10 @@ export const userSchema = z.object({
   verificationStatus: z.nativeEnum(VerificationStatus),
   emailVerifiedAt: z.string().datetime().nullable(),
   twoFactorEnabled: z.boolean().default(false),
+  /** False for an account that has only ever signed in with Google, GitHub or LinkedIn. */
+  hasPassword: z.boolean().optional(),
+  /** One of the shared accounts visitors use to try the product. Its password and sign-ins can't be changed. */
+  isDemo: z.boolean().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

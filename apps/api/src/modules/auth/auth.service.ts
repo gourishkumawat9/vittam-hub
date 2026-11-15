@@ -251,14 +251,21 @@ export class AuthService {
     if (!stored.revokedAt) {
       const now = new Date();
       const familyId = stored.familyId ?? randomUUID();
-      // Retire it in one conditional statement, so of two requests arriving together only one can be the one that rotates it.
-      const retired = await this.prisma.refreshToken.updateMany({
-        where: { id: stored.id, revokedAt: null },
-        data: { revokedAt: now, rotatedAt: now, familyId },
+      const tokenId = stored.id;
+      const rememberMe = stored.rememberMe;
+      // Retire it in one conditional statement, so of two requests arriving
+      // together only one can be the one that rotates it. The successor is
+      // created in the same transaction: at no moment is the sign-in left
+      // without a live token, which is what every request now checks for.
+      const renewed = await this.prisma.$transaction(async (tx) => {
+        const retired = await tx.refreshToken.updateMany({
+          where: { id: tokenId, revokedAt: null },
+          data: { revokedAt: now, rotatedAt: now, familyId },
+        });
+        if (retired.count !== 1) return null;
+        return this.issueSession(user.id, user.email, user.role, { ...meta, rememberMe }, familyId, tx);
       });
-      if (retired.count === 1) {
-        return this.issueSession(user.id, user.email, user.role, { ...meta, rememberMe: stored.rememberMe }, familyId);
-      }
+      if (renewed) return renewed;
       // Another request got there first; look at what it did.
       stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash }, include: { user: true } });
       if (!stored) throw expired();
@@ -285,7 +292,11 @@ export class AuthService {
       throw expired();
     }
 
-    return { accessToken: this.signAccessToken(user.id, user.email, user.role), refreshToken: undefined, rememberMe: stored.rememberMe };
+    return {
+      accessToken: this.signAccessToken(user.id, user.email, user.role, stored.familyId),
+      refreshToken: undefined,
+      rememberMe: stored.rememberMe,
+    };
   }
 
   /**
@@ -302,9 +313,15 @@ export class AuthService {
     });
   }
 
-  private signAccessToken(userId: string, email: string, role: string): string {
+  /**
+   * `sid` names the sign-in this token belongs to. JwtStrategy looks it up on
+   * every request, so signing out, changing the password or ending a session
+   * from another device takes effect at once instead of when the token
+   * runs out fifteen minutes later.
+   */
+  private signAccessToken(userId: string, email: string, role: string, sessionId: string): string {
     return this.jwtService.sign(
-      { sub: userId, email, role },
+      { sub: userId, email, role, sid: sessionId },
       {
         secret: this.configService.getOrThrow("JWT_ACCESS_SECRET"),
         expiresIn: this.configService.get("JWT_ACCESS_TTL", "15m"),
@@ -313,8 +330,15 @@ export class AuthService {
   }
 
   /** `familyId` ties a renewed session to the sign-in it came from; a fresh sign-in starts a new one. */
-  private async issueSession(userId: string, email: string, role: string, meta: RequestMeta, familyId: string = randomUUID()) {
-    const accessToken = this.signAccessToken(userId, email, role);
+  private async issueSession(
+    userId: string,
+    email: string,
+    role: string,
+    meta: RequestMeta,
+    familyId: string = randomUUID(),
+    db: Pick<Prisma.TransactionClient, "refreshToken"> = this.prisma,
+  ) {
+    const accessToken = this.signAccessToken(userId, email, role, familyId);
 
     const rawRefreshToken = randomBytes(48).toString("hex");
     const rememberMe = meta.rememberMe ?? false;
@@ -322,7 +346,7 @@ export class AuthService {
     // regardless of the cookie's own maxAge, so an unattended shared browser tab still expires.
     const refreshTtlMs = rememberMe ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60 * 24;
 
-    await this.prisma.refreshToken.create({
+    await db.refreshToken.create({
       data: {
         userId,
         tokenHash: this.hashToken(rawRefreshToken),

@@ -59,6 +59,16 @@ export const changePasswordInputSchema = z.object({
 });
 export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;
 
+/**
+ * Deleting an account can't be undone, so an account that has a password must
+ * give it again. An account that only ever signed in with Google, GitHub or
+ * LinkedIn has no password to give.
+ */
+export const deleteAccountInputSchema = z.object({
+  password: z.string().max(128).optional(),
+});
+export type DeleteAccountInput = z.infer<typeof deleteAccountInputSchema>;
+
 // ─── Sessions / devices ─────────────────────────────────────────────────────
 
 export const sessionSchema = z.object({

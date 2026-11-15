@@ -1,7 +1,6 @@
 import { configureHttpClient } from "@vittamhub/api-client";
 
-/** Mirrors PROTECTED_PREFIXES in middleware.ts. */
-const SIGNED_IN_AREAS = ["/founder", "/investor", "/admin"];
+import { isSignedInArea } from "@/lib/role-home";
 
 /** Reads a single cookie's value by name — browser-only, mirrors what the API's csrf_token cookie is set up to be read by. */
 function readCookie(name: string): string | undefined {
@@ -24,7 +23,7 @@ export function setupHttpClient() {
     // showing a dashboard full of errors.
     onSessionExpired: () => {
       const { pathname, search } = window.location;
-      if (!SIGNED_IN_AREAS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) return;
+      if (!isSignedInArea(pathname)) return;
       window.location.assign(`/login?redirectTo=${encodeURIComponent(pathname + search)}`);
     },
   });

@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
-import { middleware } from "./middleware";
+import { SIGNED_IN_AREAS } from "@/lib/role-home";
+
+import { config, middleware } from "./middleware";
 
 function jwt(payload: Record<string, unknown>): string {
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
@@ -47,6 +49,33 @@ describe("middleware", () => {
     const admin = { vh_session: jwt({ role: "ADMIN", exp: inAnHour }) };
     expect(visit("/investor", admin)).toBeNull();
     expect(visit("/founder", admin)).toBeNull();
+  });
+
+  it("sends signed-out visitors of every signed-in area to login", () => {
+    for (const area of SIGNED_IN_AREAS) {
+      expect(visit(area)).toBe(`/login?redirectTo=${encodeURIComponent(area)}`);
+      expect(visit(`${area}/anything`)).toBe(`/login?redirectTo=${encodeURIComponent(`${area}/anything`)}`);
+    }
+  });
+
+  it("runs on every signed-in area", () => {
+    for (const area of SIGNED_IN_AREAS) {
+      expect(config.matcher).toContain(`${area}/:path*`);
+    }
+  });
+
+  it("lets any signed-in role use the shared areas", () => {
+    const mentor = { vh_session: jwt({ role: "MENTOR", exp: inAnHour }) };
+    expect(visit("/community", mentor)).toBeNull();
+    expect(visit("/onboarding/mentor", mentor)).toBeNull();
+    expect(visit("/settings", mentor)).toBeNull();
+    expect(visit("/investor", mentor)).toBe("/mentors/bookings");
+  });
+
+  it("leaves public pages alone", () => {
+    expect(visit("/")).toBeNull();
+    expect(visit("/pricing")).toBeNull();
+    expect(visit("/startups/some-startup")).toBeNull();
   });
 
   it("ignores a malformed session cookie", () => {

@@ -2,12 +2,14 @@
 
 import { useCurrentUser, useLogout } from "@vittamhub/api-client";
 import { Avatar, Drawer } from "@vittamhub/ui";
-import { LogOut, Menu } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { LogOut, Menu, Settings } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { leaveSession } from "@/lib/leave-session";
 
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
@@ -16,7 +18,6 @@ import { SidebarNav } from "./Sidebar";
 export function Topbar() {
   const { data: user } = useCurrentUser();
   const logout = useLogout();
-  const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -35,8 +36,12 @@ export function Topbar() {
   }, [pathname]);
 
   const handleLogout = async () => {
-    await logout.mutateAsync();
-    router.push("/login");
+    try {
+      await logout.mutateAsync();
+    } catch {
+      return; // shown as a toast; still signed in, so stay put
+    }
+    leaveSession("/login");
   };
 
   return (
@@ -73,6 +78,9 @@ export function Topbar() {
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Account menu"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
               className="flex items-center gap-2 rounded-button px-2 py-1.5 hover:bg-background-secondary"
             >
               <Avatar name={user.fullName} src={user.avatarUrl} size="sm" />
@@ -83,6 +91,13 @@ export function Topbar() {
                   <p className="truncate text-sm font-medium text-text-primary">{user.fullName}</p>
                   <p className="truncate text-xs text-text-secondary">{user.email}</p>
                 </div>
+                <Link
+                  href="/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text-primary hover:bg-background-secondary"
+                >
+                  <Settings className="h-4 w-4" /> Settings
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}

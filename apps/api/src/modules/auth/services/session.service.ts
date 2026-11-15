@@ -18,10 +18,23 @@ export class SessionService {
     return `${browserName} on ${osName}`;
   }
 
+  /**
+   * A demo account is one login shared by every visitor trying the product,
+   * so its "other devices" are other people. They see only their own session:
+   * the full list would hand each visitor everyone else's browser and IP
+   * address. (Ending those sessions is refused by NotDemoGuard on the routes.)
+   */
   async listActiveSessions(userId: string, currentTokenHash: string) {
+    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { isDemo: true } });
     const sessions = await this.prisma.refreshToken.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+        ...(account?.isDemo ? { tokenHash: currentTokenHash } : {}),
+      },
       orderBy: { lastUsedAt: "desc" },
+      take: 50,
     });
 
     return sessions.map((session) => ({

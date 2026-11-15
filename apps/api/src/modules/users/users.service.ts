@@ -1,4 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import * as argon2 from "argon2";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { revokeUserSessions } from "../auth/services/session-revocation";
@@ -32,6 +33,24 @@ export class UsersService {
 
   markEmailVerified(userId: string) {
     return this.prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } });
+  }
+
+  /**
+   * Deleting an account removes the startup, the profile and everything the
+   * person wrote, for good. A session alone shouldn't be enough for that: a
+   * laptop left open, or a stolen cookie, could otherwise wipe someone out.
+   * So an account with a password has to give it again. One that only signs
+   * in through Google, GitHub or LinkedIn has no password, and its owner
+   * confirms in the app instead.
+   */
+  async confirmPasswordForDeletion(userId: string, password: string | undefined): Promise<void> {
+    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true, deletedAt: true } });
+    if (!account || account.deletedAt) throw new UnauthorizedException();
+    if (!account.passwordHash) return;
+    if (!password) throw new BadRequestException("Enter your password to delete your account");
+    if (!(await argon2.verify(account.passwordHash, password))) {
+      throw new BadRequestException("That password is incorrect");
+    }
   }
 
   /**
