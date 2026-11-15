@@ -32,13 +32,13 @@ export type InvestmentMandate = z.infer<typeof investmentMandateSchema>;
 
 export const createMandateInputSchema = z.object({
   name: z.string().min(1, "Name is required").max(120),
-  industries: z.array(z.nativeEnum(Industry)).default([]),
-  stages: z.array(z.nativeEnum(StartupStage)).default([]),
+  industries: z.array(z.nativeEnum(Industry)).max(60).default([]),
+  stages: z.array(z.nativeEnum(StartupStage)).max(20).default([]),
   currency: z.nativeEnum(Currency).default(Currency.INR),
   chequeMinAmount: z.coerce.number().nonnegative().optional(),
   chequeMaxAmount: z.coerce.number().nonnegative().optional(),
-  geography: z.array(z.string()).default([]),
-  revenueStatuses: z.array(z.nativeEnum(RevenueStatus)).default([]),
+  geography: z.array(z.string().max(80)).max(60).default([]),
+  revenueStatuses: z.array(z.nativeEnum(RevenueStatus)).max(10).default([]),
   minTrustBand: trustBandSchema.optional(),
   raisingOnly: z.boolean().default(false),
   requireVerified: z.boolean().default(false),

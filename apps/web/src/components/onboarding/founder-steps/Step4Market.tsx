@@ -38,7 +38,7 @@ export function Step4Market({ defaultValues, onNext, onBack }: StepProps) {
   const competitors = useFieldArray({ control, name: "competitors" });
 
   const values = watch();
-  const { status } = useAutosave("market", 3, values);
+  useAutosave("market", 3, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("market", data);
@@ -146,7 +146,7 @@ export function Step4Market({ defaultValues, onNext, onBack }: StepProps) {
       <Textarea label="Competitive advantage" rows={2} {...register("competitiveAdvantage")} />
       <Textarea label="Go-to-market strategy" rows={2} {...register("goToMarketStrategy")} />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

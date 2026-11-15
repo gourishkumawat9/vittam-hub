@@ -16,14 +16,14 @@ export class OnboardingController {
   @Get("state")
   @ApiOperation({ summary: "Get the caller's onboarding progress and saved draft" })
   getState(@CurrentUser() user: AuthenticatedUser) {
-    return this.onboardingService.getState(user.sub);
+    return this.onboardingService.getState(user.sub, user.role);
   }
 
   @Patch("draft")
   @UsePipes(new ZodValidationPipe(saveOnboardingDraftInputSchema))
   @ApiOperation({ summary: "Autosave one wizard section into the onboarding draft" })
   saveDraft(@CurrentUser() user: AuthenticatedUser, @Body() input: SaveOnboardingDraftInput) {
-    return this.onboardingService.saveDraft(user.sub, input);
+    return this.onboardingService.saveDraft(user.sub, user.role, input);
   }
 
   @Post("publish")

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Prisma } from "@prisma/client";
 import {
@@ -18,10 +18,27 @@ import { ZodError } from "zod";
 
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { MediaService } from "../../media/media.service";
-import { recordTractionObservations } from "../../startups/metric-observations.util";
+import { recordTractionObservations, type TractionMetricsInput } from "../../startups/metric-observations.util";
 import { deriveOverallStage } from "../../startups/stage.util";
 
 import { applyPersonalDetails } from "./apply-personal-details";
+
+const TRACKED_METRICS = ["monthlyRevenueAmount", "arrAmount", "mrrAmount", "totalUsers", "totalCustomers", "downloads"] as const;
+
+/** The metrics whose value differs from what is stored (all of them, the first time). */
+function changedMetrics(
+  next: TractionMetricsInput,
+  stored: Partial<Record<(typeof TRACKED_METRICS)[number], Prisma.Decimal | number | null>> | null,
+): TractionMetricsInput {
+  const changed: TractionMetricsInput = {};
+  for (const key of TRACKED_METRICS) {
+    const value = next[key];
+    if (value === undefined || value === null) continue;
+    const before = stored?.[key];
+    if (before === undefined || before === null || Number(before) !== Number(value)) changed[key] = value;
+  }
+  return changed;
+}
 
 /**
  * Step 10 "Publish" — validates the fully-accumulated wizard draft against
@@ -70,11 +87,13 @@ export class StartupPublisher {
       }
     }
 
-    const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId } });
-    if (existing?.publishedAt) {
-      throw new ConflictException("This startup profile has already been published");
-    }
+    // Publishing again is how a founder edits a live profile. It used to be
+    // refused outright ("already published"), which left no way at all to
+    // change a startup's name, description, product or team after going live.
+    const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId }, include: { traction: true } });
+    const now = new Date();
 
+    // The page's address stays the same through a rename: links already shared keep working.
     const slug = existing?.slug ?? (await this.generateUniqueSlug(startupInfo.name));
 
     const startup = await this.prisma.$transaction(async (tx) => {
@@ -106,8 +125,9 @@ export class StartupPublisher {
         teamSize: team.teamSize,
         hiringStatus: team.hiringStatus,
         openRoles: team.openRoles,
-        termsAcceptedAt: new Date(),
-        publishedAt: new Date(),
+        termsAcceptedAt: now,
+        // The day it first went live, not the day of the latest edit.
+        publishedAt: existing?.publishedAt ?? now,
       };
 
       const startup = await tx.startup.upsert({
@@ -145,7 +165,9 @@ export class StartupPublisher {
         create: { startupId: startup.id, ...traction },
         update: traction,
       });
-      await recordTractionObservations(tx, startup.id, traction, "INR", "self-declared:onboarding");
+      // History gets a new point only for a number that changed, so saving
+      // an edit to the description doesn't log this month's revenue again.
+      await recordTractionObservations(tx, startup.id, changedMetrics(traction, existing?.traction ?? null), "INR", "self-declared:onboarding");
 
       await tx.startupFunding.upsert({
         where: { startupId: startup.id },
@@ -160,9 +182,16 @@ export class StartupPublisher {
       });
 
       if (verification.documents.length > 0) {
-        await tx.document.createMany({
-          data: verification.documents.map((doc) => ({ ...doc, userId })),
+        // A file already on record isn't added a second time when the profile is saved again.
+        const onFile = await tx.document.findMany({
+          where: { userId, fileUrl: { in: verification.documents.map((doc) => doc.fileUrl) } },
+          select: { fileUrl: true },
         });
+        const known = new Set(onFile.map((doc) => doc.fileUrl));
+        const fresh = verification.documents.filter((doc) => !known.has(doc.fileUrl));
+        if (fresh.length > 0) {
+          await tx.document.createMany({ data: fresh.map((doc) => ({ ...doc, userId })) });
+        }
       }
 
       await tx.userProfile.update({

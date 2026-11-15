@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { dateOfBirthSchema } from "./dates";
 import { Gender, OnboardingStatus } from "./enums";
 import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
@@ -35,7 +36,7 @@ export const personalDetailsInputSchema = z.object({
   fullName: z.string().min(1, "Full name is required").max(120),
   avatarUrl: urlOrEmpty,
   mobileNumber: z.string().min(6, "Enter a valid mobile number").max(20),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  dateOfBirth: dateOfBirthSchema,
   gender: z.nativeEnum(Gender),
   nationality: z.string().min(1, "Nationality is required").max(80),
   linkedinUrl: urlOrEmpty,

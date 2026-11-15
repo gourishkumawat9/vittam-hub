@@ -40,7 +40,7 @@ export function PersonalDetailsStep({ defaultValues, onNext }: PersonalDetailsSt
   });
 
   const values = watch();
-  const { status } = useAutosave("personalDetails", 0, values);
+  useAutosave("personalDetails", 0, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("personalDetails", data);
@@ -85,7 +85,7 @@ export function PersonalDetailsStep({ defaultValues, onNext }: PersonalDetailsSt
 
       <Textarea label="Short bio" rows={3} hint="A couple of sentences about your background" {...register("bio")} />
 
-      <WizardNav onNext={onSubmit} isFirstStep isSubmitting={status === "saving"} />
+      <WizardNav onNext={onSubmit} isFirstStep />
     </form>
   );
 }

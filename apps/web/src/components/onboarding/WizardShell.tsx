@@ -1,8 +1,9 @@
 "use client";
 
-import { Drawer, ProgressBar } from "@vittamhub/ui";
+import { Drawer, ProgressBar, Skeleton } from "@vittamhub/ui";
 import { motion } from "framer-motion";
-import { Check, Cloud, CloudOff, ListTree, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Cloud, CloudOff, ListTree, Loader2 } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -20,6 +21,15 @@ interface WizardShellProps {
   currentStepIndex: number;
   onStepSelect?: (index: number) => void;
   autosaveStatus?: AutosaveStatus;
+  /** The profile is already live and this visit edits it: every step is open, and there is a way back out. */
+  isEditing?: boolean;
+  /** Where "Back to dashboard" goes while editing. */
+  exitHref?: string;
+  /** False until the saved answers have loaded for the person signed in. */
+  ready?: boolean;
+  /** The saved answers couldn't be loaded. */
+  failed?: boolean;
+  onRetry?: () => void;
   children: ReactNode;
 }
 
@@ -51,13 +61,16 @@ function StepNav({
   currentStepIndex,
   onStepSelect,
   onNavigate,
+  allOpen = false,
   className,
-}: Pick<WizardShellProps, "steps" | "currentStepIndex" | "onStepSelect"> & { onNavigate?: () => void; className?: string }) {
+}: Pick<WizardShellProps, "steps" | "currentStepIndex" | "onStepSelect"> & { onNavigate?: () => void; allOpen?: boolean; className?: string }) {
   return (
-    <nav aria-label="Onboarding steps" className={cn("flex flex-col gap-1", className)}>
+    <nav aria-label="Steps" className={cn("flex flex-col gap-1", className)}>
       {steps.map((step, index) => {
         const isActive = index === currentStepIndex;
-        const isComplete = index < currentStepIndex;
+        const isComplete = !allOpen && index < currentStepIndex;
+        // While onboarding, a later step opens only by getting there. While editing, any step can be opened.
+        const isLocked = !onStepSelect || (!allOpen && index > currentStepIndex);
         return (
           <button
             key={step.id}
@@ -66,11 +79,12 @@ function StepNav({
               onStepSelect?.(index);
               onNavigate?.();
             }}
-            disabled={!onStepSelect || index > currentStepIndex}
+            disabled={isLocked}
+            aria-current={isActive ? "step" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-button px-3 py-2 text-left text-sm transition-colors",
+              "flex items-center gap-2.5 rounded-button px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
               isActive ? "bg-brand-100 font-semibold text-brand-700" : "text-text-secondary hover:bg-background-secondary",
-              index > currentStepIndex && "cursor-not-allowed opacity-50",
+              isLocked && !isActive && "cursor-not-allowed opacity-50",
             )}
           >
             <span
@@ -90,7 +104,18 @@ function StepNav({
 }
 
 /** Shared chrome for every onboarding wizard (Startup's 10 steps, and any shorter role flow) — progress bar, step list, autosave status. */
-export function WizardShell({ steps, currentStepIndex, onStepSelect, autosaveStatus = "idle", children }: WizardShellProps) {
+export function WizardShell({
+  steps,
+  currentStepIndex,
+  onStepSelect,
+  autosaveStatus = "idle",
+  isEditing = false,
+  exitHref,
+  ready = true,
+  failed = false,
+  onRetry,
+  children,
+}: WizardShellProps) {
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
   const [stepsOpen, setStepsOpen] = useState(false);
   const currentStep = steps[currentStepIndex];
@@ -98,51 +123,90 @@ export function WizardShell({ steps, currentStepIndex, onStepSelect, autosaveSta
   return (
     <div className="min-h-screen bg-background-secondary">
       <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-3">
             <AutosaveIndicator status={autosaveStatus} />
-            <button
-              type="button"
-              onClick={() => setStepsOpen(true)}
-              className="flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-background-secondary lg:hidden"
-            >
-              <ListTree className="h-3.5 w-3.5" />
-              Steps
-            </button>
+            {isEditing && exitHref && (
+              <Link
+                href={exitHref}
+                className="flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-background-secondary"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Back to dashboard</span>
+                <span className="sm:hidden">Back</span>
+              </Link>
+            )}
+            {steps.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setStepsOpen(true)}
+                className="flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-background-secondary lg:hidden"
+              >
+                <ListTree className="h-3.5 w-3.5" aria-hidden="true" />
+                Steps
+              </button>
+            )}
           </div>
         </div>
-        <div className="mx-auto max-w-5xl px-6 pb-4">
+        <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6">
+          {isEditing && <p className="mb-2 text-sm font-medium text-text-primary">Editing your profile</p>}
           <ProgressBar value={progress} label={`Step ${currentStepIndex + 1} of ${steps.length}: ${currentStep?.label}`} />
         </div>
       </header>
 
-      <Drawer open={stepsOpen} onOpenChange={setStepsOpen} title="Onboarding steps">
+      <Drawer open={stepsOpen} onOpenChange={setStepsOpen} title="Steps">
         <StepNav
           steps={steps}
           currentStepIndex={currentStepIndex}
           onStepSelect={onStepSelect}
           onNavigate={() => setStepsOpen(false)}
+          allOpen={isEditing}
           className="p-4"
         />
       </Drawer>
 
-      <div className="mx-auto flex max-w-5xl gap-8 px-6 py-10">
+      <div className="mx-auto flex max-w-5xl gap-8 px-4 py-6 sm:px-6 sm:py-10">
         <StepNav
           steps={steps}
           currentStepIndex={currentStepIndex}
           onStepSelect={onStepSelect}
+          allOpen={isEditing}
           className="hidden w-56 shrink-0 lg:flex"
         />
 
         <motion.main
-          key={currentStepIndex}
+          key={ready ? currentStepIndex : "loading"}
           initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.25 }}
-          className="min-w-0 flex-1 rounded-card border border-border bg-surface p-6 shadow-sm sm:p-8"
+          className="min-w-0 flex-1 rounded-card border border-border bg-surface p-5 shadow-sm sm:p-8"
         >
-          {children}
+          {failed ? (
+            <div className="flex flex-col items-start gap-3 py-6">
+              <h2 className="font-heading text-lg font-semibold text-text-primary">Your answers didn&apos;t load</h2>
+              <p className="text-sm text-text-secondary">Nothing is lost. Check your connection and try again.</p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="rounded-button border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-background-secondary"
+                >
+                  Try again
+                </button>
+              )}
+            </div>
+          ) : ready ? (
+            children
+          ) : (
+            <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading your answers">
+              <Skeleton className="h-6 w-1/3" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          )}
         </motion.main>
       </div>
     </div>

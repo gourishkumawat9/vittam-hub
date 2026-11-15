@@ -1,15 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { usePublishOnboarding } from "@vittamhub/api-client";
 import { createInvestorInputSchema, InvestorType, StartupStage, type CreateInvestorInput } from "@vittamhub/types";
 import { Checkbox, Input, Select, TagsInput, Textarea } from "@vittamhub/ui";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useAutosave } from "@/hooks/useAutosave";
-import { useOnboardingStore } from "@/store/onboarding-store";
+import { usePublishProfile } from "@/hooks/usePublishProfile";
 
 import { WizardNav } from "../WizardNav";
 
@@ -23,13 +20,12 @@ function titleCase(value: string) {
 interface InvestorInfoStepProps {
   defaultValues?: Partial<CreateInvestorInput>;
   onBack: () => void;
+  /** The profile is already live: this saves changes to it. */
+  isEditing?: boolean;
 }
 
-export function InvestorInfoStep({ defaultValues, onBack }: InvestorInfoStepProps) {
-  const router = useRouter();
-  const { setSectionData, reset } = useOnboardingStore();
-  const publish = usePublishOnboarding();
-  const [publishError, setPublishError] = useState<string | null>(null);
+export function InvestorInfoStep({ defaultValues, onBack, isEditing = false }: InvestorInfoStepProps) {
+  const { publishProfile, isPublishing, error: publishError } = usePublishProfile();
 
   const {
     register,
@@ -44,24 +40,17 @@ export function InvestorInfoStep({ defaultValues, onBack }: InvestorInfoStepProp
   });
 
   const values = watch();
-  const { status } = useAutosave("investorInfo", 1, values);
+  useAutosave("investorInfo", 1, values);
 
   const togglePreferredStage = (stage: StartupStage) => {
     const current = values.preferredStages ?? [];
     setValue("preferredStages", current.includes(stage) ? current.filter((s) => s !== stage) : [...current, stage]);
   };
 
-  const onSubmit = handleSubmit(async (data) => {
-    setSectionData("investorInfo", data);
-    setPublishError(null);
-    try {
-      await publish.mutateAsync({});
-      reset();
-      router.push("/investor?published=true");
-    } catch {
-      setPublishError("We couldn't publish your profile. Please check your details and try again.");
-    }
-  });
+  const onSubmit = handleSubmit((data) =>
+    // What is on screen goes with the request, so nothing typed a moment ago is left behind.
+    publishProfile({ investorInfo: data }, { isEditing, redirectTo: () => "/investor" }),
+  );
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
@@ -143,9 +132,13 @@ export function InvestorInfoStep({ defaultValues, onBack }: InvestorInfoStepProp
         )}
       />
 
-      {publishError && <p className="text-sm text-danger-600">{publishError}</p>}
+      {publishError && (
+        <p role="alert" className="rounded-button border border-danger-600/30 bg-danger-50 px-3 py-2 text-sm text-danger-600">
+          {publishError}
+        </p>
+      )}
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving" || publish.isPending} nextLabel="Complete profile" />
+      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={isPublishing} nextLabel={isEditing ? "Save changes" : "Publish profile"} />
     </form>
   );
 }

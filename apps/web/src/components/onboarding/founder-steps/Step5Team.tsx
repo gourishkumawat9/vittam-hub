@@ -42,7 +42,7 @@ export function Step5Team({ defaultValues, onNext, onBack }: StepProps) {
 
   const members = useFieldArray({ control, name: "members" });
   const values = watch();
-  const { status } = useAutosave("team", 4, values);
+  useAutosave("team", 4, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("team", data);
@@ -107,7 +107,7 @@ export function Step5Team({ defaultValues, onNext, onBack }: StepProps) {
         )}
       />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useOnboardingState } from "@vittamhub/api-client";
 import {
   STARTUP_WIZARD_STEPS,
   type FundingStepInput,
@@ -13,7 +12,6 @@ import {
   type TractionStepInput,
   type VerificationStepInput,
 } from "@vittamhub/types";
-import { useEffect, useState } from "react";
 
 import { WizardShell, type WizardStepMeta } from "@/components/onboarding/WizardShell";
 import { Step10Review } from "@/components/onboarding/founder-steps/Step10Review";
@@ -26,7 +24,8 @@ import { Step6Traction } from "@/components/onboarding/founder-steps/Step6Tracti
 import { Step7Funding } from "@/components/onboarding/founder-steps/Step7Funding";
 import { Step8Verification } from "@/components/onboarding/founder-steps/Step8Verification";
 import { Step9Preferences } from "@/components/onboarding/founder-steps/Step9Preferences";
-import { draftSection, useOnboardingStore } from "@/store/onboarding-store";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
+import { draftSection } from "@/store/onboarding-store";
 
 const STEP_LABELS: Record<(typeof STARTUP_WIZARD_STEPS)[number], string> = {
   "personal-details": "Founder info",
@@ -44,29 +43,22 @@ const STEP_LABELS: Record<(typeof STARTUP_WIZARD_STEPS)[number], string> = {
 const STEPS: WizardStepMeta[] = STARTUP_WIZARD_STEPS.map((id) => ({ id, label: STEP_LABELS[id] }));
 
 export default function FounderOnboardingPage() {
-  const { data: serverState } = useOnboardingState();
-  const { draft, step, setStep, hydrateFromServer } = useOnboardingStore();
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (!serverState || hydrated) return;
-    // Only hydrate from the server if this browser has no local draft yet
-    // (a fresh device) — otherwise the locally persisted draft, which is
-    // always at least as fresh, wins.
-    if (Object.keys(draft).length === 0 && serverState.draft) {
-      hydrateFromServer(serverState.draft, serverState.step);
-    }
-    setHydrated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when server state first arrives
-  }, [serverState]);
-
-  const goNext = () => setStep(Math.min(step + 1, STEPS.length - 1));
-  const goBack = () => setStep(Math.max(step - 1, 0));
+  const { ready, failed, retry, draft, step, setStep, goNext, goBack, autosaveStatus, isEditing } = useOnboardingDraft(STEPS.length);
 
   const currentStepId = STARTUP_WIZARD_STEPS[step];
 
   return (
-    <WizardShell steps={STEPS} currentStepIndex={step} onStepSelect={setStep}>
+    <WizardShell
+      steps={STEPS}
+      currentStepIndex={step}
+      onStepSelect={setStep}
+      autosaveStatus={autosaveStatus}
+      isEditing={isEditing}
+      exitHref="/founder"
+      ready={ready}
+      failed={failed}
+      onRetry={retry}
+    >
       {currentStepId === "personal-details" && (
         <Step1PersonalDetails defaultValues={draftSection<PersonalDetailsInput>(draft, "personalDetails")} onNext={goNext} />
       )}
@@ -94,7 +86,7 @@ export default function FounderOnboardingPage() {
       {currentStepId === "preferences" && (
         <Step9Preferences defaultValues={draftSection<PreferencesStepInput>(draft, "preferences")} onNext={goNext} onBack={goBack} />
       )}
-      {currentStepId === "review" && <Step10Review onBack={goBack} />}
+      {currentStepId === "review" && <Step10Review onBack={goBack} isEditing={isEditing} />}
     </WizardShell>
   );
 }

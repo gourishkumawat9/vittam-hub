@@ -64,7 +64,7 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
   });
 
   const values = watch();
-  const { status } = useAutosave("verification", 7, values);
+  useAutosave("verification", 7, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("verification", data);
@@ -135,7 +135,7 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
         })}
       </div>
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

@@ -79,7 +79,7 @@ export const startupSearchFiltersSchema = z.object({
   location: z.string().optional(),
   isFundraising: z.boolean().optional(),
   businessModel: z.array(z.nativeEnum(CustomerModel)).optional(),
-  technology: z.array(z.string()).optional(),
+  technology: z.array(z.string().max(60)).max(30).optional(),
   minFundingRequirementAmount: z.coerce.number().nonnegative().optional(),
   hasRevenue: z.coerce.boolean().optional(),
   foundedYearMin: z.coerce.number().int().min(1990).optional(),

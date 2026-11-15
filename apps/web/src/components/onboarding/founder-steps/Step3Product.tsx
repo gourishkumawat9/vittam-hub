@@ -35,7 +35,7 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   const values = watch();
-  const { status } = useAutosave("product", 2, values);
+  useAutosave("product", 2, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("product", data);
@@ -121,7 +121,7 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
         )}
       />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

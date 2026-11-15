@@ -1,29 +1,25 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { usePublishOnboarding } from "@vittamhub/api-client";
 import { createIncubatorInputSchema, type CreateIncubatorInput } from "@vittamhub/types";
 import { Input, TagsInput, Textarea } from "@vittamhub/ui";
 import { Plus, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import { useAutosave } from "@/hooks/useAutosave";
-import { useOnboardingStore } from "@/store/onboarding-store";
+import { usePublishProfile } from "@/hooks/usePublishProfile";
 
 import { WizardNav } from "../WizardNav";
 
 interface IncubatorInfoStepProps {
   defaultValues?: Partial<CreateIncubatorInput>;
   onBack: () => void;
+  /** The profile is already live: this saves changes to it. */
+  isEditing?: boolean;
 }
 
-export function IncubatorInfoStep({ defaultValues, onBack }: IncubatorInfoStepProps) {
-  const router = useRouter();
-  const { setSectionData, reset } = useOnboardingStore();
-  const publish = usePublishOnboarding();
-  const [publishError, setPublishError] = useState<string | null>(null);
+export function IncubatorInfoStep({ defaultValues, onBack, isEditing = false }: IncubatorInfoStepProps) {
+  const { publishProfile, isPublishing, error: publishError } = usePublishProfile();
 
   const {
     register,
@@ -38,19 +34,12 @@ export function IncubatorInfoStep({ defaultValues, onBack }: IncubatorInfoStepPr
 
   const programs = useFieldArray({ control, name: "programs" });
   const values = watch();
-  const { status } = useAutosave("incubatorInfo", 1, values);
+  useAutosave("incubatorInfo", 1, values);
 
-  const onSubmit = handleSubmit(async (data) => {
-    setSectionData("incubatorInfo", data);
-    setPublishError(null);
-    try {
-      await publish.mutateAsync({});
-      reset();
-      router.push("/?published=true");
-    } catch {
-      setPublishError("We couldn't publish your profile. Please check your details and try again.");
-    }
-  });
+  const onSubmit = handleSubmit((data) =>
+    // What is on screen goes with the request, so nothing typed a moment ago is left behind.
+    publishProfile({ incubatorInfo: data }, { isEditing, redirectTo: (profile) => `/incubators/${profile.id}` }),
+  );
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
@@ -110,9 +99,13 @@ export function IncubatorInfoStep({ defaultValues, onBack }: IncubatorInfoStepPr
         ))}
       </div>
 
-      {publishError && <p className="text-sm text-danger-600">{publishError}</p>}
+      {publishError && (
+        <p role="alert" className="rounded-button border border-danger-600/30 bg-danger-50 px-3 py-2 text-sm text-danger-600">
+          {publishError}
+        </p>
+      )}
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving" || publish.isPending} nextLabel="Complete profile" />
+      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={isPublishing} nextLabel={isEditing ? "Save changes" : "Publish profile"} />
     </form>
   );
 }

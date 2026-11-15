@@ -41,12 +41,12 @@ const urlOrEmpty = optionalHttpUrlSchema;
  */
 export const investorSearchFiltersSchema = z.object({
   query: z.string().max(200).optional(),
-  industry: z.array(z.string()).optional(),
-  country: z.array(z.string()).optional(),
+  industry: z.array(z.string().max(80)).max(50).optional(),
+  country: z.array(z.string().max(80)).max(50).optional(),
   stage: z.array(z.nativeEnum(StartupStage)).optional(),
   minTicketSizeAmount: z.coerce.number().nonnegative().optional(),
   investorType: z.array(z.nativeEnum(InvestorType)).optional(),
-  portfolioCompanies: z.array(z.string()).optional(),
+  portfolioCompanies: z.array(z.string().max(120)).max(50).optional(),
   matchMyStartup: z.coerce.boolean().optional(),
   // "Recently active" = most recently edited profile (updatedAt) — there's no
   // login-tracking column today, so this is the cheapest real signal available.
@@ -63,13 +63,13 @@ export const createInvestorInputSchema = z.object({
   investorType: z.nativeEnum(InvestorType),
   website: urlOrEmpty,
   bio: z.string().min(1, "Tell startups about yourself").max(3000),
-  preferredIndustries: z.array(z.string().max(80)).min(1, "Select at least one industry"),
-  preferredStages: z.array(z.nativeEnum(StartupStage)).min(1, "Select at least one stage"),
+  preferredIndustries: z.array(z.string().max(80)).min(1, "Select at least one industry").max(40),
+  preferredStages: z.array(z.nativeEnum(StartupStage)).min(1, "Select at least one stage").max(20),
   checkSizeMinAmount: z.coerce.number().nonnegative(),
   checkSizeMaxAmount: z.coerce.number().nonnegative(),
-  preferredGeography: z.array(z.string().max(80)).default([]),
+  preferredGeography: z.array(z.string().max(80)).max(60).default([]),
   location: z.string().min(1, "Location is required").max(120),
-  portfolioCompanies: z.array(z.string().max(120)).default([]),
+  portfolioCompanies: z.array(z.string().max(120)).max(200).default([]),
   investmentThesis: z.string().max(3000).optional(),
   openForPitches: z.boolean().default(true),
 });

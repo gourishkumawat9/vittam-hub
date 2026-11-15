@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { optionalDateStringSchema } from "./dates";
 import { IncubatorKind, VerificationStatus } from "./enums";
 import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
@@ -7,8 +8,8 @@ export const incubatorProgramSchema = z.object({
   name: z.string().min(1, "Program name is required").max(120),
   description: z.string().max(1000).optional(),
   durationWeeks: z.coerce.number().int().positive().optional(),
-  applicationCycleStart: z.string().optional(),
-  applicationCycleEnd: z.string().optional(),
+  applicationCycleStart: optionalDateStringSchema,
+  applicationCycleEnd: optionalDateStringSchema,
   applicationUrl: optionalHttpUrlSchema,
   eligibilityCriteria: z.string().max(1000).optional(),
 });
@@ -38,8 +39,8 @@ export const createIncubatorInputSchema = z.object({
   organizationName: z.string().min(1, "Organization name is required").max(160),
   description: z.string().max(2000).optional(),
   website: urlOrEmpty,
-  industries: z.array(z.string().max(80)).min(1, "Select at least one industry"),
-  portfolioCompanies: z.array(z.string().max(120)).default([]),
+  industries: z.array(z.string().max(80)).min(1, "Select at least one industry").max(40),
+  portfolioCompanies: z.array(z.string().max(120)).max(500).default([]),
   affiliatedMentorCount: z.coerce.number().int().nonnegative().optional(),
   kind: z.nativeEnum(IncubatorKind).default("INCUBATOR"),
   programs: z.array(incubatorProgramSchema).max(20).default([]),
@@ -49,7 +50,7 @@ export type CreateIncubatorInput = z.infer<typeof createIncubatorInputSchema>;
 /** Incubator directory filters — same shape family as investorSearchFiltersSchema. `kind` lets Accelerators surface as a filter on this same directory. */
 export const incubatorSearchFiltersSchema = z.object({
   query: z.string().max(200).optional(),
-  industries: z.array(z.string()).optional(),
+  industries: z.array(z.string().max(80)).max(50).optional(),
   kind: z.array(z.nativeEnum(IncubatorKind)).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),

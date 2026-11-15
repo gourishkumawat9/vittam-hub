@@ -25,7 +25,7 @@ export function Step6Traction({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   const values = watch();
-  const { status } = useAutosave("traction", 5, values);
+  useAutosave("traction", 5, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("traction", data);
@@ -77,7 +77,7 @@ export function Step6Traction({ defaultValues, onNext, onBack }: StepProps) {
         render={({ field }) => <TagsInput label="Media mentions" value={field.value ?? []} onChange={field.onChange} />}
       />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

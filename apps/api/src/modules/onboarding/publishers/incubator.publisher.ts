@@ -40,6 +40,9 @@ export class IncubatorPublisher {
             durationWeeks: program.durationWeeks,
             applicationCycleStart: program.applicationCycleStart ? new Date(program.applicationCycleStart) : undefined,
             applicationCycleEnd: program.applicationCycleEnd ? new Date(program.applicationCycleEnd) : undefined,
+            // These two were collected by the form and then dropped here.
+            applicationUrl: program.applicationUrl,
+            eligibilityCriteria: program.eligibilityCriteria,
           })),
         });
       }

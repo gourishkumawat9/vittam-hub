@@ -55,7 +55,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   const values = watch();
-  const { status } = useAutosave("startupInfo", 1, values);
+  useAutosave("startupInfo", 1, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("startupInfo", data);
@@ -212,7 +212,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
       </div>
       <Textarea label="Unique value proposition" rows={2} {...register("uniqueValueProposition")} />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

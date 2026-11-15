@@ -43,7 +43,7 @@ export function Step9Preferences({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   const values = watch();
-  const { status } = useAutosave("preferences", 8, values);
+  useAutosave("preferences", 8, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("preferences", data);
@@ -82,7 +82,7 @@ export function Step9Preferences({ defaultValues, onNext, onBack }: StepProps) {
       </div>
       {errors.lookingFor?.message && <p className="text-xs text-danger-600">{errors.lookingFor.message}</p>}
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

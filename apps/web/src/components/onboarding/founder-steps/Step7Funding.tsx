@@ -27,7 +27,7 @@ export function Step7Funding({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   const values = watch();
-  const { status } = useAutosave("funding", 6, values);
+  useAutosave("funding", 6, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("funding", data);
@@ -85,7 +85,7 @@ export function Step7Funding({ defaultValues, onNext, onBack }: StepProps) {
         <Input label="Monthly burn rate (₹)" type="number" {...register("monthlyBurnRateAmount")} />
       </div>
 
-      <WizardNav onBack={onBack} onNext={onSubmit} isSubmitting={status === "saving"} />
+      <WizardNav onBack={onBack} onNext={onSubmit} />
     </form>
   );
 }

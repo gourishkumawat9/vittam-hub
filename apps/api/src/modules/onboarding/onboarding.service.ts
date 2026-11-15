@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { UserRole, type SaveOnboardingDraftInput } from "@vittamhub/types";
+import { ONBOARDING_DRAFT_SECTIONS, ONBOARDING_SECTION_MAX_BYTES, UserRole, type SaveOnboardingDraftInput } from "@vittamhub/types";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
 
+import { draftFromPublishedProfile } from "./profile-draft";
 import { IncubatorPublisher } from "./publishers/incubator.publisher";
 import { InvestorPublisher } from "./publishers/investor.publisher";
 import { JobSeekerPublisher } from "./publishers/job-seeker.publisher";
@@ -25,13 +26,43 @@ export class OnboardingService {
     private readonly jobSeekerPublisher: JobSeekerPublisher,
   ) {}
 
-  async getState(userId: string) {
+  /**
+   * What the wizard opens on. While onboarding, that is the saved draft. Once
+   * the profile is live there is no draft, so it is rebuilt from the profile:
+   * the same wizard is how a profile gets edited.
+   */
+  async getState(userId: string, role: string) {
     const profile = await this.prisma.userProfile.findUniqueOrThrow({ where: { userId } });
-    return {
-      status: profile.onboardingStatus,
-      step: profile.onboardingStep,
-      draft: (profile.onboardingDraft as Record<string, unknown> | null) ?? null,
-    };
+    const stored = this.storedDraft(profile.onboardingDraft);
+    if (stored) return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: stored };
+
+    if (profile.onboardingStatus === "COMPLETED") {
+      return { status: profile.onboardingStatus, step: 0, draft: await draftFromPublishedProfile(this.prisma, userId, role) };
+    }
+    return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: null };
+  }
+
+  /** The saved draft, limited to the sections the wizards use, or null when there isn't one. */
+  private storedDraft(raw: Prisma.JsonValue | null): Record<string, unknown> | null {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    // Only the known sections are carried forward, so a key written before
+    // the section list existed can't ride along in the draft forever.
+    const known = Object.fromEntries(
+      Object.entries(raw).filter(([section]) => (ONBOARDING_DRAFT_SECTIONS as readonly string[]).includes(section)),
+    );
+    return Object.keys(known).length > 0 ? known : null;
+  }
+
+  /**
+   * The draft a save or a publish starts from. For someone editing a live
+   * profile with no draft yet, that is the profile itself: otherwise saving
+   * one step would leave a draft holding that step alone, and publishing it
+   * would blank every section they hadn't opened.
+   */
+  private async workingDraft(userId: string, role: string, profile: { onboardingStatus: string; onboardingDraft: Prisma.JsonValue | null }) {
+    const stored = this.storedDraft(profile.onboardingDraft);
+    if (stored) return stored;
+    return profile.onboardingStatus === "COMPLETED" ? draftFromPublishedProfile(this.prisma, userId, role) : {};
   }
 
   /**
@@ -39,27 +70,43 @@ export class OnboardingService {
    * it wholesale — saving step 3 must never lose step 2's already-saved
    * answers. See docs/11-onboarding-architecture.md.
    */
-  async saveDraft(userId: string, input: SaveOnboardingDraftInput) {
+  async saveDraft(userId: string, role: string, input: SaveOnboardingDraftInput) {
     const profile = await this.prisma.userProfile.findUniqueOrThrow({ where: { userId } });
-    const existingDraft = (profile.onboardingDraft as Record<string, unknown> | null) ?? {};
-
-    const nextDraft = { ...existingDraft, [input.section]: input.data };
+    const nextDraft = { ...(await this.workingDraft(userId, role, profile)), [input.section]: input.data };
 
     await this.prisma.userProfile.update({
       where: { userId },
       data: {
         onboardingDraft: nextDraft as Prisma.InputJsonValue,
         onboardingStep: input.step,
-        onboardingStatus: "IN_PROGRESS",
+        // Editing a published profile re-uses the wizard; that must not put
+        // a finished account back into "still onboarding".
+        ...(profile.onboardingStatus === "COMPLETED" ? {} : { onboardingStatus: "IN_PROGRESS" as const }),
       },
     });
 
     return { saved: true, step: input.step };
   }
 
+  /**
+   * Publishes the draft. Sections sent along with the request are laid over
+   * the saved ones first: autosave is debounced, so the last thing typed on
+   * the final step may not have reached the server when Publish is pressed.
+   * Each section is still validated by its publisher, whichever way it came.
+   */
   async publish(userId: string, role: string, body: Record<string, unknown>) {
     const profile = await this.prisma.userProfile.findUniqueOrThrow({ where: { userId } });
-    const draft = (profile.onboardingDraft as Record<string, unknown> | null) ?? {};
+    const submitted = Object.fromEntries(
+      Object.entries(body ?? {}).filter(
+        ([section, value]) =>
+          (ONBOARDING_DRAFT_SECTIONS as readonly string[]).includes(section) &&
+          !!value &&
+          typeof value === "object" &&
+          !Array.isArray(value) &&
+          JSON.stringify(value).length <= ONBOARDING_SECTION_MAX_BYTES,
+      ),
+    );
+    const draft: Record<string, unknown> = { ...(await this.workingDraft(userId, role, profile)), ...submitted };
 
     switch (role) {
       case UserRole.FOUNDER:
