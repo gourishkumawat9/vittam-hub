@@ -8,6 +8,7 @@ import { AccountSection } from "@/components/settings/AccountSection";
 import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
 import { PasswordSection } from "@/components/settings/PasswordSection";
 import { SessionsSection } from "@/components/settings/SessionsSection";
+import { VerificationSection } from "@/components/settings/VerificationSection";
 
 /**
  * One settings page for every kind of account. Before this only investors
@@ -32,7 +33,7 @@ export default function SettingsPage() {
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold text-text-primary">Settings</h1>
-        <p className="mt-1 text-sm text-text-secondary">Your account, how you sign in, and where you&apos;re signed in.</p>
+        <p className="mt-1 text-sm text-text-secondary">Your account, your Verified badge, how you sign in, and where you&apos;re signed in.</p>
       </div>
 
       {user.isDemo && (
@@ -43,6 +44,7 @@ export default function SettingsPage() {
       )}
 
       <AccountSection user={user} />
+      <VerificationSection user={user} />
       {!user.isDemo && <PasswordSection hasPassword={user.hasPassword !== false} />}
       <SessionsSection isDemo={user.isDemo === true} />
 

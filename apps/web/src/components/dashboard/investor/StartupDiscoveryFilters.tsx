@@ -159,12 +159,11 @@ export function StartupDiscoveryFilters({ filters, onChange }: StartupDiscoveryF
             />
           </div>
 
+          {/* Every published startup is listed, verified ones first; this narrows the list to those with the badge. */}
           <Checkbox
-            checked={(filters.verificationStatus ?? []).includes("PENDING")}
-            onCheckedChange={(includePending) =>
-              onChange({ ...filters, verificationStatus: includePending ? ["VERIFIED", "PENDING"] : undefined })
-            }
-            label="Also include startups pending verification"
+            checked={filters.verificationStatus?.length === 1 && filters.verificationStatus[0] === "VERIFIED"}
+            onCheckedChange={(verifiedOnly) => onChange({ ...filters, verificationStatus: verifiedOnly ? ["VERIFIED"] : undefined })}
+            label="Verified startups only"
           />
 
           <div className="flex flex-col gap-2">

@@ -6,6 +6,7 @@ import { buildPaginatedResult, paginationToOffset, slugify } from "@vittamhub/ut
 
 import { isDemoViewer } from "../../common/demo/demo-scope";
 import { listableStartupWhere, projectStartups } from "../../common/startups/startup-visibility";
+import { LISTED_VERIFICATION, VERIFIED_FIRST } from "../../common/verification/listed-profiles";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Who is searching. Decides which rows come back and which filters they may use. */
@@ -44,10 +45,12 @@ export class StartupsService {
       }
     }
 
-    // Anyone browsing can widen the net beyond VERIFIED by passing an explicit
-    // verificationStatus filter (e.g. an investor who wants to see PENDING
-    // profiles too) — the default stays VERIFIED-only when nothing is passed.
-    const verificationStatus = filters.verificationStatus?.length ? { in: filters.verificationStatus } : ("VERIFIED" as const);
+    // Every published startup is listed, verified ones first (see
+    // common/verification/listed-profiles.ts). The filter narrows that, to
+    // "verified only" for instance; it can never bring a REJECTED profile back.
+    const verificationStatus = filters.verificationStatus?.length
+      ? { in: filters.verificationStatus.filter((status) => status !== "REJECTED") }
+      : LISTED_VERIFICATION;
 
     // Filtering on a figure is a way of reading it: "raising at least X" run a
     // few times pins down a funding goal the profile itself withholds. So the
@@ -103,7 +106,8 @@ export class StartupsService {
         where,
         skip,
         take,
-        orderBy: { [filters.sortBy ?? "createdAt"]: filters.sortDir ?? "desc" },
+        // An order the investor picked is used as it is; the default puts verified profiles on top.
+        orderBy: filters.sortBy ? { [filters.sortBy]: filters.sortDir ?? "desc" } : [VERIFIED_FIRST, { createdAt: filters.sortDir ?? "desc" }],
         include: { funding: true, traction: true, owner: { select: { fullName: true } } },
       }),
       this.prisma.startup.count({ where }),

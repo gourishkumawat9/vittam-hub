@@ -10,6 +10,7 @@ import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 
 import { PhoneVerificationService } from "./phone-verification.service";
+import { VerificationEngineService } from "./verification-engine.service";
 import { VerificationOrchestratorService } from "./verification-orchestrator.service";
 
 const confirmPhoneOtpSchema = z.object({ code: z.string().length(6) });
@@ -21,7 +22,14 @@ export class VerificationController {
   constructor(
     private readonly orchestrator: VerificationOrchestratorService,
     private readonly phoneVerification: PhoneVerificationService,
+    private readonly engine: VerificationEngineService,
   ) {}
+
+  @Get("mine")
+  @ApiOperation({ summary: "What the caller's own profile has, and still needs, for the Verified badge" })
+  mine(@CurrentUser() user: AuthenticatedUser) {
+    return this.engine.requirementsFor(user.sub);
+  }
 
   @Post("phone/request")
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

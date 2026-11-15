@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { FollowButton } from "@/components/dashboard/FollowButton";
 
 const SESSION_TYPE_OPTIONS = Object.values(SessionType).map((type) => ({
@@ -111,7 +112,10 @@ export default function MentorDetailPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-text-primary">{mentor.owner.fullName}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="font-heading text-2xl font-semibold text-text-primary">{mentor.owner.fullName}</h1>
+            <VerifiedBadge status={mentor.verificationStatus} />
+          </div>
           <p className="text-sm text-text-secondary">{mentor.headline}</p>
           <div className="mt-1 flex items-center gap-1.5 text-sm">
             {mentor.reputation.averageRating != null ? (

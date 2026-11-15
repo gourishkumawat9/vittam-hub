@@ -2,7 +2,7 @@
 
 import { useDeleteDocument, useDocumentDownloadUrl, useDocuments, useUploadDocument, uploadFile } from "@vittamhub/api-client";
 import { DocumentType } from "@vittamhub/types";
-import { Button, EmptyState, Select } from "@vittamhub/ui";
+import { Button, EmptyState, Select, useToast } from "@vittamhub/ui";
 import { FolderLock, Loader2, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 
@@ -40,6 +40,7 @@ const TYPE_OPTIONS = VAULT_TYPES.map((value) => ({ label: DOCUMENT_LABELS[value]
 export default function DocumentVaultPage() {
   const { data: documents, isLoading } = useDocuments();
   const uploadDocument = useUploadDocument();
+  const { toast } = useToast();
   const deleteDocument = useDeleteDocument();
   const downloadUrl = useDocumentDownloadUrl();
   const [uploadType, setUploadType] = useState<DocumentType>(DocumentType.PITCH_DECK);
@@ -49,8 +50,20 @@ export default function DocumentVaultPage() {
     if (!file) return;
     setUploading(true);
     try {
-      const fileUrl = await uploadFile(file, "documents");
-      await uploadDocument.mutateAsync({ type: uploadType, fileUrl, fileName: file.name });
+      let fileUrl: string;
+      try {
+        fileUrl = await uploadFile(file, "documents");
+      } catch (cause) {
+        // This used to fail without a word: the spinner stopped and nothing was listed.
+        toast({
+          variant: "error",
+          title: "That file couldn't be uploaded",
+          description: cause instanceof Error && cause.message ? cause.message : "Please try again.",
+        });
+        return;
+      }
+      // A failure here is announced by the app's own error message.
+      await uploadDocument.mutateAsync({ type: uploadType, fileUrl, fileName: file.name }).catch(() => undefined);
     } finally {
       setUploading(false);
     }
@@ -74,10 +87,20 @@ export default function DocumentVaultPage() {
         <div className="w-56">
           <Select label="Document type" options={TYPE_OPTIONS} value={uploadType} onChange={(v) => setUploadType(v as DocumentType)} />
         </div>
-        <label className="flex cursor-pointer items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-primary hover:bg-background-secondary">
+        <label className="flex cursor-pointer items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-primary hover:bg-background-secondary focus-within:ring-2 focus-within:ring-brand-primary">
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           Upload file
-          <input type="file" className="hidden" onChange={(e) => handleUpload(e.target.files?.[0])} />
+          <input
+            type="file"
+            className="sr-only"
+            disabled={uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              // Cleared so the same file can be chosen again after a failed try.
+              e.target.value = "";
+              void handleUpload(file);
+            }}
+          />
         </label>
       </div>
 

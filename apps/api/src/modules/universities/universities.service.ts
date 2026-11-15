@@ -4,6 +4,7 @@ import type { UniversitySearchFilters } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
 import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
+import { LISTED_VERIFICATION, VERIFIED_FIRST } from "../../common/verification/listed-profiles";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /** Mirrors MentorsService's shape (search + get-by-id) — see docs/07-backend-architecture.md. */
@@ -17,7 +18,7 @@ export class UniversitiesService {
     const where: Prisma.UniversityProfileWhereInput = {
       isPublic: true,
       AND: [sameSandbox(viewerIsDemo)],
-      verificationStatus: "VERIFIED",
+      verificationStatus: LISTED_VERIFICATION,
       ...(filters.departments?.length ? { departments: { hasSome: filters.departments } } : {}),
       ...(filters.programsOffered?.length ? { programsOffered: { hasSome: filters.programsOffered } } : {}),
     };
@@ -28,7 +29,7 @@ export class UniversitiesService {
         where,
         skip,
         take,
-        orderBy: { createdAt: "desc" },
+        orderBy: [VERIFIED_FIRST, { createdAt: "desc" }],
         include: { owner: { select: { fullName: true, avatarUrl: true } } },
       }),
       this.prisma.universityProfile.count({ where }),

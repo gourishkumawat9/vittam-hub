@@ -5,6 +5,8 @@ import { Badge, Button, Card } from "@vittamhub/ui";
 import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Bookmark, Handshake, ShieldCheck, Sparkles } from "lucide-react";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
+
 function titleCase(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -56,6 +58,7 @@ export function DiscoverStartupCard({ startup, selectedForCompare, onToggleCompa
       </div>
 
       <div className="flex flex-wrap gap-1.5">
+        <VerifiedBadge status={startup.verificationStatus} />
         <Badge variant="brand">{titleCase(startup.industry)}</Badge>
         <Badge variant="neutral">{STAGE_LABEL[startup.stage] ?? startup.stage}</Badge>
         <Badge variant="neutral">{startup.headquarters ?? startup.location}</Badge>

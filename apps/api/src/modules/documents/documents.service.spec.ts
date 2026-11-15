@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
 import type { EventEmitter2 } from "@nestjs/event-emitter";
 import { DocumentType } from "@vittamhub/types";
@@ -27,6 +27,7 @@ const STORAGE: Record<string, string> = {
 function setup() {
   const prisma = {
     document: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), delete: jest.fn(), count: jest.fn().mockResolvedValue(0) },
+    user: { findUnique: jest.fn().mockResolvedValue({ isDemo: false }) },
   };
   const eventEmitter = { emit: jest.fn() };
   const auditLog = { record: jest.fn().mockResolvedValue(undefined) };
@@ -88,6 +89,18 @@ describe("DocumentsService.upload", () => {
 
     expect(result).not.toHaveProperty("fileUrl");
     expect(result.id).toBe("doc-1");
+  });
+
+  it("keeps identity papers out of a shared demo account, and still lets it try the vault with other files", async () => {
+    const { service, prisma } = setup();
+    prisma.user.findUnique.mockResolvedValue({ isDemo: true });
+    const fileUrl = `${PRIVATE_PREFIX}/documents/${USER_ID}/${OBJECT}`;
+    prisma.document.create.mockResolvedValue({ id: "doc-2", userId: USER_ID, type: DocumentType.PITCH_DECK, fileUrl, fileName: "deck.pdf", uploadedAt: new Date(), verifiedAt: null });
+
+    await expect(service.upload(USER_ID, { type: DocumentType.GOVERNMENT_ID, fileUrl, fileName: "id.pdf" })).rejects.toThrow(ForbiddenException);
+    expect(prisma.document.create).not.toHaveBeenCalled();
+
+    await expect(service.upload(USER_ID, { type: DocumentType.PITCH_DECK, fileUrl, fileName: "deck.pdf" })).resolves.toMatchObject({ id: "doc-2" });
   });
 });
 

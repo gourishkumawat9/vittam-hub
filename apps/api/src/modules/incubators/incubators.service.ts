@@ -4,6 +4,7 @@ import type { IncubatorSearchFilters } from "@vittamhub/types";
 import { buildPaginatedResult, paginationToOffset } from "@vittamhub/utils";
 
 import { isDemoViewer, sameSandbox } from "../../common/demo/demo-scope";
+import { LISTED_VERIFICATION, VERIFIED_FIRST } from "../../common/verification/listed-profiles";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /**
@@ -21,7 +22,7 @@ export class IncubatorsService {
     const where: Prisma.IncubatorProfileWhereInput = {
       isPublic: true,
       AND: [sameSandbox(viewerIsDemo)],
-      verificationStatus: "VERIFIED",
+      verificationStatus: LISTED_VERIFICATION,
       ...(filters.industries?.length ? { industries: { hasSome: filters.industries } } : {}),
       ...(filters.kind?.length ? { kind: { in: filters.kind } } : {}),
       ...(filters.query
@@ -40,7 +41,7 @@ export class IncubatorsService {
         where,
         skip,
         take,
-        orderBy: { createdAt: "desc" },
+        orderBy: [VERIFIED_FIRST, { createdAt: "desc" }],
         include: { programs: true },
       }),
       this.prisma.incubatorProfile.count({ where }),

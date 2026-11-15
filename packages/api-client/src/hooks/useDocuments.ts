@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { documentsApi } from "../endpoints/documents";
 
+import { verificationKeys } from "./useVerification";
+
 const documentKeys = {
   all: ["documents"] as const,
   sharedWithMe: ["documents", "shared-with-me"] as const,
@@ -44,7 +46,11 @@ export function useUploadDocument() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: DocumentUploadInput) => documentsApi.upload(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: documentKeys.all }),
+    onSuccess: () => {
+      // A document can be what the Verified badge was waiting for.
+      void queryClient.invalidateQueries({ queryKey: verificationKeys.mine });
+      return queryClient.invalidateQueries({ queryKey: documentKeys.all });
+    },
   });
 }
 
@@ -52,7 +58,10 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => documentsApi.remove(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: documentKeys.all }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: verificationKeys.mine });
+      return queryClient.invalidateQueries({ queryKey: documentKeys.all });
+    },
   });
 }
 

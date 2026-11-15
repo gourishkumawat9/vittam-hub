@@ -17,6 +17,7 @@ import { Handshake, Inbox, MessageCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ConnectionStatusBadge } from "@/components/connections/ConnectionStatusBadge";
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
@@ -40,7 +41,10 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-heading text-sm font-semibold text-text-primary">{investor.owner.fullName}</h3>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <h3 className="font-heading text-sm font-semibold text-text-primary">{investor.owner.fullName}</h3>
+                    <VerifiedBadge status={investor.verificationStatus} />
+                  </div>
           <p className="text-xs text-text-secondary">{investor.firmName ?? "Independent investor"}</p>
         </div>
         <div className="flex flex-col items-end gap-1">

@@ -1,12 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import type { Document } from "@prisma/client";
+import type { Document, DocumentType } from "@prisma/client";
 import type { DocumentUploadInput } from "@vittamhub/types";
 
+import { isDemoViewer } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
 import { MediaService } from "../media/media.service";
+
+/** A person's own identity papers. Anyone who has the demo password can open a demo account's vault, so these never go there. */
+const IDENTITY_DOCUMENTS: ReadonlySet<DocumentType> = new Set<DocumentType>(["GOVERNMENT_ID", "PAN", "DIGITAL_SIGNATURE"]);
 
 /**
  * Every role's private document vault — a Document belongs to the uploading
@@ -51,6 +55,9 @@ export class DocumentsService {
 
   async upload(userId: string, input: DocumentUploadInput) {
     this.assertOwnedStorageUrl(userId, input.fileUrl);
+    if (IDENTITY_DOCUMENTS.has(input.type) && (await isDemoViewer(this.prisma, userId))) {
+      throw new ForbiddenException("A demo account is shared, so identity documents can't be uploaded to it");
+    }
 
     const document = await this.prisma.document.create({ data: { userId, ...input } });
     this.eventEmitter.emit("profile.upserted", { ownerId: userId });

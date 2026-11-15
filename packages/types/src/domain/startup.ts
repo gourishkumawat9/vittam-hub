@@ -86,10 +86,10 @@ export const startupSearchFiltersSchema = z.object({
   foundedYearMax: z.coerce.number().int().min(1990).optional(),
   teamSizeMin: z.coerce.number().int().min(1).optional(),
   teamSizeMax: z.coerce.number().int().min(1).optional(),
-  // Caller-controlled opt-in — public/anonymous callers still only ever see
-  // VERIFIED startups (enforced server-side in StartupsService.search);
-  // this only lets an authenticated investor widen the net to PENDING too.
-  verificationStatus: z.array(z.nativeEnum(VerificationStatus)).optional(),
+  // Narrows the list, to ["VERIFIED"] for "verified startups only". Left out,
+  // every published startup is listed, verified first. A REJECTED profile is
+  // never returned, whatever is asked for (StartupsService.search).
+  verificationStatus: z.array(z.nativeEnum(VerificationStatus)).max(4).optional(),
   growthRateMin: z.coerce.number().optional(),
   founderExperienceMin: z.coerce.number().int().nonnegative().optional(),
   matchMyPreferences: z.coerce.boolean().optional(),

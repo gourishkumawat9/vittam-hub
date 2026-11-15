@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DocumentType, VerificationStatus } from "./enums";
+
 /** Mirrors VerificationOrchestratorService's VerifiableEntityType — the 6 profile types plus the user record itself. */
 export const verifiableEntityTypeSchema = z.enum([
   "User",
@@ -47,3 +49,20 @@ export const verificationRecordSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type VerificationRecordDto = z.infer<typeof verificationRecordSchema>;
+
+/** One thing a profile needs for the Verified badge, and whether it has it (GET /v1/verification/mine). */
+export const verificationRequirementSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  met: z.boolean(),
+  /** Set when the requirement is met by uploading a document of this type. */
+  documentType: z.nativeEnum(DocumentType).optional(),
+});
+export type VerificationRequirement = z.infer<typeof verificationRequirementSchema>;
+
+export const verificationProgressSchema = z.object({
+  entityType: verifiableEntityTypeSchema,
+  status: z.nativeEnum(VerificationStatus),
+  requirements: z.array(verificationRequirementSchema),
+});
+export type VerificationProgress = z.infer<typeof verificationProgressSchema>;

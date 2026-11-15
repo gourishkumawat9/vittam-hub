@@ -4,6 +4,7 @@ import { useIncubator } from "@vittamhub/api-client";
 import { Badge, Card, CardContent, CardHeader, CardTitle, ErrorState, Skeleton } from "@vittamhub/ui";
 import { useParams } from "next/navigation";
 
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { FollowButton } from "@/components/dashboard/FollowButton";
 
 function formatDate(iso: string | null) {
@@ -36,7 +37,10 @@ export default function IncubatorDetailPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-text-primary">{incubator.organizationName}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="font-heading text-2xl font-semibold text-text-primary">{incubator.organizationName}</h1>
+            <VerifiedBadge status={incubator.verificationStatus} />
+          </div>
           {incubator.description && <p className="mt-1 text-sm text-text-secondary">{incubator.description}</p>}
         </div>
         <FollowButton userId={incubator.ownerId} />
