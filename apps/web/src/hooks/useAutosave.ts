@@ -23,6 +23,7 @@ export function useAutosave(section: OnboardingDraftSection, step: number, data:
   const { mutate, isPending } = useSaveOnboardingDraft();
   const setSectionData = useOnboardingStore((s) => s.setSectionData);
   const setSharedStatus = useOnboardingStore((s) => s.setAutosaveStatus);
+  const markEdited = useOnboardingStore((s) => s.markEdited);
   const [status, setLocalStatus] = useState<AutosaveStatus>("idle");
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isFirstRun = useRef(true);
@@ -54,6 +55,9 @@ export function useAutosave(section: OnboardingDraftSection, step: number, data:
       return;
     }
 
+    // Something on this step was changed (the unmount flush below doesn't
+    // come through here). On a live profile that is an edit waiting to be saved.
+    markEdited();
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(save, DEBOUNCE_MS);
 
@@ -78,7 +82,12 @@ export function useAutosave(section: OnboardingDraftSection, step: number, data:
     return () => {
       // Leaving because the profile was just published: the draft is gone,
       // and saving this step again would start a new one behind the live profile.
-      if (!useOnboardingStore.getState().ownerId) return;
+      const wizard = useOnboardingStore.getState();
+      if (!wizard.ownerId) return;
+      // Looking through a live profile without changing anything: the server
+      // already has every step, and a save here would leave a "you have
+      // unsaved changes" draft behind for edits that were never made.
+      if (wizard.editing && !wizard.pendingEdits) return;
       const values = latestDataRef.current as Record<string, unknown>;
       setSectionData(section, values);
       mutate({ section, step, data: values }, { onError: () => setSharedStatus("error") });

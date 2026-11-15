@@ -5,6 +5,7 @@ import { publishStartupInputSchema, STARTUP_WIZARD_STEPS, type PublishStartupInp
 import { Checkbox, Input } from "@vittamhub/ui";
 import { Pencil } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 
 import { usePublishProfile } from "@/hooks/usePublishProfile";
 import { useOnboardingStore } from "@/store/onboarding-store";
@@ -65,6 +66,12 @@ const SECTION_STEP_INDEX: Record<string, number> = {
   preferences: 8,
 };
 
+/** The terms are agreed to once, when the profile first goes live. Saving an edit asks for nothing more. */
+const editConfirmationSchema = z.object({
+  acceptedTerms: z.boolean().optional(),
+  signatureFullName: z.string().optional(),
+});
+
 interface StepProps {
   onBack: () => void;
   /** The startup is already live: this saves changes to it. */
@@ -80,14 +87,14 @@ export function Step10Review({ onBack, isEditing = false }: StepProps) {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<PublishStartupInput>({
-    resolver: zodResolver(publishStartupInputSchema),
+  } = useForm<Partial<PublishStartupInput>>({
+    resolver: zodResolver(isEditing ? editConfirmationSchema : publishStartupInputSchema),
     defaultValues: { acceptedTerms: undefined, signatureFullName: "" },
   });
 
   const onSubmit = handleSubmit((confirmation) =>
     // The answers reviewed on this page are the ones that get published.
-    publishProfile({ ...draft, ...confirmation }, { isEditing, redirectTo: () => "/founder" }),
+    publishProfile(isEditing ? { ...draft } : { ...draft, ...confirmation }, { isEditing, redirectTo: () => "/founder" }),
   );
 
   const sections = STARTUP_WIZARD_STEPS.filter((id) => id !== "review" && id !== "personal-details").map((id) => {
@@ -119,25 +126,27 @@ export function Step10Review({ onBack, isEditing = false }: StepProps) {
         ))}
       </div>
 
-      <div className="flex flex-col gap-4 rounded-card border border-border bg-background-secondary p-4">
-        <Controller
-          control={control}
-          name="acceptedTerms"
-          render={({ field }) => (
-            <Checkbox
-              checked={field.value === true}
-              onCheckedChange={field.onChange}
-              label="I confirm the information above is accurate and I accept the Terms of Service and Privacy Policy"
-              error={errors.acceptedTerms?.message}
-            />
-          )}
-        />
-        <Input
-          label="Type your full legal name to sign"
-          error={errors.signatureFullName?.message}
-          {...register("signatureFullName")}
-        />
-      </div>
+      {!isEditing && (
+        <div className="flex flex-col gap-4 rounded-card border border-border bg-background-secondary p-4">
+          <Controller
+            control={control}
+            name="acceptedTerms"
+            render={({ field }) => (
+              <Checkbox
+                checked={field.value === true}
+                onCheckedChange={field.onChange}
+                label="I confirm the information above is accurate and I accept the Terms of Service and Privacy Policy"
+                error={errors.acceptedTerms?.message}
+              />
+            )}
+          />
+          <Input
+            label="Type your full legal name to sign"
+            error={errors.signatureFullName?.message}
+            {...register("signatureFullName")}
+          />
+        </div>
+      )}
 
       {publishError && (
         <p role="alert" className="rounded-button border border-danger-600/30 bg-danger-50 px-3 py-2 text-sm text-danger-600">

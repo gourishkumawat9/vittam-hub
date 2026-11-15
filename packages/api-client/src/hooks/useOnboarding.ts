@@ -19,6 +19,10 @@ export function useSaveOnboardingDraft() {
   return useMutation({ mutationFn: onboardingApi.saveDraft });
 }
 
+export function useDiscardOnboardingEdits() {
+  return useMutation({ mutationFn: onboardingApi.discardEdits });
+}
+
 /**
  * Publishing changes what almost every screen shows (the dashboard, the
  * public profile, "finish onboarding" prompts), so everything cached is

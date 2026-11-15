@@ -43,22 +43,12 @@ const STEP_LABELS: Record<(typeof STARTUP_WIZARD_STEPS)[number], string> = {
 const STEPS: WizardStepMeta[] = STARTUP_WIZARD_STEPS.map((id) => ({ id, label: STEP_LABELS[id] }));
 
 export default function FounderOnboardingPage() {
-  const { ready, failed, retry, draft, step, setStep, goNext, goBack, autosaveStatus, isEditing } = useOnboardingDraft(STEPS.length);
+  const { shell, draft, step, goNext, goBack, isEditing } = useOnboardingDraft(STEPS);
 
   const currentStepId = STARTUP_WIZARD_STEPS[step];
 
   return (
-    <WizardShell
-      steps={STEPS}
-      currentStepIndex={step}
-      onStepSelect={setStep}
-      autosaveStatus={autosaveStatus}
-      isEditing={isEditing}
-      exitHref="/founder"
-      ready={ready}
-      failed={failed}
-      onRetry={retry}
-    >
+    <WizardShell steps={STEPS} exitHref="/founder" {...shell}>
       {currentStepId === "personal-details" && (
         <Step1PersonalDetails defaultValues={draftSection<PersonalDetailsInput>(draft, "personalDetails")} onNext={goNext} />
       )}

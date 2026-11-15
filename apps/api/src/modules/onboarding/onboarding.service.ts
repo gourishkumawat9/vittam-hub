@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { ONBOARDING_DRAFT_SECTIONS, ONBOARDING_SECTION_MAX_BYTES, UserRole, type SaveOnboardingDraftInput } from "@vittamhub/types";
 
+import { discardProfileEditDraft } from "../../common/onboarding/discard-edit-draft";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 import { draftFromPublishedProfile } from "./profile-draft";
@@ -33,13 +34,28 @@ export class OnboardingService {
    */
   async getState(userId: string, role: string) {
     const profile = await this.prisma.userProfile.findUniqueOrThrow({ where: { userId } });
+    const published = profile.onboardingStatus === "COMPLETED";
     const stored = this.storedDraft(profile.onboardingDraft);
-    if (stored) return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: stored };
+    // `pendingEdits`: the profile is live and the wizard holds changes to it
+    // that were started but never saved. The wizard says so, and offers to
+    // save or discard them.
+    if (stored) return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: stored, pendingEdits: published };
 
-    if (profile.onboardingStatus === "COMPLETED") {
-      return { status: profile.onboardingStatus, step: 0, draft: await draftFromPublishedProfile(this.prisma, userId, role) };
+    if (published) {
+      return {
+        status: profile.onboardingStatus,
+        step: 0,
+        draft: await draftFromPublishedProfile(this.prisma, userId, role),
+        pendingEdits: false,
+      };
     }
-    return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: null };
+    return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: null, pendingEdits: false };
+  }
+
+  /** "Discard changes" while editing a live profile: the wizard goes back to what is published. */
+  async discardEdits(userId: string) {
+    await discardProfileEditDraft(this.prisma, userId);
+    return { discarded: true };
   }
 
   /** The saved draft, limited to the sections the wizards use, or null when there isn't one. */

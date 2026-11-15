@@ -50,5 +50,7 @@ export const onboardingStateSchema = z.object({
   status: z.nativeEnum(OnboardingStatus),
   step: z.number().int().min(0),
   draft: z.record(z.unknown()).nullable(),
+  /** The profile is live and the wizard holds changes to it that haven't been saved yet. */
+  pendingEdits: z.boolean().default(false),
 });
 export type OnboardingState = z.infer<typeof onboardingStateSchema>;

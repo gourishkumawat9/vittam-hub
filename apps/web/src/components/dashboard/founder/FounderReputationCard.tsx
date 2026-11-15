@@ -5,18 +5,7 @@ import { Badge, Card, CardHeader, CardTitle } from "@vittamhub/ui";
 import { Award, CheckCircle2, Circle } from "lucide-react";
 import { useState } from "react";
 
-function scoreColor(score: number) {
-  if (score >= 80) return "text-success-600";
-  if (score >= 50) return "text-warning-600";
-  return "text-danger-600";
-}
-
-const BAND_BADGE_VARIANT: Record<string, "success" | "warning" | "danger" | "neutral"> = {
-  EXCELLENT: "success",
-  HIGH: "success",
-  MEDIUM: "warning",
-  LOW: "danger",
-};
+import { scoreBand, scoreColor } from "./score-band";
 
 /**
  * A separate axis from Trust Score — this measures the founder's own
@@ -33,7 +22,7 @@ export function FounderReputationCard({ founderReputation }: { founderReputation
         <CardTitle className="flex items-center gap-2 text-base">
           <Award className="h-4 w-4 text-brand-primary" /> Founder Reputation
         </CardTitle>
-        <Badge variant={BAND_BADGE_VARIANT[founderReputation.band] ?? "neutral"}>{founderReputation.band}</Badge>
+        <Badge variant={scoreBand(founderReputation.band).badge}>{scoreBand(founderReputation.band).label}</Badge>
       </CardHeader>
 
       <div className="flex items-center gap-4">

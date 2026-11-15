@@ -12,14 +12,26 @@ interface OnboardingStoreState {
   draft: Record<string, unknown>;
   step: number;
   autosaveStatus: AutosaveStatus;
+  /** The profile is already published: the wizard is editing it. */
+  editing: boolean;
+  /** While editing: something has been changed that isn't live yet. */
+  pendingEdits: boolean;
   setSectionData: (section: OnboardingDraftSection, data: unknown) => void;
   setStep: (step: number) => void;
   setAutosaveStatus: (status: AutosaveStatus) => void;
-  hydrate: (ownerId: string, draft: Record<string, unknown>, step: number) => void;
+  markEdited: () => void;
+  hydrate: (ownerId: string, draft: Record<string, unknown>, step: number, mode?: { editing: boolean; pendingEdits: boolean }) => void;
   reset: () => void;
 }
 
-const EMPTY = { ownerId: null, draft: {}, step: 0, autosaveStatus: "idle" as AutosaveStatus };
+const EMPTY = {
+  ownerId: null,
+  draft: {},
+  step: 0,
+  autosaveStatus: "idle" as AutosaveStatus,
+  editing: false,
+  pendingEdits: false,
+};
 
 /**
  * The wizard's working copy of the onboarding draft, for the time the tab is
@@ -37,7 +49,9 @@ export const useOnboardingStore = create<OnboardingStoreState>()((set) => ({
   setSectionData: (section, data) => set((state) => ({ draft: { ...state.draft, [section]: data } })),
   setStep: (step) => set({ step }),
   setAutosaveStatus: (autosaveStatus) => set({ autosaveStatus }),
-  hydrate: (ownerId, draft, step) => set({ ownerId, draft, step, autosaveStatus: "idle" }),
+  markEdited: () => set((state) => (state.editing && !state.pendingEdits ? { pendingEdits: true } : state)),
+  hydrate: (ownerId, draft, step, mode = { editing: false, pendingEdits: false }) =>
+    set({ ownerId, draft, step, autosaveStatus: "idle", editing: mode.editing, pendingEdits: mode.pendingEdits }),
   reset: () => set({ ...EMPTY }),
 }));
 

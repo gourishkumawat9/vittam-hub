@@ -14,20 +14,10 @@ const STEPS: WizardStepMeta[] = [
 ];
 
 export default function MentorOnboardingPage() {
-  const { ready, failed, retry, draft, step, setStep, goNext, goBack, autosaveStatus, isEditing } = useOnboardingDraft(STEPS.length);
+  const { shell, draft, step, goNext, goBack, isEditing } = useOnboardingDraft(STEPS);
 
   return (
-    <WizardShell
-      steps={STEPS}
-      currentStepIndex={step}
-      onStepSelect={setStep}
-      autosaveStatus={autosaveStatus}
-      isEditing={isEditing}
-      exitHref="/mentors/bookings"
-      ready={ready}
-      failed={failed}
-      onRetry={retry}
-    >
+    <WizardShell steps={STEPS} exitHref="/mentors/bookings" {...shell}>
       {step === 0 && (
         <PersonalDetailsStep defaultValues={draftSection<PersonalDetailsInput>(draft, "personalDetails")} onNext={goNext} />
       )}

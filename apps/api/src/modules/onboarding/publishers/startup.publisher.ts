@@ -55,9 +55,18 @@ export class StartupPublisher {
   ) {}
 
   async publish(userId: string, rawDraft: StartupOnboardingDraft, confirmation: unknown) {
-    const confirm = publishStartupInputSchema.safeParse(confirmation);
-    if (!confirm.success) {
-      throw new BadRequestException(confirm.error.issues.map((i) => i.message).join(", "));
+    // Publishing again is how a founder edits a live profile. It used to be
+    // refused outright ("already published"), which left no way at all to
+    // change a startup's name, description, product or team after going live.
+    const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId }, include: { traction: true } });
+
+    // The terms are agreed to, and signed, when the profile first goes live.
+    // Fixing a typo afterwards doesn't ask for the signature again.
+    if (!existing) {
+      const confirm = publishStartupInputSchema.safeParse(confirmation);
+      if (!confirm.success) {
+        throw new BadRequestException(confirm.error.issues.map((i) => i.message).join(", "));
+      }
     }
 
     // Only the startup's own identity is genuinely required to go live —
@@ -87,10 +96,6 @@ export class StartupPublisher {
       }
     }
 
-    // Publishing again is how a founder edits a live profile. It used to be
-    // refused outright ("already published"), which left no way at all to
-    // change a startup's name, description, product or team after going live.
-    const existing = await this.prisma.startup.findUnique({ where: { ownerId: userId }, include: { traction: true } });
     const now = new Date();
 
     // The page's address stays the same through a rename: links already shared keep working.
@@ -125,7 +130,7 @@ export class StartupPublisher {
         teamSize: team.teamSize,
         hiringStatus: team.hiringStatus,
         openRoles: team.openRoles,
-        termsAcceptedAt: now,
+        termsAcceptedAt: existing?.termsAcceptedAt ?? now,
         // The day it first went live, not the day of the latest edit.
         publishedAt: existing?.publishedAt ?? now,
       };

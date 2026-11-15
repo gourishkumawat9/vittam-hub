@@ -30,11 +30,17 @@ interface WizardShellProps {
   /** The saved answers couldn't be loaded. */
   failed?: boolean;
   onRetry?: () => void;
+  /** While editing: something has been changed that isn't live yet. */
+  pendingEdits?: boolean;
+  onDiscardEdits?: () => void;
+  isDiscarding?: boolean;
   children: ReactNode;
 }
 
-function AutosaveIndicator({ status }: { status: AutosaveStatus }) {
+function AutosaveIndicator({ status, isEditing }: { status: AutosaveStatus; isEditing: boolean }) {
   if (status === "idle") return null;
+  // On a live profile "Saved" would read as "published". The banner below says what state the changes are in.
+  if (isEditing && status === "saved") return null;
   return (
     <span className="flex items-center gap-1.5 text-xs text-text-secondary">
       {status === "saving" && (
@@ -114,11 +120,16 @@ export function WizardShell({
   ready = true,
   failed = false,
   onRetry,
+  pendingEdits = false,
+  onDiscardEdits,
+  isDiscarding = false,
   children,
 }: WizardShellProps) {
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
   const [stepsOpen, setStepsOpen] = useState(false);
   const currentStep = steps[currentStepIndex];
+  const lastStepIndex = steps.length - 1;
+  const onLastStep = currentStepIndex === lastStepIndex;
 
   return (
     <div className="min-h-screen bg-background-secondary">
@@ -126,7 +137,7 @@ export function WizardShell({
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-3">
-            <AutosaveIndicator status={autosaveStatus} />
+            <AutosaveIndicator status={autosaveStatus} isEditing={isEditing} />
             {isEditing && exitHref && (
               <Link
                 href={exitHref}
@@ -150,10 +161,53 @@ export function WizardShell({
           </div>
         </div>
         <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6">
-          {isEditing && <p className="mb-2 text-sm font-medium text-text-primary">Editing your profile</p>}
           <ProgressBar value={progress} label={`Step ${currentStepIndex + 1} of ${steps.length}: ${currentStep?.label}`} />
         </div>
       </header>
+
+      {/* Editing a live profile: say plainly whether what's on screen is public yet, and how to make it so. */}
+      {isEditing && ready && (
+        <div role="status" className={cn("border-b", pendingEdits ? "border-warning-200 bg-warning-50" : "border-brand-200 bg-brand-50")}>
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
+            <p className="text-sm text-text-primary">
+              {pendingEdits ? (
+                <>
+                  <span className="font-semibold">You have changes that aren&apos;t live yet.</span>{" "}
+                  {onLastStep ? "Save them below." : "Save them on the last step."}
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">Editing your live profile.</span> Change what you need on any step, then save on the
+                  last one.
+                </>
+              )}
+            </p>
+            {pendingEdits && (
+              <div className="flex items-center gap-2">
+                {onDiscardEdits && (
+                  <button
+                    type="button"
+                    onClick={onDiscardEdits}
+                    disabled={isDiscarding}
+                    className="rounded-button px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface disabled:opacity-60"
+                  >
+                    {isDiscarding ? "Discarding…" : "Discard changes"}
+                  </button>
+                )}
+                {!onLastStep && onStepSelect && (
+                  <button
+                    type="button"
+                    onClick={() => onStepSelect(lastStepIndex)}
+                    className="rounded-button bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                  >
+                    {steps.length > 2 ? "Review and save" : "Continue to save"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Drawer open={stepsOpen} onOpenChange={setStepsOpen} title="Steps">
         <StepNav
