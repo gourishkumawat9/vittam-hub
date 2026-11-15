@@ -519,4 +519,15 @@ describe("Security rules (e2e)", () => {
       expect(text).not.toContain(voterUser.id);
     });
   });
+
+  describe("the billing webhook", () => {
+    it("answers 503, not a server error, while billing isn't set up", async () => {
+      const res = await request(app.getHttpServer())
+        .post("/v1/billing/webhook")
+        .set("Content-Type", "application/json")
+        .set("Stripe-Signature", "t=1,v1=forged")
+        .send('{"type":"customer.subscription.deleted"}');
+      expect(res.status).toBe(503);
+    });
+  });
 });

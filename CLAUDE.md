@@ -26,7 +26,7 @@ At every stage a startup should be able to: build a professional/verified profil
 
 Founders can never message an investor directly. A founder must first send a **Connect Request** carrying: short introduction, startup summary, funding requirement, industry, stage, and optionally a pitch deck / executive summary. The investor can Accept, Decline, or Ignore. Only after Accept do both sides unlock chat, document sharing, pitch deck exchange, and meeting scheduling.
 
-**Status**: not yet built. This is a real architectural addition (new `ConnectRequest` model/state machine gating an existing or future messaging module), not a UI-only feature — it needs its own schema, service, and guard logic before any founder↔investor messaging ships.
+**Status**: built. The `Connection` model and `ConnectionsService` (`apps/api/src/modules/connections`) are the request and its state machine; messages and meeting proposals are refused (403) until the investor accepts, and the e2e suite (`test/security.e2e-spec.ts`) checks it. Attachments on a request (pitch deck, one-pager) live in private storage and are opened through a short-lived link only the two members can fetch. See docs/12-connect-requests.md.
 
 ## 5. Free plan limits, admin-configurable
 
@@ -42,9 +42,22 @@ This is an early-stage platform with no ops team to review submissions by hand. 
 
 Uploads (Certificate of Incorporation, PAN, GST, CIN, DPIIT certificate, trademark/patent docs, government ID, business email, company website, LinkedIn) are collected now — see `Document`/`DocumentType` in `schema.prisma` and the founder wizard's `Step8Verification.tsx` — purely as inputs for *future* automated checks, profile-completeness scoring, trust indicators, and eligibility filters. Do not build manual-review UI around them; do not block a user's flow waiting on a human to look at them.
 
+### 7a. Who a directory lists
+
+Every published profile is listed in the directories and search from the start, verified first (`common/verification/listed-profiles.ts`: `LISTED_VERIFICATION` hides only REJECTED, `VERIFIED_FIRST` orders the rest). The owner chose this in November 2026 so new members are findable before their documents are in. "Verified" today means the required documents and details are present (the verification engine's per-type requirement lists, shown to the user in Settings via `GET /v1/verification/mine`), not that a registry has confirmed them.
+
 ## 8. Build for future automation, modularly
 
 Design every module so these can be added later without a rewrite: AI fraud detection, MCA/GST/PAN verification APIs, domain and business-email verification, AI moderation, automated risk scoring, digital KYC, payment gateways. Keep integrations behind clean service boundaries (as `CaptchaService`, `EmailService`, `MediaService` already are — optional/pluggable, degrade gracefully when unconfigured) so a real verification provider can be dropped in later.
+
+### 8a. How the code works today (things that are easy to break)
+
+- **Uploads** go from the browser straight to Cloudflare R2 on a pre-signed **PUT** (R2 doesn't support presigned POST), signed with the file's content type and length. Public folders: `logos`, `avatars`, `pictures`; private: `documents`, `resumes`. The bucket needs the CORS rule in docs/10-deployment-infrastructure.md, and the web CSP's connect-src must include the storage origin.
+- **Sessions**: the access token carries `sid`, the refresh-token family, and every request checks that the family is still live, so signing out or ending a session elsewhere takes effect at once.
+- **Editing a published profile** reopens the onboarding wizard on the live profile; saving updates it in place (no second startup, no second signature), and unsaved edits can be discarded.
+- **Demo accounts** are shared and re-seeded on every API boot; their password lives only in the `DEMO_ACCOUNTS_PASSWORD` env var. They can't upload government ID, PAN or a digital signature.
+- **Code style**: there is no Prettier config, so don't run Prettier; fix lint with `eslint --fix`.
+- **Stack**: Next.js 15 with React 19 (route `params` are Promises in server components), NestJS 10, Prisma 5.
 
 ## 9. Design philosophy
 

@@ -25,7 +25,7 @@ export function useAutosave(section: OnboardingDraftSection, step: number, data:
   const setSharedStatus = useOnboardingStore((s) => s.setAutosaveStatus);
   const markEdited = useOnboardingStore((s) => s.markEdited);
   const [status, setLocalStatus] = useState<AutosaveStatus>("idle");
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isFirstRun = useRef(true);
   const latestDataRef = useRef(data);
   latestDataRef.current = data;
