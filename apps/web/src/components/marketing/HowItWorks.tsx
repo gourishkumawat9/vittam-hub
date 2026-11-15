@@ -44,7 +44,7 @@ export function StepsRow({ steps }: { steps: Step[] }) {
 
 export function HowItWorks() {
   return (
-    <section className="border-t border-border bg-background-secondary">
+    <section id="how-it-works" className="scroll-mt-20 border-t border-border bg-background-secondary">
       <div className="mx-auto max-w-content px-6 py-24">
         <SectionHeading eyebrow="How it works" title="From sign-up to visibility in four steps" />
 

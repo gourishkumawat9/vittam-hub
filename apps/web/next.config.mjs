@@ -18,7 +18,8 @@ function originsFrom(value) {
 // the browser's CSP silently blocks every fetch() to the API and every request just rejects with a generic
 // "Failed to fetch". Read from NEXT_PUBLIC_API_URL, which is what the app itself calls, so the two can't disagree.
 const apiConnectSrc = [
-  ...new Set([originOf(process.env.NEXT_PUBLIC_API_URL), isProduction ? "https://api.vittamhub.com" : "http://localhost:4000"].filter(Boolean)),
+  // Same fallback as src/lib/http-client-setup.ts: a build with the variable unset calls localhost:4000.
+  ...new Set([originOf(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"), isProduction ? "https://api.vittamhub.com" : null].filter(Boolean)),
 ].join(" ");
 
 // A file goes from the browser straight to object storage on a pre-signed URL, never through the API, so that

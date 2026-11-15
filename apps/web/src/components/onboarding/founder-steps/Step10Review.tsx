@@ -135,7 +135,18 @@ export function Step10Review({ onBack, isEditing = false }: StepProps) {
               <Checkbox
                 checked={field.value === true}
                 onCheckedChange={field.onChange}
-                label="I confirm the information above is accurate and I accept the Terms of Service and Privacy Policy"
+                label={
+                  <>
+                    I confirm the information above is accurate and I accept the{" "}
+                    <a href="/terms" target="_blank" rel="noopener" className="text-brand-primary underline">
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a href="/privacy" target="_blank" rel="noopener" className="text-brand-primary underline">
+                      Privacy Policy
+                    </a>
+                  </>
+                }
                 error={errors.acceptedTerms?.message}
               />
             )}

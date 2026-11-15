@@ -135,12 +135,10 @@ export default function FounderDashboardPage() {
 
       {quota?.remaining === 0 && (
         <Card className="flex items-center justify-between gap-4 border-warning-200 bg-warning-50">
+          {/* A disabled "Upgrade (coming soon)" button stood here: there is nothing to buy yet (CLAUDE.md §5). */}
           <p className="text-sm text-text-primary">
-            You&apos;ve used all your connect requests for this month on the {quota.plan} plan.
+            You&apos;ve used all your connect requests for this month. More become available on the 1st of next month.
           </p>
-          <Button size="sm" variant="secondary" disabled>
-            Upgrade (coming soon)
-          </Button>
         </Card>
       )}
 

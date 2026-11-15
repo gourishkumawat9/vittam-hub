@@ -99,6 +99,7 @@ export class UsersService {
             logoUrl: true,
             teamMembers: { select: { photoUrl: true } },
             milestones: { select: { evidenceUrls: true } },
+            product: { select: { screenshots: true } },
           },
         }),
         tx.investor.findUnique({ where: { ownerId: userId }, select: { id: true, logoUrl: true } }),
@@ -204,6 +205,7 @@ export class UsersService {
         university?.logoUrl,
         ...(startup?.teamMembers.map((member) => member.photoUrl) ?? []),
         ...(startup?.milestones.flatMap((milestone) => milestone.evidenceUrls) ?? []),
+        ...(startup?.product?.screenshots ?? []),
       ].filter((url): url is string => !!url);
 
       return { documents: ownDocuments.map((document) => document.fileUrl), pictures };
