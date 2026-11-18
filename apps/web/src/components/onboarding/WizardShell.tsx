@@ -2,7 +2,7 @@
 
 import { Drawer, ProgressBar, Skeleton } from "@vittamhub/ui";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Cloud, CloudOff, ListTree, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Cloud, CloudOff, LayoutDashboard, ListTree, Loader2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -25,6 +25,17 @@ interface WizardShellProps {
   isEditing?: boolean;
   /** Where "Back to dashboard" goes while editing. */
   exitHref?: string;
+  /**
+   * While onboarding: where "Finish later" goes. Only for a role whose
+   * dashboard works without a published profile (founders). Answers are
+   * autosaved, so leaving loses nothing.
+   */
+  finishLaterHref?: string;
+  /**
+   * While onboarding: the required steps are done, so every other step can be
+   * opened from the step list and the founder can go straight to publishing.
+   */
+  canSkipToEnd?: boolean;
   /** False until the saved answers have loaded for the person signed in. */
   ready?: boolean;
   /** The saved answers couldn't be loaded. */
@@ -75,7 +86,8 @@ function StepNav({
       {steps.map((step, index) => {
         const isActive = index === currentStepIndex;
         const isComplete = !allOpen && index < currentStepIndex;
-        // While onboarding, a later step opens only by getting there. While editing, any step can be opened.
+        // While onboarding, a later step opens only by getting there, until the
+        // required steps are done. While editing, any step can be opened.
         const isLocked = !onStepSelect || (!allOpen && index > currentStepIndex);
         return (
           <button
@@ -117,6 +129,8 @@ export function WizardShell({
   autosaveStatus = "idle",
   isEditing = false,
   exitHref,
+  finishLaterHref,
+  canSkipToEnd = false,
   ready = true,
   failed = false,
   onRetry,
@@ -130,6 +144,7 @@ export function WizardShell({
   const currentStep = steps[currentStepIndex];
   const lastStepIndex = steps.length - 1;
   const onLastStep = currentStepIndex === lastStepIndex;
+  const allStepsOpen = isEditing || canSkipToEnd;
 
   return (
     <div className="min-h-screen bg-background-secondary">
@@ -146,6 +161,16 @@ export function WizardShell({
                 <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="hidden sm:inline">Back to dashboard</span>
                 <span className="sm:hidden">Back</span>
+              </Link>
+            )}
+            {!isEditing && finishLaterHref && (
+              <Link
+                href={finishLaterHref}
+                title="Go to your dashboard. Your answers are saved, so you can carry on from here any time."
+                className="flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-background-secondary"
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
+                Finish later
               </Link>
             )}
             {steps.length > 1 && (
@@ -209,13 +234,32 @@ export function WizardShell({
         </div>
       )}
 
+      {/* Onboarding, with the required steps done: say that the rest can wait. */}
+      {!isEditing && canSkipToEnd && ready && !onLastStep && onStepSelect && (
+        <div role="status" className="border-b border-brand-200 bg-brand-50">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
+            <p className="text-sm text-text-primary">
+              <span className="font-semibold">The required steps are done.</span> Everything else is optional: publish now and add the
+              rest whenever you like.
+            </p>
+            <button
+              type="button"
+              onClick={() => onStepSelect(lastStepIndex)}
+              className="rounded-button bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Skip to review
+            </button>
+          </div>
+        </div>
+      )}
+
       <Drawer open={stepsOpen} onOpenChange={setStepsOpen} title="Steps">
         <StepNav
           steps={steps}
           currentStepIndex={currentStepIndex}
           onStepSelect={onStepSelect}
           onNavigate={() => setStepsOpen(false)}
-          allOpen={isEditing}
+          allOpen={allStepsOpen}
           className="p-4"
         />
       </Drawer>
@@ -225,7 +269,7 @@ export function WizardShell({
           steps={steps}
           currentStepIndex={currentStepIndex}
           onStepSelect={onStepSelect}
-          allOpen={isEditing}
+          allOpen={allStepsOpen}
           className="hidden w-56 shrink-0 lg:flex"
         />
 

@@ -110,7 +110,7 @@ export function Step10Review({ onBack, isEditing = false }: StepProps) {
         <p className="mt-1 text-sm text-text-secondary">
           {isEditing
             ? "Check your changes below, then save them. Your profile page updates straight away."
-            : "Check everything below, then publish your startup profile. You can change any of it later."}
+            : "Check everything below, then publish your startup profile. Sections marked “Not filled in yet” are optional: you can add them any time after publishing."}
         </p>
       </div>
 
@@ -186,11 +186,14 @@ function SummarySection({ title, rows, onEdit }: { title: string; rows: SummaryR
       {rows.length === 0 ? (
         <p className="text-xs text-text-secondary">Not filled in yet.</p>
       ) : (
-        <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
           {rows.map((row) => (
-            <div key={row.label} className="flex justify-between gap-2 text-xs">
+            <div key={row.label} className="flex min-w-0 justify-between gap-2 text-xs">
               <dt className="shrink-0 text-text-secondary">{row.label}</dt>
-              <dd className="truncate text-right font-medium text-text-primary">{row.value}</dd>
+              {/* min-w-0 lets a long answer shorten with "…" instead of running off the card on a phone. */}
+              <dd className="min-w-0 truncate text-right font-medium text-text-primary" title={row.value}>
+                {row.value}
+              </dd>
             </div>
           ))}
         </dl>

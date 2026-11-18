@@ -11,7 +11,7 @@ import {
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
 import type { InvestorSearchFilters } from "@vittamhub/types";
-import { Badge, Button, Card, EmptyState, Skeleton } from "@vittamhub/ui";
+import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Skeleton } from "@vittamhub/ui";
 import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
 import { Handshake, Inbox, MessageCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -32,9 +32,11 @@ import { ProfileCompletionCard } from "@/components/dashboard/founder/ProfileCom
 import { QuickActionsCard } from "@/components/dashboard/founder/QuickActionsCard";
 import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentProfileViewsCard";
 import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
+import { SetUpProfileCard } from "@/components/dashboard/founder/SetUpProfileCard";
 import { StartupHealthCard } from "@/components/dashboard/founder/StartupHealthCard";
 import { TrustScoreCard } from "@/components/dashboard/founder/TrustScoreCard";
 import { VisibilitySettingsCard } from "@/components/dashboard/founder/VisibilitySettingsCard";
+import { isNotFoundError } from "@/lib/utils";
 
 function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; onConnect: (investor: InvestorWithOwner) => void }) {
   return (
@@ -89,7 +91,10 @@ function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; on
 }
 
 export default function FounderDashboardPage() {
-  const { data: startup, isLoading: startupLoading, isError: startupError } = useMyStartup();
+  const { data: startup, isLoading: startupLoading, isError: startupFailed, error: startupError, refetch: refetchStartup } = useMyStartup();
+  // A founder reaches this page straight after signing up, before any startup
+  // profile exists: the API answers 404 until it is published.
+  const noStartupYet = startupFailed && isNotFoundError(startupError);
   const { data: health } = useMyStartupHealth();
   const { data: benchmark } = useMyGrowthBenchmark();
   const [investorFilters, setInvestorFilters] = useState<InvestorSearchFilters>({ matchMyStartup: true, page: 1, pageSize: 20 });
@@ -100,6 +105,11 @@ export default function FounderDashboardPage() {
   const { data: quota } = useConnectionQuota();
   const { data: recommendations, isLoading: recommendationsLoading } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
+  // Investors see the startup's name, stage and industry with every connect
+  // request, so one can't be sent before the profile is published (the API
+  // refuses it too). Browsing investors needs nothing.
+  const [profileNeededOpen, setProfileNeededOpen] = useState(false);
+  const connect = (investor: InvestorWithOwner) => (noStartupYet ? setProfileNeededOpen(true) : setConnectingTo(investor));
   // One "Add milestone" dialog, opened from Next actions, Quick actions and Profile completion.
   const [milestoneOpen, setMilestoneOpen] = useState(false);
   const openMilestone = () => setMilestoneOpen(true);
@@ -124,13 +134,17 @@ export default function FounderDashboardPage() {
         )}
       </div>
 
-      {startupError && !startupLoading && (
-        <Card className="flex items-center justify-between gap-4 border-warning-200 bg-warning-50">
-          <p className="text-sm text-text-primary">Finish publishing your startup profile to unlock your dashboard.</p>
-          <Button size="sm" asChild>
-            <Link href="/onboarding/founder">Continue onboarding</Link>
-          </Button>
-        </Card>
+      {startupLoading && <Skeleton className="h-48 w-full" />}
+
+      {noStartupYet && <SetUpProfileCard />}
+
+      {startupFailed && !noStartupYet && (
+        <ErrorState
+          title="Your startup profile didn't load"
+          description="Check your connection and try again."
+          onRetry={() => void refetchStartup()}
+          className="py-10"
+        />
       )}
 
       {quota?.remaining === 0 && (
@@ -198,7 +212,7 @@ export default function FounderDashboardPage() {
           ) : recommendations && recommendations.recommendedInvestors.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {recommendations.recommendedInvestors.map((match) => (
-                <InvestorCard key={match.investorId} investor={match.investor} onConnect={setConnectingTo} />
+                <InvestorCard key={match.investorId} investor={match.investor} onConnect={connect} />
               ))}
             </div>
           ) : (
@@ -212,14 +226,19 @@ export default function FounderDashboardPage() {
       )}
 
       <section id="discover-investors" className="flex flex-col gap-4 scroll-mt-20">
-        <h2 className="font-heading text-lg font-semibold text-text-primary">Discover investors</h2>
+        <div>
+          <h2 className="font-heading text-lg font-semibold text-text-primary">Discover investors</h2>
+          {noStartupYet && (
+            <p className="text-sm text-text-secondary">Browse freely. Publish your startup profile to send a connect request.</p>
+          )}
+        </div>
         <InvestorFiltersBar filters={investorFilters} onChange={setInvestorFilters} />
         {investorsLoading ? (
           <CardGridSkeleton />
         ) : investors && investors.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {investors.map((investor) => (
-              <InvestorCard key={investor.id} investor={investor} onConnect={setConnectingTo} />
+              <InvestorCard key={investor.id} investor={investor} onConnect={connect} />
             ))}
           </div>
         ) : (
@@ -254,11 +273,40 @@ export default function FounderDashboardPage() {
             ))}
           </div>
         ) : (
-          <EmptyState icon={Inbox} title="No connect requests yet" description="Send your first request to an investor above." />
+          <EmptyState
+            icon={Inbox}
+            title="No connect requests yet"
+            description={
+              noStartupYet
+                ? "Once your startup profile is published, you can send your first request to an investor above."
+                : "Send your first request to an investor above."
+            }
+          />
         )}
       </section>
 
       <AddMilestoneDialog open={milestoneOpen} onOpenChange={setMilestoneOpen} />
+
+      <Dialog
+        open={profileNeededOpen}
+        onOpenChange={setProfileNeededOpen}
+        title="Publish your startup profile first"
+        description="An investor sees your startup's name, stage and industry with every connect request, so there has to be a profile for them to look at."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setProfileNeededOpen(false)}>
+              Not now
+            </Button>
+            <Button asChild>
+              <Link href="/onboarding/founder">Set up my profile</Link>
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-text-secondary">
+          Only your founder info and the startup basics are needed to publish. Everything you&apos;ve already entered is saved.
+        </p>
+      </Dialog>
 
       {connectingTo && (
         <SendConnectRequestDialog investor={connectingTo} open={!!connectingTo} onOpenChange={(open) => !open && setConnectingTo(null)} />

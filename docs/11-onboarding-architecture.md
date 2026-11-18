@@ -33,3 +33,10 @@ The **Startup** publisher (`startup.publisher.ts`) is the most involved: it vali
 ## Wizard step registry
 
 `STARTUP_WIZARD_STEPS` (`packages/types/src/domain/startup-onboarding.ts`) is the single ordered list (`personal-details` → `review`) that drives the founder wizard's progress bar, step sidebar, and routing (`apps/web/src/app/(onboarding)/onboarding/founder/page.tsx`, `WizardShell`). The six shorter roles don't need a shared constant since they're always exactly two steps — personal details, then the role's info step — defined inline as `STEPS` in each role's `page.tsx`.
+
+## Founders reach the dashboard first
+
+A founder doesn't have to finish the wizard to use VittamHub. `/onboarding` (where sign-up, email verification, login and Google sign-in all land) sends a founder straight to `/founder`, whatever their onboarding status; the other roles still go through their wizard first. Until the startup is published, `/v1/startups/me` answers 404 and the dashboard shows `SetUpProfileCard` in place of the startup cards: it reads the autosaved draft (`useOnboardingState`) to tick off the two required steps (founder info, startup basics) and links back into the wizard. Investors can be browsed; pressing Connect opens a "publish your startup profile first" dialog, matching the API, which refuses a connect request from a founder with no startup.
+
+Inside the wizard a founder can leave at any step with "Finish later" (the step's values are flushed on unmount, so nothing is lost). Once the required steps validate, every step opens from the step list and a banner offers "Skip to review", since `StartupPublisher` treats the other seven sections as optional.
+
