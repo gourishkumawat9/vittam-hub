@@ -7,15 +7,20 @@ import { useEffect } from "react";
 
 import { roleHome } from "@/lib/role-home";
 
+/**
+ * The roles whose wizard has to be finished before their dashboard opens.
+ * Founders aren't on it: a founder reaches the dashboard straight after
+ * signing up and builds the startup profile from there, whenever they like
+ * (the dashboard's "Set up your startup profile" card).
+ */
 const ROLE_ONBOARDING_PATH: Record<string, string> = {
-  [UserRole.FOUNDER]: "/onboarding/founder",
   [UserRole.INVESTOR]: "/onboarding/investor",
   [UserRole.MENTOR]: "/onboarding/mentor",
   [UserRole.INCUBATOR]: "/onboarding/incubator",
   [UserRole.UNIVERSITY]: "/onboarding/university",
 };
 
-/** Entry point after login/register — routes to the wizard matching the user's role. */
+/** Entry point after login/register — routes to the wizard matching the user's role, or straight to the dashboard. */
 export default function OnboardingRedirectPage() {
   const router = useRouter();
   const { data: user, isLoading, isError } = useCurrentUser();
@@ -27,11 +32,15 @@ export default function OnboardingRedirectPage() {
       router.replace("/login");
       return;
     }
+    const wizard = ROLE_ONBOARDING_PATH[user.role];
+    if (!wizard) {
+      router.replace(roleHome(user.role));
+      return;
+    }
     if (onboardingLoading) return;
     // Every login lands here, so someone who already finished onboarding goes
     // to their dashboard instead of back into the wizard.
-    const wizard = ROLE_ONBOARDING_PATH[user.role];
-    router.replace(wizard && onboarding?.status !== OnboardingStatus.COMPLETED ? wizard : roleHome(user.role));
+    router.replace(onboarding?.status !== OnboardingStatus.COMPLETED ? wizard : roleHome(user.role));
   }, [user, isLoading, isError, onboarding, onboardingLoading, router]);
 
   return (

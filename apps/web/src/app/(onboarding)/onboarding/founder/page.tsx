@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  personalDetailsInputSchema,
   STARTUP_WIZARD_STEPS,
+  startupInfoStepSchema,
   type FundingStepInput,
   type MarketStepInput,
   type PersonalDetailsInput,
@@ -46,9 +48,14 @@ export default function FounderOnboardingPage() {
   const { shell, draft, step, goNext, goBack, isEditing } = useOnboardingDraft(STEPS);
 
   const currentStepId = STARTUP_WIZARD_STEPS[step];
+  // Founder info and startup basics are all a profile needs to go live (the
+  // API's StartupPublisher treats every other step as optional). Once both
+  // are in, the founder can open any step, or go straight to publishing.
+  const requiredStepsDone =
+    personalDetailsInputSchema.safeParse(draft.personalDetails).success && startupInfoStepSchema.safeParse(draft.startupInfo).success;
 
   return (
-    <WizardShell steps={STEPS} exitHref="/founder" {...shell}>
+    <WizardShell steps={STEPS} exitHref="/founder" finishLaterHref="/founder" canSkipToEnd={requiredStepsDone} {...shell}>
       {currentStepId === "personal-details" && (
         <Step1PersonalDetails defaultValues={draftSection<PersonalDetailsInput>(draft, "personalDetails")} onNext={goNext} />
       )}
