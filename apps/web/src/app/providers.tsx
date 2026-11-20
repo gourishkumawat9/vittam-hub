@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiStatusOverlay } from "@/components/ApiStatusOverlay";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 import { setupHttpClient } from "@/lib/http-client-setup";
 
 // Runs once per client bundle load, before any component mounts — the CSRF
@@ -103,6 +104,8 @@ export function Providers({ children }: { children: ReactNode }) {
         <ToastProvider>
           <QueryProvider>{children}</QueryProvider>
           <ApiStatusOverlay />
+          {/* dashboard preview: renders nothing outside preview mode */}
+          <PreviewBanner />
         </ToastProvider>
       </MotionConfig>
     </ThemeProvider>

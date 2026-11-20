@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isLiveHost, previewFlagSet } from "@/lib/preview/mode";
 import { roleHome, SIGNED_IN_AREAS } from "@/lib/role-home";
 
 /**
@@ -38,6 +39,13 @@ function readSession(token: string | undefined): { role: string } | null {
 }
 
 export function middleware(request: NextRequest) {
+  // dashboard preview: no sign-in on a preview build (never on the live domain). See lib/preview/mode.ts.
+  if (previewFlagSet() && process.env.VERCEL_ENV !== "production" && !isLiveHost(request.headers.get("host"))) {
+    const response = NextResponse.next();
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
+  }
+
   const { pathname } = request.nextUrl;
   const session = readSession(request.cookies.get(process.env.SESSION_COOKIE_NAME ?? "vh_session")?.value);
   // The session cookie lives 15 minutes; the refresh cookie up to 30 days.

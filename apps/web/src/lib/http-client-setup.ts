@@ -1,5 +1,7 @@
 import { configureHttpClient } from "@vittamhub/api-client";
 
+import { installPreviewFetch } from "@/lib/preview/install";
+import { isPreviewMode, PREVIEW_API_BASE } from "@/lib/preview/mode";
 import { isSignedInArea } from "@/lib/role-home";
 
 /** Reads a single cookie's value by name — browser-only, mirrors what the API's csrf_token cookie is set up to be read by. */
@@ -15,6 +17,12 @@ function readCookie(name: string): string | undefined {
  * see docs/09-authentication-security.md §CSRF. Call once at app startup.
  */
 export function setupHttpClient() {
+  // dashboard preview: answer the API from demo data in the browser instead of calling the real one.
+  if (isPreviewMode()) {
+    installPreviewFetch();
+    configureHttpClient({ baseUrl: PREVIEW_API_BASE });
+    return;
+  }
   configureHttpClient({
     baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000",
     getCsrfToken: () => readCookie("csrf_token"),
