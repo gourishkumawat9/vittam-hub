@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { VercelAnalytics } from "@/components/VercelAnalytics";
 import { fontVariables } from "@/lib/fonts";
 
 import { JsonLd } from "./json-ld";
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <JsonLd />
         <Providers>{children}</Providers>
         <ServiceWorkerRegistration />
+        <VercelAnalytics />
       </body>
     </html>
   );
