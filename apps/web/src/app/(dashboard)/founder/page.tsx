@@ -2,260 +2,180 @@
 
 import {
   useConnectionQuota,
-  useConnections,
   useFounderRecommendations,
-  useInvestors,
-  useMyStartup,
   useMyGrowthBenchmark,
+  useMyStartup,
   useMyStartupHealth,
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
-import type { InvestorSearchFilters } from "@vittamhub/types";
 import { Badge, Button, Card, EmptyState, Skeleton } from "@vittamhub/ui";
-import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
-import { Handshake, Inbox, MessageCircle, Sparkles } from "lucide-react";
+import { Eye, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
-import { ConnectionStatusBadge } from "@/components/connections/ConnectionStatusBadge";
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
-import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { PageHeader, SectionHeader } from "@/components/dashboard/PageHeader";
 import { AddMilestoneDialog } from "@/components/dashboard/founder/AddMilestoneDialog";
+import { ConnectRequestsList } from "@/components/dashboard/founder/ConnectRequestsList";
 import { FounderActivityCard } from "@/components/dashboard/founder/FounderActivityCard";
-import { FounderReputationCard } from "@/components/dashboard/founder/FounderReputationCard";
 import { GrowthBenchmarkCard } from "@/components/dashboard/founder/GrowthBenchmarkCard";
-import { InvestorFiltersBar } from "@/components/dashboard/founder/InvestorFiltersBar";
+import { InvestorCard } from "@/components/dashboard/founder/InvestorCard";
 import { NextActionsCard } from "@/components/dashboard/founder/NextActionsCard";
 import { ProfileCompletionCard } from "@/components/dashboard/founder/ProfileCompletionCard";
-import { QuickActionsCard } from "@/components/dashboard/founder/QuickActionsCard";
 import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentProfileViewsCard";
 import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
-import { StartupHealthCard } from "@/components/dashboard/founder/StartupHealthCard";
-import { TrustScoreCard } from "@/components/dashboard/founder/TrustScoreCard";
+import { StandingPanel } from "@/components/dashboard/founder/StandingPanel";
 import { VisibilitySettingsCard } from "@/components/dashboard/founder/VisibilitySettingsCard";
+import { STAGE_LABEL, VERIFICATION_VARIANT } from "@/components/dashboard/founder/startup-labels";
 
-function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; onConnect: (investor: InvestorWithOwner) => void }) {
-  return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <h3 className="font-heading text-sm font-semibold text-text-primary">{investor.owner.fullName}</h3>
-                    <VerifiedBadge status={investor.verificationStatus} />
-                  </div>
-          <p className="text-xs text-text-secondary">{investor.firmName ?? "Independent investor"}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <Badge variant={investor.openForPitches ? "success" : "neutral"}>
-            {investor.openForPitches ? "Open for pitches" : "Not reviewing"}
-          </Badge>
-          {investor.trust && investor.trust.band !== "STARTING" && <Badge variant="neutral">{investor.trust.band} trust</Badge>}
-        </div>
-      </div>
-
-      <p className="text-sm text-text-secondary">{investor.bio}</p>
-
-      <div className="flex flex-wrap gap-1.5">
-        {investor.preferredIndustries.slice(0, 4).map((industry) => (
-          <Badge key={industry} variant="brand">
-            {industry}
-          </Badge>
-        ))}
-      </div>
-
-      {investor.metrics && (investor.metrics.responseRate != null || investor.metrics.isActive) && (
-        <div className="flex flex-wrap items-center gap-3 text-xs text-text-secondary">
-          {investor.metrics.responseRate != null && <span>Responds to {Math.round(investor.metrics.responseRate * 100)}% of requests</span>}
-          {investor.metrics.avgResponseTimeHours != null && (
-            <span>~{Math.round(investor.metrics.avgResponseTimeHours)}h avg response</span>
-          )}
-          {investor.metrics.isActive && <Badge variant="success">Recently active</Badge>}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between border-t border-border pt-4 text-xs text-text-secondary">
-        <span>
-          {formatCompactMoney(Number(investor.checkSizeMinAmount), investor.currency)} –{" "}
-          {formatCompactMoney(Number(investor.checkSizeMaxAmount), investor.currency)}
-        </span>
-        <Button size="sm" onClick={() => onConnect(investor)} disabled={!investor.openForPitches}>
-          Connect
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
+/**
+ * The founder's home. Reads top to bottom as: what to do next and where you
+ * stand, then the investor side (requests, who looked, who fits), then your
+ * own record (milestones, activity) and settings. Finding investors has its
+ * own page (/founder/investors) so this one stays a summary.
+ */
 export default function FounderDashboardPage() {
   const { data: startup, isLoading: startupLoading, isError: startupError } = useMyStartup();
   const { data: health } = useMyStartupHealth();
   const { data: benchmark } = useMyGrowthBenchmark();
-  const [investorFilters, setInvestorFilters] = useState<InvestorSearchFilters>({ matchMyStartup: true, page: 1, pageSize: 20 });
-  const { data: investorResults, isLoading: investorsLoading } = useInvestors(investorFilters);
-  const investors = investorResults?.items ?? [];
-  const { data: connectionsResult, isLoading: connectionsLoading } = useConnections();
-  const connections = connectionsResult?.items;
   const { data: quota } = useConnectionQuota();
   const { data: recommendations, isLoading: recommendationsLoading } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
-  // One "Add milestone" dialog, opened from Next actions, Quick actions and Profile completion.
+  // One "Add milestone" dialog, opened from Next actions, Profile completion and the header.
   const [milestoneOpen, setMilestoneOpen] = useState(false);
   const openMilestone = () => setMilestoneOpen(true);
 
-  return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          {/* Naming the startup makes this read as *their* operating centre
-              rather than a generic screen. Falls back cleanly pre-publish. */}
-          <h1 className="font-heading text-2xl font-semibold text-text-primary">
-            {startup?.name ?? "Founder dashboard"}
-          </h1>
-          {startup && <p className="text-sm text-text-secondary">Your VittamHub operating centre</p>}
+  if (startupLoading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <Skeleton className="h-16 w-80 max-w-full" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Skeleton className="h-72 w-full lg:col-span-2" />
+          <Skeleton className="h-72 w-full" />
         </div>
-        {quota && (
-          <Badge variant={quota.remaining === 0 ? "danger" : "neutral"}>
-            {quota.limit === null
-              ? "Unlimited connect requests"
-              : `${quota.remaining} of ${quota.limit} connect requests left this month`}
-          </Badge>
-        )}
       </div>
+    );
+  }
 
-      {startupError && !startupLoading && (
-        <Card className="flex items-center justify-between gap-4 border-warning-200 bg-warning-50">
-          <p className="text-sm text-text-primary">Finish publishing your startup profile to unlock your dashboard.</p>
-          <Button size="sm" asChild>
-            <Link href="/onboarding/founder">Continue onboarding</Link>
-          </Button>
-        </Card>
-      )}
+  if (startupError || !startup) {
+    return (
+      <div className="flex flex-col gap-8">
+        <PageHeader title="Founder home" description="Publish your startup profile to open your dashboard." />
+        <EmptyState
+          icon={Sparkles}
+          title="Your startup profile isn't published yet"
+          description="It takes about ten minutes. You can skip any step and come back to it."
+          action={
+            <Button asChild>
+              <Link href="/onboarding/founder">Continue your profile</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  const quotaLabel =
+    quota && (quota.limit === null ? "Unlimited connect requests" : `${quota.remaining} of ${quota.limit} connect requests left this month`);
+
+  return (
+    <div className="flex flex-col gap-10">
+      <PageHeader
+        title={startup.name}
+        description={startup.tagline}
+        meta={
+          <>
+            <Badge variant="brand">{STAGE_LABEL[startup.stage] ?? startup.stage}</Badge>
+            {startup.verificationStatus === "VERIFIED" ? (
+              <VerifiedBadge status={startup.verificationStatus} />
+            ) : (
+              <Badge variant={VERIFICATION_VARIANT[startup.verificationStatus] ?? "neutral"}>Not verified yet</Badge>
+            )}
+            {startup.isFundraising && <Badge variant="success">Fundraising</Badge>}
+            {quotaLabel && <Badge variant={quota?.remaining === 0 ? "danger" : "neutral"}>{quotaLabel}</Badge>}
+          </>
+        }
+        actions={
+          <>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href={`/startups/${startup.slug}`}>
+                <Eye className="h-4 w-4" aria-hidden="true" /> View public page
+              </Link>
+            </Button>
+            <Button variant="secondary" size="sm" onClick={openMilestone}>
+              <Plus className="h-4 w-4" aria-hidden="true" /> Add milestone
+            </Button>
+            <Button size="sm" asChild>
+              <Link href="/founder/investors">Find investors</Link>
+            </Button>
+          </>
+        }
+      />
 
       {quota?.remaining === 0 && (
-        <Card className="flex items-center justify-between gap-4 border-warning-200 bg-warning-50">
+        <Card className="border-warning-100 bg-warning-50 dark:border-warning-600/40 dark:bg-warning-500/10">
           {/* A disabled "Upgrade (coming soon)" button stood here: there is nothing to buy yet (CLAUDE.md §5). */}
-          <p className="text-sm text-text-primary">
-            You&apos;ve used all your connect requests for this month. More become available on the 1st of next month.
+          <p className="body-6 text-text-primary">
+            You have used this month&apos;s connect requests. New ones become available on the 1st of next month.
           </p>
         </Card>
       )}
 
-      {/* 1 — What to do next. Deliberately the first thing on the page: the
-          dashboard's job is to answer "what moves my startup forward?", and
-          burying that under status tiles made every card compete equally. */}
-      {startup && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            {health ? <NextActionsCard trustScore={health.trustScore} onAddMilestone={openMilestone} /> : <Skeleton className="h-full min-h-48 w-full" />}
-          </div>
-          <QuickActionsCard startupSlug={startup.slug} onAddMilestone={openMilestone} />
+      {/* 1. What moves the startup forward, beside where it stands today. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          {health ? <NextActionsCard trustScore={health.trustScore} onAddMilestone={openMilestone} /> : <Skeleton className="h-full min-h-64 w-full" />}
         </div>
-      )}
+        {health ? <StandingPanel health={health} /> : <Skeleton className="h-full min-h-64 w-full" />}
+      </div>
 
-      {/* 2 — Where you stand: credibility and visibility at a glance. */}
-      {startup && (
-        <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-lg font-semibold text-text-primary">Your standing</h2>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <StartupHealthCard startup={startup} />
-            {health && <TrustScoreCard trustScore={health.trustScore} />}
-            {health && <ProfileCompletionCard completion={health.profileCompletion} onAddMilestone={openMilestone} />}
-            {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
-            {health && <FounderReputationCard founderReputation={health.founderReputation} />}
-            <VisibilitySettingsCard startup={startup} />
+      {/* 2. The investor side: requests sent, who looked, who fits. */}
+      <section className="flex flex-col gap-4" aria-labelledby="investors-heading">
+        <SectionHeader
+          id="investors-heading"
+          title="Investors"
+          description="Requests you have sent and the investors who match your stage and industry."
+          href="/founder/investors"
+          linkLabel="Find investors"
+        />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="flex flex-col gap-3 lg:col-span-2">
+            <h3 className="title-4">Your connect requests</h3>
+            <ConnectRequestsList limit={5} emptyHint="Send your first request from the investors page. Each one carries your summary and deck." />
           </div>
-        </section>
-      )}
-
-      {/* 3 — Activity: who's looking, and what you've shipped. */}
-      {startup && (
-        <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-lg font-semibold text-text-primary">Activity</h2>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <FounderActivityCard />
-            </div>
-            <RecentProfileViewsCard />
-            <div className="lg:col-span-3">
-              <RecentUpdatesCard milestones={startup.milestones} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {startup && (
-        <section className="flex flex-col gap-4">
-          <div>
-            <h2 className="font-heading text-lg font-semibold text-text-primary">Recommended investors</h2>
-            <p className="text-sm text-text-secondary">
-              Ranked by industry, stage, funding fit, geography, and pitch availability. Not machine-learned.
-            </p>
-          </div>
-          {recommendationsLoading ? (
-            <CardGridSkeleton count={3} />
-          ) : recommendations && recommendations.recommendedInvestors.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {recommendations.recommendedInvestors.map((match) => (
-                <InvestorCard key={match.investorId} investor={match.investor} onConnect={setConnectingTo} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={Sparkles}
-              title="No recommendations yet"
-              description="Complete your startup profile to get matched with investors."
-            />
-          )}
-        </section>
-      )}
-
-      <section id="discover-investors" className="flex flex-col gap-4 scroll-mt-20">
-        <h2 className="font-heading text-lg font-semibold text-text-primary">Discover investors</h2>
-        <InvestorFiltersBar filters={investorFilters} onChange={setInvestorFilters} />
-        {investorsLoading ? (
-          <CardGridSkeleton />
-        ) : investors && investors.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {investors.map((investor) => (
-              <InvestorCard key={investor.id} investor={investor} onConnect={setConnectingTo} />
+          <RecentProfileViewsCard />
+        </div>
+        {recommendationsLoading ? (
+          <CardGridSkeleton count={3} />
+        ) : recommendations && recommendations.recommendedInvestors.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {recommendations.recommendedInvestors.slice(0, 3).map((match) => (
+              <InvestorCard key={match.investorId} investor={match.investor} onConnect={setConnectingTo} />
             ))}
           </div>
-        ) : (
-          <EmptyState icon={Handshake} title="No investors listed yet" description="Check back soon as investors join VittamHub." />
-        )}
+        ) : null}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg font-semibold text-text-primary">Your connect requests</h2>
-        {connectionsLoading ? (
-          <ListRowsSkeleton />
-        ) : connections && connections.length > 0 ? (
-          <div className="flex flex-col divide-y divide-border rounded-card border border-border">
-            {connections.map((connection) => (
-              <div key={connection.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{connection.recipient.fullName}</p>
-                  <p className="text-xs text-text-secondary">Sent {formatRelativeTime(connection.createdAt)}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <ConnectionStatusBadge status={connection.status} />
-                  {connection.status === "ACCEPTED" && (
-                    <Link
-                      href={`/connections/${connection.id}`}
-                      className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
-                    >
-                      <MessageCircle className="h-3.5 w-3.5" /> Message
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
+      {/* 3. The startup's own record, then the profile and its settings. */}
+      <section className="flex flex-col gap-4" aria-labelledby="record-heading">
+        <SectionHeader id="record-heading" title="Your record" description="Milestones you have added and what has happened on your profile." />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <RecentUpdatesCard milestones={startup.milestones} />
           </div>
-        ) : (
-          <EmptyState icon={Inbox} title="No connect requests yet" description="Send your first request to an investor above." />
-        )}
+          <FounderActivityCard />
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4" aria-labelledby="profile-heading">
+        <SectionHeader id="profile-heading" title="Profile" description="What is still missing, and who can see what." />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {health && <ProfileCompletionCard completion={health.profileCompletion} onAddMilestone={openMilestone} />}
+          <VisibilitySettingsCard startup={startup} />
+          {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
+        </div>
       </section>
 
       <AddMilestoneDialog open={milestoneOpen} onOpenChange={setMilestoneOpen} />

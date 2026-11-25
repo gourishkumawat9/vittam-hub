@@ -18,7 +18,7 @@ export default function UniversitiesDirectoryPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Universities</h1>
+        <h1 className="heading-5">Universities</h1>
         <p className="text-sm text-text-secondary">Browse university incubation cells and their programs.</p>
       </div>
 

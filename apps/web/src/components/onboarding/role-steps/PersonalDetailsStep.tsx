@@ -11,6 +11,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
+import { hasAny, MoreDetails, StepHeader } from "../fields";
 
 const GENDER_OPTIONS = [
   { label: "Male", value: Gender.MALE },
@@ -22,9 +23,25 @@ const GENDER_OPTIONS = [
 interface PersonalDetailsStepProps {
   defaultValues?: Partial<PersonalDetailsInput>;
   onNext: () => void;
+  /** Says who will see these details, in the words of the role signing up. */
+  description?: string;
+  linkedinHint?: string;
+  bioPlaceholder?: string;
 }
 
-export function PersonalDetailsStep({ defaultValues, onNext }: PersonalDetailsStepProps) {
+/**
+ * The first step of every role's sign-up: who you are. Asks only for a name,
+ * a mobile number and a city (plus a photo, LinkedIn and a line about you,
+ * which make the profile worth opening); the rest is folded under
+ * "More about you" and can wait.
+ */
+export function PersonalDetailsStep({
+  defaultValues,
+  onNext,
+  description = "People on VittamHub meet you before anything else. Your name, photo and a line about you are shown on your profile.",
+  linkedinHint = "The quickest way for people to learn who you are",
+  bioPlaceholder = "What you do today, and what you did before.",
+}: PersonalDetailsStepProps) {
   const { data: user } = useCurrentUser();
   const setSectionData = useOnboardingStore((s) => s.setSectionData);
 
@@ -47,43 +64,93 @@ export function PersonalDetailsStep({ defaultValues, onNext }: PersonalDetailsSt
     onNext();
   });
 
-  return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Personal information</h2>
-        <p className="mt-1 text-sm text-text-secondary">Tell us about yourself. This appears on your public profile.</p>
-      </div>
+  const moreFilled = hasAny([
+    values.dateOfBirth,
+    values.gender,
+    values.nationality,
+    values.githubUrl,
+    values.portfolioUrl,
+    values.yearsOfExperience,
+    values.state,
+    values.country,
+  ]);
 
-      <Controller
-        control={control}
-        name="avatarUrl"
-        render={({ field }) => <AvatarUpload value={field.value} onChange={field.onChange} />}
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <StepHeader
+        title="About you"
+        minutes={1}
+        description={description}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Full name" error={errors.fullName?.message} {...register("fullName")} />
-        <Input label="Email" value={user?.email ?? ""} disabled hint="Set at registration" />
-        <Input label="Mobile number" error={errors.mobileNumber?.message} {...register("mobileNumber")} />
-        <Input label="Date of birth" type="date" error={errors.dateOfBirth?.message} {...register("dateOfBirth")} />
+      <div className="flex flex-col gap-5">
         <Controller
           control={control}
-          name="gender"
-          render={({ field }) => (
-            <Select label="Gender" options={GENDER_OPTIONS} value={field.value} onChange={field.onChange} error={errors.gender?.message} />
-          )}
+          name="avatarUrl"
+          render={({ field }) => <AvatarUpload value={field.value} onChange={field.onChange} />}
         />
-        <Input label="Nationality" error={errors.nationality?.message} {...register("nationality")} />
-        <Input label="LinkedIn" placeholder="https://linkedin.com/in/…" error={errors.linkedinUrl?.message} {...register("linkedinUrl")} />
-        <Input label="Portfolio website" placeholder="https://…" error={errors.portfolioUrl?.message} {...register("portfolioUrl")} />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Full name" required autoComplete="name" error={errors.fullName?.message} {...register("fullName")} />
+          <Input label="Email" value={user?.email ?? ""} disabled hint="The one you signed up with" />
+          <Input
+            label="Mobile number"
+            type="tel"
+            autoComplete="tel"
+            inputMode="tel"
+            hint="Private. Only used to reach you about your account"
+            error={errors.mobileNumber?.message}
+            {...register("mobileNumber")}
+          />
+          <Input label="City" autoComplete="address-level2" placeholder="Jaipur" error={errors.city?.message} {...register("city")} />
+        </div>
+
+        <Input
+          label="LinkedIn"
+          placeholder="https://linkedin.com/in/…"
+          hint={linkedinHint}
+          error={errors.linkedinUrl?.message}
+          {...register("linkedinUrl")}
+        />
+
+        <Textarea
+          label="A line about you"
+          rows={2}
+          placeholder={bioPlaceholder}
+          hint="One or two sentences on your background"
+          {...register("bio")}
+        />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="City" error={errors.city?.message} {...register("city")} />
-        <Input label="State" error={errors.state?.message} {...register("state")} />
-        <Input label="Country" error={errors.country?.message} {...register("country")} />
-      </div>
-
-      <Textarea label="Short bio" rows={3} hint="A couple of sentences about your background" {...register("bio")} />
+      <MoreDetails
+        title="More about you"
+        description="Optional. Add these now or any time from your profile."
+        defaultOpen={moreFilled}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Years of experience"
+            type="number"
+            min={0}
+            hint="Lets investors filter by founder experience"
+            error={errors.yearsOfExperience?.message}
+            {...register("yearsOfExperience")}
+          />
+          <Input label="GitHub" placeholder="https://github.com/…" error={errors.githubUrl?.message} {...register("githubUrl")} />
+          <Input label="Portfolio website" placeholder="https://…" error={errors.portfolioUrl?.message} {...register("portfolioUrl")} />
+          <Input label="Date of birth" type="date" hint="Private" error={errors.dateOfBirth?.message} {...register("dateOfBirth")} />
+          <Controller
+            control={control}
+            name="gender"
+            render={({ field }) => (
+              <Select label="Gender" options={GENDER_OPTIONS} value={field.value} onChange={field.onChange} error={errors.gender?.message} />
+            )}
+          />
+          <Input label="Nationality" error={errors.nationality?.message} {...register("nationality")} />
+          <Input label="State" autoComplete="address-level1" error={errors.state?.message} {...register("state")} />
+          <Input label="Country" autoComplete="country-name" error={errors.country?.message} {...register("country")} />
+        </div>
+      </MoreDetails>
 
       <WizardNav onNext={onSubmit} isFirstStep />
     </form>

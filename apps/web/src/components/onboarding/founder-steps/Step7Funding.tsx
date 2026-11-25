@@ -9,6 +9,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
+import { StepHeader } from "../fields";
 
 const FUNDING_TYPE_OPTIONS = Object.values(FundingType);
 
@@ -27,7 +28,7 @@ export function Step7Funding({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   const values = watch();
-  useAutosave("funding", 6, values);
+  useAutosave("funding", 7, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("funding", data);
@@ -40,11 +41,8 @@ export function Step7Funding({ defaultValues, onNext, onBack }: StepProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Funding</h2>
-        <p className="mt-1 text-sm text-text-secondary">Your funding history and current raise, if any.</p>
-      </div>
+    <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <StepHeader optional title="Funding" description="What you have raised before and what you are raising now. Share only what you are comfortable with." />
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium text-text-primary">Funding types</span>
@@ -85,7 +83,7 @@ export function Step7Funding({ defaultValues, onNext, onBack }: StepProps) {
         <Input label="Monthly burn rate (₹)" type="number" {...register("monthlyBurnRateAmount")} />
       </div>
 
-      <WizardNav onBack={onBack} onNext={onSubmit} />
+      <WizardNav onBack={onBack} onNext={onSubmit} backLabel="Back to review" nextLabel="Save and review" />
     </form>
   );
 }

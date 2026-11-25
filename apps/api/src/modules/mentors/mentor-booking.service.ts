@@ -92,7 +92,7 @@ export class MentorBookingService {
       include: {
         founder: { select: { id: true, fullName: true, avatarUrl: true } },
         mentor: { select: { id: true, fullName: true, avatarUrl: true } },
-        startup: { select: { id: true, name: true, slug: true, logoUrl: true } },
+        startup: { select: { id: true, name: true, slug: true, logoUrl: true, stage: true, tagline: true } },
       },
     });
   }

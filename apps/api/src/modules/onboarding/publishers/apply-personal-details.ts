@@ -36,15 +36,16 @@ export async function applyPersonalDetails(tx: Tx, userId: string, rawPersonalDe
 
   const profileData: Prisma.UserProfileUpdateInput = {
     mobileNumber: details.mobileNumber,
-    dateOfBirth: new Date(details.dateOfBirth),
-    gender: details.gender,
-    nationality: details.nationality,
+    // Optional since sign-up asks only for the essentials: left out (or cleared) is stored as empty.
+    dateOfBirth: details.dateOfBirth ? new Date(details.dateOfBirth) : null,
+    gender: details.gender ?? null,
+    nationality: details.nationality ?? null,
     linkedinUrl: details.linkedinUrl,
     githubUrl: details.githubUrl,
     portfolioUrl: details.portfolioUrl,
     city: details.city,
-    state: details.state,
-    country: details.country,
+    state: details.state ?? null,
+    country: details.country ?? null,
     bio: details.bio,
     yearsOfExperience: details.yearsOfExperience,
   };

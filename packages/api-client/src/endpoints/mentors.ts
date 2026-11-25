@@ -10,6 +10,7 @@ import type {
   MentorSearchFilters,
   PaginatedResult,
   RespondToMentorBookingInput,
+  StartupStage,
 } from "@vittamhub/types";
 
 import { apiRequest } from "../http";
@@ -29,7 +30,7 @@ export interface MentorWithReputation extends MentorWithOwner {
 export interface MentorBookingWithRelations extends MentorBookingRequestRecord {
   founder: { id: string; fullName: string; avatarUrl: string | null };
   mentor: { id: string; fullName: string; avatarUrl: string | null };
-  startup: { id: string; name: string; slug: string; logoUrl: string | null } | null;
+  startup: { id: string; name: string; slug: string; logoUrl: string | null; stage: StartupStage; tagline: string } | null;
 }
 
 export const mentorsApi = {
@@ -43,6 +44,8 @@ export const mentorsApi = {
     return apiRequest<PaginatedResult<MentorWithOwner>>(`/v1/mentors?${params.toString()}`);
   },
   getById: (id: string) => apiRequest<MentorWithReputation>(`/v1/mentors/${id}`),
+  /** The signed-in mentor's own profile with reputation. Null before the mentor profile is published. */
+  mine: () => apiRequest<MentorWithReputation | null>("/v1/mentors/me"),
   book: (id: string, input: CreateMentorBookingInput) =>
     apiRequest<MentorBookingRequestRecord>(`/v1/mentors/${id}/book`, { method: "POST", body: input }),
   listBookings: () => apiRequest<MentorBookingWithRelations[]>("/v1/mentors/bookings"),

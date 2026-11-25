@@ -39,7 +39,7 @@ function VerificationOverviewSection() {
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold text-text-primary">Verification overview</h2>
+        <h2 className="heading-6">Verification overview</h2>
         <p className="text-sm text-text-secondary">
           Read-only. Every profile&apos;s verification status is computed automatically from submitted documents and
           profile completeness. There is no manual approve/reject step here.
@@ -228,7 +228,7 @@ function AdminUsersSection() {
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold text-text-primary">Users</h2>
+        <h2 className="heading-6">Users</h2>
         <p className="text-sm text-text-secondary">Read-only list/search. No ban, edit, or role-change actions here.</p>
       </div>
 
@@ -281,7 +281,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Admin</h1>
+      <h1 className="heading-5">Admin</h1>
 
       {/* First on the page on purpose: an operator's first question is whether
           the platform is up, and there was previously no surface anywhere that
@@ -290,7 +290,7 @@ export default function AdminDashboardPage() {
 
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="font-heading text-lg font-semibold text-text-primary">Platform overview</h2>
+          <h2 className="heading-6">Platform overview</h2>
           <p className="text-sm text-text-secondary">Real, read-only counts. No manual moderation actions anywhere in this panel.</p>
         </div>
         <PlatformTotalsSection />
@@ -303,7 +303,7 @@ export default function AdminDashboardPage() {
 
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="font-heading text-lg font-semibold text-text-primary">Connect request limits</h2>
+          <h2 className="heading-6">Connect request limits</h2>
           <p className="text-sm text-text-secondary">
             Controls how many investor connect requests a founder can send per calendar month, per plan.
           </p>

@@ -46,7 +46,7 @@ export default function PipelinePage() {
   if (!isLoading && (!entries || entries.length === 0)) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Investment Pipeline</h1>
+        <h1 className="heading-5">Investment pipeline</h1>
         <EmptyState icon={Kanban} title="Your pipeline is empty" description="Add startups from Discover Startups to start tracking deals here." />
       </div>
     );
@@ -54,7 +54,7 @@ export default function PipelinePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Investment Pipeline</h1>
+      <h1 className="heading-5">Investment pipeline</h1>
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {STAGES.map((stage) => {

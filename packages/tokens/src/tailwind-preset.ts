@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-import { brand, neutral, slate, success, warning, danger, info } from "./colors";
+import { brand, neutral, slate, success, warning, danger, info, trustTier } from "./colors";
 import { shadow } from "./shadows";
 import { spacing, radius, breakpoints } from "./spacing";
 import { fontFamily, fontSize, letterSpacing } from "./typography";
@@ -26,6 +26,7 @@ const preset: Partial<Config> = {
         warning,
         danger,
         info,
+        trust: trustTier,
         // Semantic CSS-variable-backed aliases (see globals.css) — enables
         // instant light/dark theming without duplicating Tailwind classes.
         background: "rgb(var(--color-background) / <alpha-value>)",
@@ -52,6 +53,8 @@ const preset: Partial<Config> = {
         content: "1440px",
       },
       transitionTimingFunction: {
+        // The one curve for interface motion: decelerates into place, no overshoot.
+        base: "cubic-bezier(0.22, 1, 0.36, 1)",
         standard: "cubic-bezier(0.4, 0, 0.2, 1)",
         decelerate: "cubic-bezier(0, 0, 0.2, 1)",
         accelerate: "cubic-bezier(0.4, 0, 1, 1)",

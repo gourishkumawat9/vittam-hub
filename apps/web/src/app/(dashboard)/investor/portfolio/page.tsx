@@ -113,7 +113,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">My Portfolio</h1>
+      <h1 className="heading-5">Portfolio</h1>
 
       {dashboard && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

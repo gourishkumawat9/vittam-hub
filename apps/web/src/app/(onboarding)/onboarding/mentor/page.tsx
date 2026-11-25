@@ -17,7 +17,7 @@ export default function MentorOnboardingPage() {
   const { shell, draft, step, goNext, goBack, isEditing } = useOnboardingDraft(STEPS);
 
   return (
-    <WizardShell steps={STEPS} exitHref="/mentors/bookings" {...shell}>
+    <WizardShell steps={STEPS} exitHref="/home" {...shell}>
       {step === 0 && (
         <PersonalDetailsStep defaultValues={draftSection<PersonalDetailsInput>(draft, "personalDetails")} onNext={goNext} />
       )}

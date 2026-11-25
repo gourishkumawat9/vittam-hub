@@ -37,7 +37,7 @@ export default function UniversityDetailPage() {
         )}
         <div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="font-heading text-2xl font-semibold text-text-primary">{university.institutionName}</h1>
+            <h1 className="heading-5">{university.institutionName}</h1>
             <VerifiedBadge status={university.verificationStatus} />
           </div>
           {university.incubationCellName && <p className="text-sm text-text-secondary">{university.incubationCellName}</p>}

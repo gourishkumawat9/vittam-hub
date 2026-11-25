@@ -1,182 +1,15 @@
 "use client";
 
-import {
-  useConnections,
-  useFollowStartup,
-  useOpenConnectionAttachment,
-  useRequestMoreInfo,
-  useRespondToConnection,
-  useScheduleMeeting,
-  type ConnectionWithRelations,
-} from "@vittamhub/api-client";
-import { Button, Card, Dialog, EmptyState, Input, Textarea, useToast } from "@vittamhub/ui";
-import { formatMoney, formatRelativeTime } from "@vittamhub/utils";
-import { Bookmark, Calendar, FileText, HelpCircle, Inbox, MessageCircle, PlayCircle } from "lucide-react";
+import { useConnections } from "@vittamhub/api-client";
+import { EmptyState } from "@vittamhub/ui";
+import { formatRelativeTime } from "@vittamhub/utils";
+import { Inbox, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 
 import { ConnectionStatusBadge } from "@/components/connections/ConnectionStatusBadge";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
-import { localInputToIso, nowForLocalInput } from "@/lib/datetime";
-import { openFetchedLink } from "@/lib/open-link";
-import { externalHref } from "@/lib/safe-url";
-
-interface MeetingFormValues {
-  scheduledAt: string;
-  notes?: string;
-  videoCallUrl?: string;
-}
-
-function ScheduleMeetingDialog({ connectionId, open, onOpenChange }: { connectionId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
-  const scheduleMeeting = useScheduleMeeting(connectionId);
-  const { register, handleSubmit, reset } = useForm<MeetingFormValues>();
-
-  const onSubmit = handleSubmit(async (data) => {
-    // The picker's value has no time zone. Sent as it was, the API read it as
-    // UTC, so a 3 pm meeting proposed from India was stored as 8:30 pm.
-    await scheduleMeeting.mutateAsync({ ...data, scheduledAt: localInputToIso(data.scheduledAt) ?? data.scheduledAt });
-    reset();
-    onOpenChange(false);
-  });
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Propose a meeting"
-      footer={
-        <>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={onSubmit} isLoading={scheduleMeeting.isPending}>
-            Propose
-          </Button>
-        </>
-      }
-    >
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <Input label="Date & time" type="datetime-local" min={nowForLocalInput()} {...register("scheduledAt", { required: true })} />
-        <Input label="Video call link (optional)" placeholder="https://…" {...register("videoCallUrl")} />
-        <Textarea label="Notes (optional)" rows={2} {...register("notes")} />
-      </form>
-    </Dialog>
-  );
-}
-
-function PendingRequestCard({ connection }: { connection: ConnectionWithRelations }) {
-  const respond = useRespondToConnection();
-  const followStartup = useFollowStartup();
-  const requestMoreInfo = useRequestMoreInfo();
-  const { toast } = useToast();
-  const [actioning, setActioning] = useState<"ACCEPT" | "DECLINE" | "IGNORE" | null>(null);
-  const [meetingOpen, setMeetingOpen] = useState(false);
-  const openAttachment = useOpenConnectionAttachment();
-
-  // An uploaded deck sits in private storage, so its stored address opens nothing; a short-lived link is fetched on the click.
-  const viewAttachment = (kind: "pitch-deck" | "executive-summary") =>
-    openFetchedLink(async () => (await openAttachment.mutateAsync({ id: connection.id, kind })).url);
-
-  const act = async (action: "ACCEPT" | "DECLINE" | "IGNORE") => {
-    setActioning(action);
-    try {
-      await respond.mutateAsync({ id: connection.id, action });
-      const founderName = connection.startup?.name ?? connection.requester.fullName;
-      // Accepting is the moment the core loop unlocks (CLAUDE.md §4), so the
-      // confirmation also says what became possible — a confirmation that
-      // only says "done" makes the user go looking for what changed.
-      if (action === "ACCEPT") {
-        toast({
-          variant: "success",
-          title: `Connected with ${founderName}`,
-          description: "You can now message each other, share documents, and schedule a meeting.",
-        });
-      } else {
-        toast({
-          variant: "info",
-          title: action === "DECLINE" ? `Declined ${founderName}` : `Ignored ${founderName}`,
-          description: action === "DECLINE" ? "They've been notified." : "It won't appear in your queue again.",
-        });
-      }
-    } finally {
-      setActioning(null);
-    }
-  };
-
-  return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-heading text-sm font-semibold text-text-primary">{connection.startup?.name ?? connection.requester.fullName}</h3>
-          <p className="text-xs text-text-secondary">{connection.startup?.tagline}</p>
-        </div>
-        <span className="text-xs text-text-secondary">{formatRelativeTime(connection.createdAt)}</span>
-      </div>
-
-      {connection.introduction && <p className="text-sm text-text-secondary">{connection.introduction}</p>}
-
-      <div className="flex flex-wrap items-center gap-3 text-xs text-text-secondary">
-        {connection.fundingRequirementAmount != null && (
-          <span>Raising {formatMoney(connection.fundingRequirementAmount, connection.currency)}</span>
-        )}
-        {connection.pitchDeckUrl && (
-          <button type="button" onClick={() => void viewAttachment("pitch-deck")} className="flex items-center gap-1 text-brand-primary hover:underline">
-            <FileText className="h-3.5 w-3.5" aria-hidden /> Pitch deck
-          </button>
-        )}
-        {connection.executiveSummaryUrl && (
-          <button type="button" onClick={() => void viewAttachment("executive-summary")} className="flex items-center gap-1 text-brand-primary hover:underline">
-            <FileText className="h-3.5 w-3.5" aria-hidden /> One-pager
-          </button>
-        )}
-        {connection.demoLinkUrl && (
-          <a href={externalHref(connection.demoLinkUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-primary hover:underline">
-            <PlayCircle className="h-3.5 w-3.5" /> Demo
-          </a>
-        )}
-      </div>
-
-      {connection.infoRequestedAt && <p className="text-xs text-warning-600">You asked for more information on this request.</p>}
-
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
-        <div className="flex flex-wrap gap-1">
-          {connection.startup && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => followStartup.mutate({ startupId: connection.startup!.id, notifyOnUpdate: false })}
-              isLoading={followStartup.isPending}
-            >
-              <Bookmark className="h-3.5 w-3.5" /> Save
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={() => setMeetingOpen(true)}>
-            <Calendar className="h-3.5 w-3.5" /> Meeting
-          </Button>
-          {!connection.infoRequestedAt && (
-            <Button size="sm" variant="ghost" onClick={() => requestMoreInfo.mutate(connection.id)} isLoading={requestMoreInfo.isPending}>
-              <HelpCircle className="h-3.5 w-3.5" /> More info
-            </Button>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="ghost" isLoading={actioning === "IGNORE"} onClick={() => act("IGNORE")}>
-            Ignore
-          </Button>
-          <Button size="sm" variant="secondary" isLoading={actioning === "DECLINE"} onClick={() => act("DECLINE")}>
-            Reject
-          </Button>
-          <Button size="sm" isLoading={actioning === "ACCEPT"} onClick={() => act("ACCEPT")}>
-            Accept
-          </Button>
-        </div>
-      </div>
-
-      <ScheduleMeetingDialog connectionId={connection.id} open={meetingOpen} onOpenChange={setMeetingOpen} />
-    </Card>
-  );
-}
+import { PageHeader } from "@/components/dashboard/PageHeader";
+import { PendingRequestCard } from "@/components/dashboard/investor/PendingRequestCard";
 
 export default function ConnectionRequestsPage() {
   const { data: connectionsResult, isLoading } = useConnections({ page: 1, pageSize: 100 });
@@ -187,13 +20,20 @@ export default function ConnectionRequestsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Connection requests</h1>
+      <PageHeader
+        title="Connect requests"
+        description={
+          pending.length > 0
+            ? `${pending.length} founder${pending.length === 1 ? " is" : "s are"} waiting for your answer. Accepting opens chat, documents and meetings.`
+            : "Founders reach you here first. Nothing opens until you accept."
+        }
+      />
 
       <section className="flex flex-col gap-4">
         {isLoading ? (
           <CardGridSkeleton count={2} />
         ) : pending.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {pending.map((connection) => (
               <PendingRequestCard key={connection.id} connection={connection} />
             ))}
@@ -205,7 +45,7 @@ export default function ConnectionRequestsPage() {
 
       {history.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-lg font-semibold text-text-primary">History</h2>
+          <h2 className="heading-6">Answered</h2>
           <div className="flex flex-col divide-y divide-border rounded-card border border-border">
             {history.map((connection) => (
               <div key={connection.id} className="flex items-center justify-between gap-4 px-4 py-3">
@@ -218,7 +58,7 @@ export default function ConnectionRequestsPage() {
                   {connection.status === "ACCEPTED" && (
                     <Link
                       href={`/connections/${connection.id}`}
-                      className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
+                      className="flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300"
                     >
                       <MessageCircle className="h-3.5 w-3.5" /> Message
                     </Link>

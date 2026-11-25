@@ -169,7 +169,7 @@ function WatchlistContent() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">
+        <h1 className="heading-5">
           {tab === "watchlist" ? "Watchlist" : tab === "triggers" ? "Watchlist Alerts" : "Saved Startups"}
         </h1>
       </div>

@@ -9,20 +9,32 @@ Three scales, each with a job:
 - **`neutral`** (Tailwind `gray`) and **`slate`** (Tailwind `slate`) — used for text/borders and surfaces respectively. These aren't invented: `#F8FAFC`, `#0F172A`, `#020617`, `#E5E7EB`, `#111827`, `#6B7280` in the original brief are *exactly* Tailwind's default gray/slate palette, so we reuse Tailwind's scale rather than re-deriving one that happens to pass through the same six points.
 - **`success` / `warning` / `danger` / `info`** — same reasoning: the spec's hexes are Tailwind's green-600, amber-500, red-600, and blue-500. Reusing the real scale means we get 50/100 tints for badge/alert backgrounds for free, correctly calibrated.
 
+- **`trustTier`** (V0–V3) — one colour per verification level, used only on trust labels (`TrustTierBadge`), never as a second brand accent: V0 self-declared (slate), V1 document-supported (blue), V2 independently corroborated (violet), V3 matched against an authoritative source (green). Each label carries the level's name too, so colour is never the only signal.
+
+Buttons that carry white text use `brand-700`, not `brand-600`, so small button text clears 4.5:1. Warning text uses `warning-700` (`#B45309`) for the same reason.
+
 Components never reference `brand.600` or `neutral.900` directly — they use the **semantic layer** (`semanticColors.light` / `.dark`, exposed as CSS variables in `globals.css` and as Tailwind classes like `bg-brand-primary`, `text-text-secondary`). A rebrand or a contrast fix touches `colors.ts` once; no component changes.
 
 ## Typography ([`typography.ts`](../packages/tokens/src/typography.ts))
 
-Four families, four jobs — never mixed:
-| Family | Token | Used for |
+One typeface, Manrope, for everything since November 2026 (self-hosted, see `apps/web/src/fonts/README.md`). Inter, IBM Plex Sans and JetBrains Mono were dropped: one family keeps the interface calm, and numbers use Manrope with `tabular-nums` so columns of figures still line up.
+
+| Token | Family | Used for |
 |---|---|---|
-| Henderson Sans | `fontFamily.brand` | Logo/wordmark only. Licensed asset — see the `next/font/local` setup in `apps/web/src/lib/fonts.ts`; falls back to Manrope until the `.woff2` files are added. |
-| Manrope | `fontFamily.heading` | H1–H6, nav labels, card titles |
-| Inter | `fontFamily.body` | Paragraphs, form labels, UI copy |
-| IBM Plex Sans | `fontFamily.numeric` | Metrics, currency, stat tiles — anywhere a founder or investor is scanning numbers, tabular figures read faster |
-| JetBrains Mono | `fontFamily.mono` | API keys, request IDs, code blocks |
+| `fontFamily.brand` | Henderson Sans, falling back to Manrope | Logo/wordmark only (licensed asset, not yet added) |
+| `fontFamily.heading` / `body` / `numeric` | Manrope | Headings, UI copy, metrics |
+| `fontFamily.mono` | System monospace | Request IDs and code only |
 
 `textStyles` composes family + size + weight + tracking into named styles (`h1`, `bodyBase`, `metricLg`, ...) so a designer reviewing a screenshot can say "that should be `h3`" instead of "20px Manrope semibold" — the vocabulary is the token name.
+
+In the app, the same idea is a set of text classes in `apps/web/src/styles/globals.css`, numbered from biggest to smallest within each role:
+
+- `heading-1` to `heading-6`: page titles. A dashboard page title is `heading-5`; a section inside it is `heading-6`.
+- `title-1` to `title-5`: card and panel titles (`PanelTitle` uses `title-3`), list item names (`title-4`).
+- `body-3` to `body-6`: running text.
+- `caption-1` to `caption-5`: secondary text in the muted grey (`caption-5` for hints under a field).
+
+Use sentence case for every heading and button ("Connect requests", not "Connect Requests"). Text never truncates inside a panel title: titles wrap, and the right-hand action wraps under them on a phone.
 
 ## Spacing, radius, breakpoints ([`spacing.ts`](../packages/tokens/src/spacing.ts))
 
@@ -42,6 +54,8 @@ Framer Motion variants, not raw CSS transitions, because the brief's animation l
 - `staggerContainer` — wrap a grid of startup/investor cards to get "fade into view" staggered by 60ms per child
 - `reducedMotionFallback` — every component that imports a variant should branch on `useReducedMotion()` (Framer Motion's built-in hook) and swap to this opacity-only fallback, satisfying the WCAG reduced-motion requirement without a second implementation per component
 
+In Tailwind, transitions use `ease-base` (`cubic-bezier(0.22, 1, 0.36, 1)`, a quick start with a soft landing) and 200ms; Framer Motion entrances on the home page use the same curve.
+
 Durations are short (100–500ms) and easings avoid springy overshoot outside of `easing.spring`, reserved for small delight moments (counters ticking up, a success checkmark) — enterprise surfaces should feel calm, not bouncy.
 
 ## Dark mode
@@ -57,3 +71,9 @@ If a future contributor reaches for Tailwind's default `class` dark-mode strateg
 - `focusRing` shadow token + `:focus-visible` global rule → every interactive element gets a visible 2px brand-colored ring, not a browser default outline
 - `success`/`warning`/`danger`/`info` were chosen from Tailwind's palette specifically because they clear WCAG AA contrast against both `background` and `background-secondary`
 - `reducedMotionFallback` (above) — every motion variant has an opt-out
+
+## Patterns
+
+**Dashboard pages** start with `PageHeader` (title, one-line description, up to two actions), then a `StatStrip` of three or four numbers, then the work that needs the person ("Needs your reply"), then everything else in panels with `PanelTitle`. Empty states are a dashed card with one sentence and one action, never a blank space.
+
+**Onboarding asks for the essentials first.** Each role's wizard has a short required path (for founders: About you, Your startup, What you need, Review and publish) and optional sections that can be filled now or later from the review step. Inside a step, required fields come first; extras sit in a folded `MoreDetails` panel that opens by itself when it already holds saved answers. Short choices use `ChoiceChips` (one tap per answer) instead of dropdowns. Each step header shows a rough time ("About 2 min") so the ask feels as small as it is. The pieces live in `apps/web/src/components/onboarding/fields.tsx`.

@@ -18,7 +18,7 @@ export default function MentorsDirectoryPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Mentors</h1>
+        <h1 className="heading-5">Mentors</h1>
         <p className="text-sm text-text-secondary">Browse vetted mentors by expertise and book a session.</p>
       </div>
 

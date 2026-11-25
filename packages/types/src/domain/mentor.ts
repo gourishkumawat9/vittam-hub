@@ -21,15 +21,27 @@ export const mentorProfileSchema = z.object({
 });
 export type MentorProfileRecord = z.infer<typeof mentorProfileSchema>;
 
+/**
+ * A mentor's profile. Sign-up asks only for what a founder needs to decide
+ * whether to request a session (headline, expertise, session types and when
+ * you are free); the rest is optional and can be added later. An optional
+ * field left empty is stored as empty (null), so clearing one sticks.
+ */
 export const createMentorInputSchema = z.object({
   headline: z.string().min(1, "Add a short headline").max(160),
-  expertise: z.array(z.string().max(60)).min(1, "Select at least one area of expertise").max(30),
-  industries: z.array(z.string().max(80)).min(1, "Select at least one industry").max(40),
-  yearsExperience: z.coerce.number().int().min(0).max(80),
-  availability: z.string().min(1, "Describe your availability").max(200),
-  sessionTypes: z.array(z.nativeEnum(SessionType)).min(1, "Select at least one session type").max(10),
-  pricingModel: z.string().min(1, "Pricing model is required").max(80),
-  languages: z.array(z.string().max(40)).min(1, "Select at least one language").max(30),
+  expertise: z.array(z.string().max(60)).min(1, "Add at least one area you can help with").max(30),
+  industries: z.array(z.string().max(80)).max(40).default([]),
+  yearsExperience: z.preprocess(
+    (value) => (value === "" || value === undefined || value === null ? null : value),
+    z.coerce.number().int().min(0).max(80).nullable(),
+  ),
+  availability: z.string().min(1, "Say when founders can book you").max(200),
+  sessionTypes: z.array(z.nativeEnum(SessionType)).min(1, "Pick at least one kind of session").max(10),
+  pricingModel: z.preprocess(
+    (value) => (value === "" || value === undefined ? null : value),
+    z.string().max(80).nullable(),
+  ),
+  languages: z.array(z.string().max(40)).max(30).default([]),
   pastStartups: z.array(z.string().max(120)).max(100).default([]),
 });
 export type CreateMentorInput = z.infer<typeof createMentorInputSchema>;

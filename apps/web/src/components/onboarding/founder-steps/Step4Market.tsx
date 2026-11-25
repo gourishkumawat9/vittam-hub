@@ -10,6 +10,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
+import { StepHeader } from "../fields";
 
 const CUSTOMER_MODEL_OPTIONS = Object.values(CustomerModel);
 
@@ -38,7 +39,7 @@ export function Step4Market({ defaultValues, onNext, onBack }: StepProps) {
   const competitors = useFieldArray({ control, name: "competitors" });
 
   const values = watch();
-  useAutosave("market", 3, values);
+  useAutosave("market", 8, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("market", data);
@@ -51,11 +52,8 @@ export function Step4Market({ defaultValues, onNext, onBack }: StepProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Market details</h2>
-        <p className="mt-1 text-sm text-text-secondary">Who you serve and how you win against alternatives.</p>
-      </div>
+    <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <StepHeader optional title="Market" description="Who you serve, how big the market is and how you win against the alternatives." />
 
       <Textarea label="Target audience" rows={2} error={errors.targetAudience?.message} {...register("targetAudience")} />
 
@@ -146,7 +144,7 @@ export function Step4Market({ defaultValues, onNext, onBack }: StepProps) {
       <Textarea label="Competitive advantage" rows={2} {...register("competitiveAdvantage")} />
       <Textarea label="Go-to-market strategy" rows={2} {...register("goToMarketStrategy")} />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} />
+      <WizardNav onBack={onBack} onNext={onSubmit} backLabel="Back to review" nextLabel="Save and review" />
     </form>
   );
 }

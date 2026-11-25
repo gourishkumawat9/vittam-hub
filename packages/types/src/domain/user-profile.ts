@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { dateOfBirthSchema } from "./dates";
+import { optionalDateOfBirthSchema } from "./dates";
 import { Gender, OnboardingStatus } from "./enums";
 import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
@@ -32,19 +32,31 @@ export type UserProfileRecord = z.infer<typeof userProfileSchema>;
 
 const urlOrEmpty = optionalHttpUrlSchema;
 
+const optionalText = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .optional()
+    .transform((value) => (value === "" ? undefined : value));
+
+/**
+ * Only a name, a mobile number and a city are asked for at sign-up (the
+ * owner's call, November 2026: ask for the important things first, the way
+ * BHASKAR does). Everything else is optional and can be added later.
+ */
 export const personalDetailsInputSchema = z.object({
   fullName: z.string().min(1, "Full name is required").max(120),
   avatarUrl: urlOrEmpty,
   mobileNumber: z.string().min(6, "Enter a valid mobile number").max(20),
-  dateOfBirth: dateOfBirthSchema,
-  gender: z.nativeEnum(Gender),
-  nationality: z.string().min(1, "Nationality is required").max(80),
+  dateOfBirth: optionalDateOfBirthSchema,
+  gender: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.nativeEnum(Gender).optional()),
+  nationality: optionalText(80),
   linkedinUrl: urlOrEmpty,
   githubUrl: urlOrEmpty,
   portfolioUrl: urlOrEmpty,
   city: z.string().min(1, "City is required").max(80),
-  state: z.string().min(1, "State is required").max(80),
-  country: z.string().min(1, "Country is required").max(80),
+  state: optionalText(80),
+  country: optionalText(80),
   bio: z.string().max(1000).optional(),
   yearsOfExperience: z.coerce.number().int().nonnegative().optional(),
 });

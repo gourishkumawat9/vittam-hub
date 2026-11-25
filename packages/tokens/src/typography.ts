@@ -1,24 +1,21 @@
 /**
- * Type system. Four families, each with one job — never mix them.
+ * Type system. One typeface, Manrope, for everything: headings, body copy
+ * and figures (with tabular digits, see `.font-numeric` in globals.css).
+ * The four family tokens stay so existing `font-heading` / `font-body` /
+ * `font-numeric` classes keep working; they all resolve to Manrope now.
  *
  * Each stack leads with a `var(--font-*)` custom property, not a literal font
- * name — next/font (see apps/web/src/lib/fonts.ts) self-hosts each Google
- * Font under a hashed internal family name and only exposes it through that
- * CSS variable on <body>. Referencing "Manrope" as a literal string here
- * would silently fail to pick up the loaded font. The literal name after the
- * variable is a plain-CSS fallback for contexts without next/font (e.g. a
- * future Storybook build), not the primary path.
+ * name: next/font (see apps/web/src/lib/fonts.ts) self-hosts the font under a
+ * hashed internal family name and only exposes it through that CSS variable
+ * on <body>. The literal name after the variable is a plain-CSS fallback.
  */
 
 export const fontFamily = {
-  // Nested var(..., fallback) so an unset custom property degrades gracefully
-  // instead of making the whole font-family declaration invalid-at-computed-
-  // value-time (which would silently drop it to the inherited font instead).
-  brand: ["var(--font-brand, var(--font-heading, Manrope))", "sans-serif"], // Logo / wordmark only — falls back to the heading font until Henderson Sans is wired up, see apps/web/src/lib/fonts.ts
-  heading: ["var(--font-heading, Manrope)", "Inter", "sans-serif"], // H1–H6, nav, card titles
-  body: ["var(--font-body, Inter)", "-apple-system", "BlinkMacSystemFont", "sans-serif"], // Paragraphs, labels, UI copy
-  numeric: ["var(--font-numeric, \"IBM Plex Sans\")", "Inter", "sans-serif"], // Metrics, currency, stats, tables
-  mono: ["var(--font-mono, \"JetBrains Mono\")", "ui-monospace", "SFMono-Regular", "monospace"], // Code, API keys, hashes
+  brand: ["var(--font-brand, var(--font-heading, Manrope))", "sans-serif"], // Logo / wordmark only, falls back to Manrope until Henderson Sans is wired up
+  heading: ["var(--font-heading, Manrope)", "system-ui", "sans-serif"],
+  body: ["var(--font-heading, Manrope)", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+  numeric: ["var(--font-heading, Manrope)", "system-ui", "sans-serif"],
+  mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"], // Code and IDs only
 } as const;
 
 /** Fluid-ish type scale in rem (1rem = 16px). Line-height paired per size. */

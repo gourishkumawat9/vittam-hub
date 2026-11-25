@@ -10,6 +10,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
+import { StepHeader } from "../fields";
 
 const CATEGORY_OPTIONS = Object.values(TeamMemberCategory).map((value) => ({
   label: value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -42,7 +43,7 @@ export function Step5Team({ defaultValues, onNext, onBack }: StepProps) {
 
   const members = useFieldArray({ control, name: "members" });
   const values = watch();
-  useAutosave("team", 4, values);
+  useAutosave("team", 6, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("team", data);
@@ -50,11 +51,8 @@ export function Step5Team({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Team details</h2>
-        <p className="mt-1 text-sm text-text-secondary">Founders, co-founders, employees, advisors, and board members.</p>
-      </div>
+    <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <StepHeader optional title="Team" description="Who is building this with you. Investors back teams, so even one cofounder is worth adding." />
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -107,7 +105,7 @@ export function Step5Team({ defaultValues, onNext, onBack }: StepProps) {
         )}
       />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} />
+      <WizardNav onBack={onBack} onNext={onSubmit} backLabel="Back to review" nextLabel="Save and review" />
     </form>
   );
 }

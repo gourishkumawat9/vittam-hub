@@ -55,6 +55,16 @@ export class MentorsController {
     return this.bookingService.listForUser(user.sub);
   }
 
+  @Get("me")
+  @Roles("MENTOR")
+  @ApiOperation({ summary: "The signed-in mentor's own profile with reputation, for the mentor home. Null before the profile is published" })
+  async getMine(@CurrentUser() user: AuthenticatedUser) {
+    const mentor = await this.mentorsService.getMine(user.sub);
+    if (!mentor) return null;
+    const reputation = await this.mentorReputationService.calculate(mentor.ownerId);
+    return { ...mentor, reputation };
+  }
+
   @Public()
   @Get(":id")
   @ApiOperation({ summary: "Get a public mentor profile, including reputation (average rating + sessions completed)" })

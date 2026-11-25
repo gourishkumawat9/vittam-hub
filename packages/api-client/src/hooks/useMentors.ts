@@ -26,6 +26,10 @@ export function useMentor(id: string) {
   return useQuery({ queryKey: mentorKeys.detail(id), queryFn: () => mentorsApi.getById(id), enabled: !!id });
 }
 
+export function useMyMentorProfile(enabled = true) {
+  return useQuery({ queryKey: ["mentors", "me"], queryFn: mentorsApi.mine, enabled });
+}
+
 export function useMentorBookings() {
   return useQuery({ queryKey: mentorKeys.bookings, queryFn: mentorsApi.listBookings });
 }

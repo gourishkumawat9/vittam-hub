@@ -47,6 +47,14 @@ export class MentorsService {
     return buildPaginatedResult(items, totalItems, filters.page, filters.pageSize);
   }
 
+  /** The signed-in mentor's own profile, whether or not it is public yet. Null before the mentor wizard is published. */
+  getMine(ownerId: string) {
+    return this.prisma.mentorProfile.findUnique({
+      where: { ownerId },
+      include: { owner: { select: { fullName: true, avatarUrl: true } } },
+    });
+  }
+
   async getById(id: string) {
     const mentor = await this.prisma.mentorProfile.findUnique({
       where: { id },

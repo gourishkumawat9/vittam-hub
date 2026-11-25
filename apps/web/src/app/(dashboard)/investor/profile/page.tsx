@@ -70,7 +70,7 @@ export default function InvestorProfilePage() {
   if (isLoading) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Investor Profile</h1>
+        <h1 className="heading-5">Investor profile</h1>
         <Skeleton className="h-24 w-full rounded-card" />
         <div className="flex flex-col gap-4">
           <Skeleton className="h-10 w-full" />
@@ -101,7 +101,7 @@ export default function InvestorProfilePage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Investor Profile</h1>
+      <h1 className="heading-5">Investor profile</h1>
 
       {investor?.metrics && (
         <Card>

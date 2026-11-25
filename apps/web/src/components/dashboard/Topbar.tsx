@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useLogout } from "@vittamhub/api-client";
 import { Avatar, Drawer } from "@vittamhub/ui";
-import { LogOut, Menu, Settings } from "lucide-react";
+import { LogOut, Menu, Settings, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { leaveSession } from "@/lib/leave-session";
+import { editProfileLink } from "@/lib/role-home";
 
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
@@ -22,6 +23,8 @@ export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  // Editing the public profile moved here from the sidebar, next to Settings.
+  const profileLink = user ? editProfileLink(user.role) : null;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -86,24 +89,33 @@ export function Topbar() {
               <Avatar name={user.fullName} src={user.avatarUrl} size="sm" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-11 z-dropdown w-56 rounded-card border border-border bg-surface shadow-lg">
+              <div className="absolute right-0 top-11 z-dropdown w-60 overflow-hidden rounded-card border border-border bg-surface shadow-lg">
                 <div className="border-b border-border px-4 py-3">
                   <p className="truncate text-sm font-medium text-text-primary">{user.fullName}</p>
                   <p className="truncate text-xs text-text-secondary">{user.email}</p>
                 </div>
+                {profileLink && (
+                  <Link
+                    href={profileLink.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text-primary transition-colors duration-300 ease-base hover:bg-background-secondary"
+                  >
+                    <UserCircle className="h-4 w-4" aria-hidden="true" /> {profileLink.label}
+                  </Link>
+                )}
                 <Link
                   href="/settings"
                   onClick={() => setMenuOpen(false)}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text-primary hover:bg-background-secondary"
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text-primary transition-colors duration-300 ease-base hover:bg-background-secondary"
                 >
-                  <Settings className="h-4 w-4" /> Settings
+                  <Settings className="h-4 w-4" aria-hidden="true" /> Settings
                 </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-danger-600 hover:bg-background-secondary"
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-danger-600 transition-colors duration-300 ease-base hover:bg-background-secondary"
                 >
-                  <LogOut className="h-4 w-4" /> Log out
+                  <LogOut className="h-4 w-4" aria-hidden="true" /> Log out
                 </button>
               </div>
             )}

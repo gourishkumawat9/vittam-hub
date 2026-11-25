@@ -232,7 +232,7 @@ export default function MentorBookingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Mentor session requests</h1>
+      <h1 className="heading-5">Session requests</h1>
 
       {isLoading ? (
         <ListRowsSkeleton />

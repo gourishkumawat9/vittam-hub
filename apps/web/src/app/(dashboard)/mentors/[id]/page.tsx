@@ -113,7 +113,7 @@ export default function MentorDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="font-heading text-2xl font-semibold text-text-primary">{mentor.owner.fullName}</h1>
+            <h1 className="heading-5">{mentor.owner.fullName}</h1>
             <VerifiedBadge status={mentor.verificationStatus} />
           </div>
           <p className="text-sm text-text-secondary">{mentor.headline}</p>

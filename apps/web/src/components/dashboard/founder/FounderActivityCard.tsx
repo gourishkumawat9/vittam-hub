@@ -2,12 +2,14 @@
 
 import { useMyFounderActivity } from "@vittamhub/api-client";
 import type { FounderActivityEntryType } from "@vittamhub/types";
-import { Card, CardHeader, CardTitle, EmptyState, ErrorState } from "@vittamhub/ui";
+import { Card, EmptyState, ErrorState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { Activity, Briefcase, FileText, Flag, Inbox, LineChart, Rss, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+
+import { PanelTitle } from "../PageHeader";
 
 const ENTRY_ICON: Record<FounderActivityEntryType, LucideIcon> = {
   MILESTONE: Flag,
@@ -25,11 +27,7 @@ export function FounderActivityCard() {
 
   return (
     <Card className="flex flex-col gap-4">
-      <CardHeader className="pb-0">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Activity className="h-4 w-4 text-brand-primary" /> Activity
-        </CardTitle>
-      </CardHeader>
+      <PanelTitle icon={Activity} title="Activity" />
 
       {isLoading ? (
         <ListRowsSkeleton />

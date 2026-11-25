@@ -17,7 +17,7 @@ export default function UniversityOnboardingPage() {
   const { shell, draft, step, goNext, goBack, isEditing } = useOnboardingDraft(STEPS);
 
   return (
-    <WizardShell steps={STEPS} exitHref="/community" {...shell}>
+    <WizardShell steps={STEPS} exitHref="/home" {...shell}>
       {step === 0 && (
         <PersonalDetailsStep defaultValues={draftSection<PersonalDetailsInput>(draft, "personalDetails")} onNext={goNext} />
       )}

@@ -100,7 +100,7 @@ export function NextActionsCard({ trustScore, onAddMilestone }: { trustScore: Tr
       <Card className="flex h-full flex-col gap-3">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-success-600" aria-hidden="true" />
-          <h2 className="font-heading text-base font-semibold text-text-primary">Nothing outstanding</h2>
+          <h2 className="title-3">Nothing outstanding</h2>
         </div>
         <p className="text-sm text-text-secondary">
           Your profile has everything the Trust Score looks for. Keep your numbers and milestones current so it stays that way.
@@ -113,8 +113,8 @@ export function NextActionsCard({ trustScore, onAddMilestone }: { trustScore: Tr
     <Card className="flex h-full flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Target className="h-5 w-5 text-brand-primary" aria-hidden="true" />
-          <h2 className="font-heading text-base font-semibold text-text-primary">Your next actions</h2>
+          <Target className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+          <h2 className="title-3">Your next actions</h2>
         </div>
         {open.length > actions.length && (
           <span className="shrink-0 text-xs text-text-secondary">

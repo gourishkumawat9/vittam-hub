@@ -60,7 +60,7 @@ export default function ConnectionThreadPage() {
       {otherParty && (
         <div className="flex items-center gap-3 border-b border-border pb-4">
           <Avatar name={otherParty.fullName} src={otherParty.avatarUrl} size="sm" />
-          <h1 className="font-heading text-lg font-semibold text-text-primary">{otherParty.fullName}</h1>
+          <h1 className="heading-6">{otherParty.fullName}</h1>
         </div>
       )}
 

@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Analytics</h1>
+        <h1 className="heading-5">Analytics</h1>
         <StatTilesSkeleton count={6} />
       </div>
     );
@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Analytics</h1>
+      <h1 className="heading-5">Analytics</h1>
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <Card>

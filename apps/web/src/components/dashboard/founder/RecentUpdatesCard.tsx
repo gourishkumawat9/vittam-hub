@@ -1,11 +1,13 @@
 "use client";
 
 import type { StartupMilestone } from "@vittamhub/types";
-import { Card, CardHeader, CardTitle, EmptyState } from "@vittamhub/ui";
+import { Card, EmptyState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { FileText, History, Link2 } from "lucide-react";
 
 import { externalHref } from "@/lib/safe-url";
+
+import { PanelTitle } from "../PageHeader";
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|webp|gif)$/i.test(url);
@@ -43,11 +45,7 @@ export function RecentUpdatesCard({ milestones }: { milestones: StartupMilestone
 
   return (
     <Card className="flex flex-col gap-4">
-      <CardHeader className="pb-0">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <History className="h-4 w-4 text-brand-primary" /> Recent Updates
-        </CardTitle>
-      </CardHeader>
+      <PanelTitle icon={History} title="Your milestones" />
 
       {recent.length > 0 ? (
         <ul className="flex flex-col gap-3">
