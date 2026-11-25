@@ -98,8 +98,8 @@ export function ConnectRequestsBand() {
             <Link href="/register?role=founder" className={cta.primary}>
               Start as a founder
             </Link>
-            <Link href="/pricing" className={cta.outline}>
-              See what&apos;s free
+            <Link href="/for/founders" className={cta.outline}>
+              How it works for founders
             </Link>
           </div>
         </div>

@@ -67,7 +67,7 @@ The product should read as trustworthy, transparent, innovative, professional, a
 
 The owner's own blue is the brand colour: `brand-600` `#5F89C8` and its scale in `packages/tokens`, the same calm mid-blue family as the Goldman Sachs logo. A navy "trust blue" redesign was tried and rolled back at the owner's request, so don't bring it back. Keep pages light: white and light-grey sections, blue accents and blue gradient cards, and no near-black or navy bands anywhere, dashboards included (the owner asked for no black).
 
-The home page is the original one (hero film, audience cards, journey, features, how it works, ecosystem, example startups and investors, community, closing card) and keeps its motion: fade-ups on scroll, the hero film and parallax, the marquee and hover lifts. Use pictures where a section needs one: real VittamHub screens captured on the demo accounts (`ProductShot`, `data/product-shots.ts`), or photos the owner provides, and never present a photo of people as VittamHub members (§2). The login and sign-up pages show the home page's film (`HeroFilm`) beside the form, not a product screen, at the owner's request. BCG careers (careers.bcg.com) stays a reference for layout ideas. See docs/02-design-system.md.
+The home page is the original one (hero film, audience cards, journey, features, how it works, example startups and investors, community, closing card) and keeps its motion: fade-ups on scroll, the hero film and parallax, the marquee and hover lifts. Use pictures where a section needs one: real VittamHub screens captured on the demo accounts (`ProductShot`, `data/product-shots.ts`), or photos the owner provides, and never present a photo of people as VittamHub members (§2). The login and sign-up pages show the home page's film (`HeroFilm`) beside the form, not a product screen, at the owner's request. BCG careers (careers.bcg.com) stays a reference for layout ideas. See docs/02-design-system.md.
 
 ## 10. North star
 
@@ -82,6 +82,8 @@ Until after the growth stage, the live platform covers six areas only: **founder
 - **"Coming soon" modules list** (Startup Passport as a module, AI tools, marketplaces, grants, government schemes, office space and the rest of `FUTURE_MODULES`): removed from the dashboard. `FUTURE_MODULES` stays in `packages/types` as the roadmap.
 
 Don't add new features outside the six areas without the owner asking.
+
+**Public site (November 2026)**: the owner asked for the website to show only what is being worked on now: founders, investors, mentors and the community. The home features grid has four cards (startup profile, investor connect, mentorship, community); the ecosystem diagram, the Discover and Ecosystem menus, the pricing page (`/pricing` redirects to `/`, not permanently) and Trust Score, Startup Passport, verification and timeline cards are gone from the marketing pages. Incubator and university pages stay, linked from the footer only.
 
 ## graphify
 

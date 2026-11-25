@@ -5,7 +5,6 @@ export interface StartupCard {
   industry: string;
   location: string;
   stage: "Idea" | "MVP" | "Revenue" | "Funded" | "Scaling";
-  trustScore: number;
   followers: number;
   initials: string;
 }
@@ -23,7 +22,6 @@ export const FEATURED_STARTUPS: StartupCard[] = [
     industry: "HealthTech",
     location: "Bengaluru, IN",
     stage: "Funded",
-    trustScore: 92,
     followers: 1840,
     initials: "NH",
   },
@@ -34,7 +32,6 @@ export const FEATURED_STARTUPS: StartupCard[] = [
     industry: "FinTech",
     location: "Austin, US",
     stage: "Revenue",
-    trustScore: 87,
     followers: 962,
     initials: "LG",
   },
@@ -45,7 +42,6 @@ export const FEATURED_STARTUPS: StartupCard[] = [
     industry: "AgriTech",
     location: "Nairobi, KE",
     stage: "MVP",
-    trustScore: 78,
     followers: 511,
     initials: "CW",
   },
@@ -56,7 +52,6 @@ export const FEATURED_STARTUPS: StartupCard[] = [
     industry: "EdTech",
     location: "Manila, PH",
     stage: "Revenue",
-    trustScore: 84,
     followers: 703,
     initials: "VL",
   },
@@ -67,7 +62,6 @@ export const FEATURED_STARTUPS: StartupCard[] = [
     industry: "ClimateTech",
     location: "Berlin, DE",
     stage: "Funded",
-    trustScore: 90,
     followers: 1320,
     initials: "GS",
   },
@@ -78,7 +72,6 @@ export const FEATURED_STARTUPS: StartupCard[] = [
     industry: "Logistics",
     location: "São Paulo, BR",
     stage: "Idea",
-    trustScore: 61,
     followers: 204,
     initials: "PC",
   },

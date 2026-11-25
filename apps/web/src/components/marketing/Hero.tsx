@@ -57,7 +57,7 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.16 }}
             className="max-w-lg text-lg text-text-secondary"
           >
-            Build trust, showcase your journey, and connect with investors, mentors, and incubators on one verified
+            Build trust, showcase your journey, and connect with investors, mentors and other founders on one verified
             platform.
           </motion.p>
 

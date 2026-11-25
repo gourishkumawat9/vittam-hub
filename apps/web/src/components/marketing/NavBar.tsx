@@ -19,15 +19,10 @@ function audienceItem(id: string): NavDropdownItem {
   return { label: `For ${id}`, href: `/for/${id}`, description: audience?.cardTitle };
 }
 
-// Home sections are linked as "/#id", not "#id", so they also work from About, Pricing and the audience pages.
-const DISCOVER_ITEMS: NavDropdownItem[] = [
-  { label: "Discover startups", href: "/#discover-startups", description: "See what a startup profile shows" },
-  { label: "Investor profiles", href: "/#investors", description: "Ticket size, industries and stage at a glance" },
-  { label: "Platform ecosystem", href: "/#ecosystem", description: "Everyone VittamHub connects" },
-];
-
+// Home sections are linked as "/#id", not "#id", so they also work from About and the audience pages.
 const STARTUP_ITEMS: NavDropdownItem[] = [
   audienceItem("founders"),
+  { label: "Example startups", href: "/#discover-startups", description: "See what a startup profile shows" },
   { label: "The startup journey", href: "/#journey", description: "From idea to unicorn" },
   { label: "Register your startup", href: "/register?role=founder" },
 ];
@@ -38,18 +33,18 @@ const INVESTOR_ITEMS: NavDropdownItem[] = [
   { label: "Register as investor", href: "/register?role=investor" },
 ];
 
-const ECOSYSTEM_ITEMS: NavDropdownItem[] = [audienceItem("mentors"), audienceItem("incubators"), audienceItem("universities")];
-
+// The menu covers what VittamHub is focused on now: founders, investors,
+// mentors and the community. Incubator and university pages stay reachable
+// from the footer.
 const SIMPLE_LINKS = [
+  { href: "/for/mentors", label: "Mentors" },
   { href: "/#community", label: "Community" },
-  { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
 ];
 
 const MOBILE_GROUPS = [
-  { title: "Discover", items: DISCOVER_ITEMS },
-  { title: "Who it's for", items: [STARTUP_ITEMS[0]!, INVESTOR_ITEMS[0]!, ...ECOSYSTEM_ITEMS] },
-  { title: "VittamHub", items: SIMPLE_LINKS },
+  { title: "Who it's for", items: [STARTUP_ITEMS[0]!, INVESTOR_ITEMS[0]!, audienceItem("mentors")] },
+  { title: "VittamHub", items: SIMPLE_LINKS.filter((link) => link.href !== "/for/mentors") },
 ];
 
 export function NavBar() {
@@ -80,10 +75,8 @@ export function NavBar() {
         </Link>
 
         <nav className="hidden items-center gap-7 xl:flex" aria-label="Primary">
-          <NavDropdown label="Discover" items={DISCOVER_ITEMS} />
           <NavDropdown label="Startups" items={STARTUP_ITEMS} />
           <NavDropdown label="Investors" items={INVESTOR_ITEMS} />
-          <NavDropdown label="Ecosystem" items={ECOSYSTEM_ITEMS} />
           {SIMPLE_LINKS.map((link) => (
             <Link
               key={link.href}

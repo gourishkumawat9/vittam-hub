@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown, ArrowRight, Compass, Rocket, ShieldCheck, Users } from "lucide-react";
+import { ArrowDown, ArrowRight, Compass, GraduationCap, Rocket, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Fragment } from "react";
 
@@ -13,10 +13,9 @@ export interface Step {
 }
 
 const STEPS: (Step & { icon: LucideIcon })[] = [
-  { title: "Create your startup", description: "Set up your Startup Passport in minutes.", icon: Rocket },
-  // Verification is automated (CLAUDE.md §6): no team reviews a profile by hand.
-  { title: "Get verified", description: "Automated checks update your status as you add documents. No review queue.", icon: ShieldCheck },
-  { title: "Gain visibility", description: "Appear in discovery, matched to the right audience.", icon: Compass },
+  { title: "Create your startup", description: "Four short steps: about you, your startup, what you need, publish.", icon: Rocket },
+  { title: "Find a mentor", description: "Request a session with someone who has done it before.", icon: GraduationCap },
+  { title: "Get discovered", description: "Appear in discovery, matched to investors who back your stage.", icon: Compass },
   { title: "Connect with investors", description: "Send connect requests and track every reply in one place.", icon: Users },
 ];
 

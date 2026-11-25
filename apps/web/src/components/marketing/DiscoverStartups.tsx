@@ -46,10 +46,7 @@ function StartupTile({ startup }: { startup: StartupCard }) {
         </span>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-        <span className="text-xs font-medium text-text-secondary">
-          Trust score <span className="font-numeric font-bold text-text-primary">{startup.trustScore}</span>
-        </span>
+      <div className="mt-4 flex items-center justify-end border-t border-border pt-4">
         <Link href="/login" className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline">
           View profile
           <ArrowRight className="h-3 w-3" />

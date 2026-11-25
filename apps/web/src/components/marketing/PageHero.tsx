@@ -11,8 +11,8 @@ import { GradientOrbs } from "./hero/GradientOrbs";
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
 
 /**
- * The hero for every page below the home page (audience pages, About,
- * Pricing), in the home hero's language: a soft blue wash with the faint
+ * The hero for every page below the home page (audience pages and
+ * About), in the home hero's language: a soft blue wash with the faint
  * grid and floating light, the eyebrow pill, one big line, and an optional
  * product screen on the right that floats in.
  */
