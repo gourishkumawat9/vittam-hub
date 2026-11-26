@@ -7,11 +7,13 @@ import {
   createMentorReviewInputSchema,
   mentorSearchFiltersSchema,
   respondToMentorBookingInputSchema,
+  scheduleMentorSessionInputSchema,
   type CreateFounderReviewInput,
   type CreateMentorBookingInput,
   type CreateMentorReviewInput,
   type MentorSearchFilters,
   type RespondToMentorBookingInput,
+  type ScheduleMentorSessionInput,
 } from "@vittamhub/types";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -90,6 +92,21 @@ export class MentorsController {
   @ApiOperation({ summary: "Accept or decline a booking request" })
   respond(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: RespondToMentorBookingInput) {
     return this.bookingService.respond(id, user.sub, input.action);
+  }
+
+  @Post("bookings/:id/schedule")
+  @Roles("MENTOR")
+  @UsePipes(new ZodValidationPipe(scheduleMentorSessionInputSchema))
+  @ApiOperation({ summary: "Set or change the time and meeting link of an accepted session" })
+  schedule(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() input: ScheduleMentorSessionInput) {
+    return this.bookingService.schedule(id, user.sub, input);
+  }
+
+  @Post("bookings/:id/complete")
+  @Roles("MENTOR", "FOUNDER")
+  @ApiOperation({ summary: "Mark an accepted session as done, once it has happened" })
+  complete(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.bookingService.complete(id, user.sub);
   }
 
   @Post("bookings/:id/review")

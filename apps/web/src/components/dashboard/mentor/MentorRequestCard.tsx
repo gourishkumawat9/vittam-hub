@@ -1,7 +1,7 @@
 "use client";
 
 import { useRespondToMentorBooking, type MentorBookingWithRelations } from "@vittamhub/api-client";
-import { Avatar, Badge, Button, Card } from "@vittamhub/ui";
+import { Avatar, Badge, Button, Card, useToast } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { CalendarClock } from "lucide-react";
 import Link from "next/link";
@@ -21,6 +21,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  */
 export function MentorRequestCard({ booking }: { booking: MentorBookingWithRelations }) {
   const respond = useRespondToMentorBooking();
+  const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"ACCEPT" | "DECLINE" | null>(null);
   const waitingDays = Math.floor((Date.now() - new Date(booking.createdAt).getTime()) / DAY_MS);
@@ -30,6 +31,11 @@ export function MentorRequestCard({ booking }: { booking: MentorBookingWithRelat
     setPending(action);
     try {
       await respond.mutateAsync({ id: booking.id, input: { action } });
+      toast(
+        action === "ACCEPT"
+          ? { variant: "success", title: `Accepted ${booking.founder.fullName}`, description: "Next, set a time and share a meeting link. It's under your upcoming sessions." }
+          : { variant: "info", title: `Declined ${booking.founder.fullName}`, description: "They've been told, kindly and without a reason." },
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "That didn't go through. Try again in a moment.");
     } finally {

@@ -201,6 +201,28 @@ export class NotificationsService {
     });
   }
 
+  @OnEvent("mentor.session-scheduled")
+  handleMentorSessionScheduled(payload: { founderId: string; mentorName: string; rescheduled: boolean }) {
+    return this.create({
+      userId: payload.founderId,
+      type: "MEETING_SCHEDULED",
+      title: payload.rescheduled ? "Session moved" : "Session time set",
+      body: payload.rescheduled
+        ? `${payload.mentorName} changed the time of your session. See the new time in Mentor sessions.`
+        : `${payload.mentorName} set a time for your session. See it in Mentor sessions.`,
+    });
+  }
+
+  @OnEvent("mentor.session-completed")
+  handleMentorSessionCompleted(payload: { notifyUserId: string; markedByName: string; notifyIsFounder: boolean }) {
+    return this.create({
+      userId: payload.notifyUserId,
+      type: "SYSTEM",
+      title: "Session marked done",
+      body: `${payload.markedByName} marked your session as done. Leave a short review of the ${payload.notifyIsFounder ? "mentor" : "founder"} while it's fresh.`,
+    });
+  }
+
   @OnEvent("hiring.applied")
   handleHiringApplied(payload: { founderId: string; applicantName: string; jobTitle: string }) {
     return this.create({

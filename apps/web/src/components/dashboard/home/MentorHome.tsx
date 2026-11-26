@@ -10,15 +10,19 @@ import { StatStrip } from "../StatStrip";
 import { VerificationChecklist } from "../VerificationChecklist";
 import { MentorProfilePreview } from "../mentor/MentorProfilePreview";
 import { MentorRequestCard } from "../mentor/MentorRequestCard";
+import { useSessionReview } from "../mentor/ReviewSessionDialog";
+import { SessionCard } from "../mentor/SessionCard";
 import { YourFoundersPanel } from "../mentor/YourFoundersPanel";
+import { activeSessions, formatSessionTime, sessionPhase } from "../mentor/sessions";
 
 import { CommunityPreview } from "./CommunityPreview";
 import { StartHere } from "./StartHere";
 
 /**
  * The mentor's home, built around the founders they help rather than around
- * numbers: requests waiting for an answer first, then a few honest figures,
- * the founders they are working with, and how their profile looks to them.
+ * numbers: requests waiting for an answer first, then the sessions that need
+ * a time or a wrap-up, a few honest figures, the founders they work with, and
+ * how their profile looks to them.
  */
 export function MentorHome({ firstName }: { firstName: string }) {
   const { data: user } = useCurrentUser();
@@ -29,8 +33,11 @@ export function MentorHome({ firstName }: { firstName: string }) {
   const received = (bookings ?? []).filter((booking) => booking.mentor.id === user?.id);
   const pending = received.filter((booking) => booking.status === "PENDING").sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const accepted = received.filter((booking) => booking.status === "ACCEPTED");
-  const foundersHelped = new Set(accepted.map((booking) => booking.founder.id)).size;
+  const sessions = activeSessions(received);
+  const upcoming = sessions.filter((booking) => sessionPhase(booking) === "upcoming");
+  const next = upcoming[0];
   const rating = mentor?.reputation.averageRating;
+  const { openReview, reviewDialog } = useSessionReview("mentor");
 
   const verificationDone =
     mentor?.verificationStatus === "VERIFIED" || (!!verification && verification.requirements.every((requirement) => requirement.met));
@@ -43,7 +50,9 @@ export function MentorHome({ firstName }: { firstName: string }) {
         description={
           pending.length > 0
             ? `${pending.length} founder${pending.length === 1 ? " is" : "s are"} waiting for your reply.`
-            : "Founders can find you in the mentor directory and request a session."
+            : next?.scheduledAt
+              ? `Your next session is with ${next.founder.fullName}, ${formatSessionTime(next.scheduledAt, null)}.`
+              : "Founders can find you in the mentor directory and request a session."
         }
         actions={
           <>
@@ -53,7 +62,7 @@ export function MentorHome({ firstName }: { firstName: string }) {
               </Button>
             )}
             <Button size="sm" asChild>
-              <Link href="/mentors/bookings">All session requests</Link>
+              <Link href="/mentors/bookings">All sessions</Link>
             </Button>
           </>
         }
@@ -96,11 +105,16 @@ export function MentorHome({ firstName }: { firstName: string }) {
             hint: pending.length > 0 ? "Oldest first below" : "You're all caught up",
             href: "/mentors/bookings",
           },
-          { label: "Founders helped", value: bookingsLoading ? "…" : foundersHelped, hint: "Requests you accepted" },
+          {
+            label: "Upcoming sessions",
+            value: bookingsLoading ? "…" : upcoming.length,
+            hint: next?.scheduledAt ? `Next ${formatSessionTime(next.scheduledAt, null)}` : "Set once you accept a request",
+            href: "/mentors/bookings",
+          },
           {
             label: "Sessions completed",
             value: mentorLoading ? "…" : (mentor?.reputation.sessionsCompleted ?? 0),
-            hint: "Counted once both sides confirm",
+            hint: "Counted when a session is marked done",
           },
           {
             label: "Average rating",
@@ -118,12 +132,12 @@ export function MentorHome({ firstName }: { firstName: string }) {
           href={pending.length > 4 ? "/mentors/bookings" : undefined}
         />
         {bookingsLoading ? (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Skeleton className="h-56 w-full" />
             <Skeleton className="h-56 w-full" />
           </div>
         ) : pending.length > 0 ? (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {pending.slice(0, 4).map((booking) => (
               <MentorRequestCard key={booking.id} booking={booking} />
             ))}
@@ -141,6 +155,22 @@ export function MentorHome({ firstName }: { firstName: string }) {
         )}
       </section>
 
+      {sessions.length > 0 && (
+        <section className="flex flex-col gap-4" aria-labelledby="sessions-heading">
+          <SectionHeader
+            id="sessions-heading"
+            title="Your sessions"
+            description="Set a time for the ones you've accepted, join the next call, and mark each one done afterwards."
+            href={sessions.length > 4 ? "/mentors/bookings" : undefined}
+          />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {sessions.slice(0, 4).map((booking) => (
+              <SessionCard key={booking.id} booking={booking} viewer="mentor" onReview={openReview} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
           <YourFoundersPanel accepted={accepted} />
@@ -151,6 +181,8 @@ export function MentorHome({ firstName }: { firstName: string }) {
           <VerificationChecklist />
         </div>
       </div>
+
+      {reviewDialog}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import type {
   CreateMentorReviewInput,
   MentorSearchFilters,
   RespondToMentorBookingInput,
+  ScheduleMentorSessionInput,
 } from "@vittamhub/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -50,9 +51,29 @@ export function useRespondToMentorBooking() {
   });
 }
 
+/** The mentor sets or moves the time and meeting link of an accepted session. */
+export function useScheduleMentorSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ScheduleMentorSessionInput }) => mentorsApi.scheduleSession(id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: mentorKeys.bookings }),
+  });
+}
+
+/** Either side marks a session done once it has happened; the mentor's session count changes with it. */
+export function useCompleteMentorSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => mentorsApi.completeSession(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: mentorKeys.all }),
+  });
+}
+
 export function useReviewMentorBooking() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: CreateFounderReviewInput }) => mentorsApi.reviewBooking(id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: mentorKeys.bookings }),
   });
 }
 

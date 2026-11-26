@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import type { CreateMentorBookingInput, MentorBookingResponseAction } from "@vittamhub/types";
+import type { CreateMentorBookingInput, MentorBookingResponseAction, ScheduleMentorSessionInput } from "@vittamhub/types";
 
 import { inSameSandbox } from "../../common/demo/demo-scope";
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -12,6 +12,9 @@ const RESPONSE_ACTION_TO_STATUS: Record<MentorBookingResponseAction, "ACCEPTED" 
 
 /** The most booking requests one list call returns. */
 const MAX_LISTED = 200;
+
+/** How far ahead a session can be set. */
+const MAX_SCHEDULE_AHEAD_MS = 365 * 24 * 60 * 60 * 1000;
 
 /**
  * A founder requesting time with a mentor — deliberately not a Connection:
@@ -84,8 +87,80 @@ export class MentorBookingService {
     return this.prisma.mentorBookingRequest.findUniqueOrThrow({ where: { id: bookingId } });
   }
 
-  listForUser(userId: string) {
-    return this.prisma.mentorBookingRequest.findMany({
+  /**
+   * The mentor sets when an accepted session happens, and where. Setting it
+   * again changes it, so this is also how a session is moved.
+   */
+  async schedule(bookingId: string, mentorId: string, input: ScheduleMentorSessionInput) {
+    const booking = await this.prisma.mentorBookingRequest.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException("Session not found");
+    if (booking.mentorId !== mentorId) throw new ForbiddenException("Not your session to schedule");
+    if (booking.status !== "ACCEPTED") throw new ConflictException("Accept the request before setting a time");
+    if (booking.completedAt) throw new ConflictException("This session is already marked done");
+
+    const scheduledAt = new Date(input.scheduledAt);
+    const now = Date.now();
+    if (scheduledAt.getTime() <= now) throw new BadRequestException("Pick a time that hasn't passed yet");
+    if (scheduledAt.getTime() - now > MAX_SCHEDULE_AHEAD_MS) throw new BadRequestException("Pick a time within the next year");
+
+    const updated = await this.prisma.mentorBookingRequest.update({
+      where: { id: bookingId },
+      data: {
+        scheduledAt,
+        durationMinutes: input.durationMinutes,
+        meetingUrl: input.meetingUrl ?? null,
+        mentorNote: input.note ?? null,
+      },
+    });
+
+    const mentor = await this.prisma.user.findUniqueOrThrow({ where: { id: mentorId } });
+    this.eventEmitter.emit("mentor.session-scheduled", {
+      founderId: booking.founderId,
+      mentorName: mentor.fullName,
+      rescheduled: booking.scheduledAt !== null,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Either side marks an accepted session done once it has happened. A
+   * session with a time can't be marked done before that time.
+   */
+  async complete(bookingId: string, userId: string) {
+    const booking = await this.prisma.mentorBookingRequest.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException("Session not found");
+    if (booking.mentorId !== userId && booking.founderId !== userId) throw new ForbiddenException("Not your session");
+    if (booking.status !== "ACCEPTED") throw new ConflictException("Only an accepted session can be marked done");
+    if (booking.scheduledAt && booking.scheduledAt.getTime() > Date.now()) {
+      throw new ConflictException("This session hasn't happened yet");
+    }
+
+    // Done only if it isn't already, so two taps (or both sides at once) land once.
+    const marked = await this.prisma.mentorBookingRequest.updateMany({
+      where: { id: bookingId, status: "ACCEPTED", completedAt: null },
+      data: { completedAt: new Date() },
+    });
+    if (marked.count === 0) throw new ConflictException("This session is already marked done");
+
+    const byMentor = booking.mentorId === userId;
+    const marker = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    this.eventEmitter.emit("mentor.session-completed", {
+      notifyUserId: byMentor ? booking.founderId : booking.mentorId,
+      markedByName: marker.fullName,
+      notifyIsFounder: byMentor,
+    });
+
+    return this.prisma.mentorBookingRequest.findUniqueOrThrow({ where: { id: bookingId } });
+  }
+
+  /**
+   * Every booking the user is on, sent or received. `reviewedByMe` says
+   * whether the caller has already reviewed the other side for it; whether
+   * the other side reviewed them is not shared.
+   */
+  async listForUser(userId: string) {
+    const bookings = await this.prisma.mentorBookingRequest.findMany({
       where: { OR: [{ founderId: userId }, { mentorId: userId }] },
       orderBy: { createdAt: "desc" },
       take: MAX_LISTED,
@@ -93,7 +168,13 @@ export class MentorBookingService {
         founder: { select: { id: true, fullName: true, avatarUrl: true } },
         mentor: { select: { id: true, fullName: true, avatarUrl: true } },
         startup: { select: { id: true, name: true, slug: true, logoUrl: true, stage: true, tagline: true } },
+        review: { select: { id: true } },
+        mentorReview: { select: { id: true } },
       },
     });
+    return bookings.map(({ review, mentorReview, ...booking }) => ({
+      ...booking,
+      reviewedByMe: booking.mentorId === userId ? review !== null : mentorReview !== null,
+    }));
   }
 }

@@ -17,7 +17,7 @@ export class MentorReputationService {
   async calculate(mentorId: string): Promise<MentorReputation> {
     const [reviews, sessionsCompleted] = await Promise.all([
       this.prisma.mentorReview.findMany({ where: { mentorId }, select: { rating: true } }),
-      this.prisma.mentorBookingRequest.count({ where: { mentorId, status: "ACCEPTED" } }),
+      this.prisma.mentorBookingRequest.count({ where: { mentorId, status: "ACCEPTED", completedAt: { not: null } } }),
     ]);
 
     const reviewCount = reviews.length;

@@ -66,7 +66,7 @@ const ROLE_NAV: Record<string, NavGroup[]> = {
       label: "Support",
       items: [
         { href: "/mentors", label: "Mentors", icon: GraduationCap },
-        { href: "/mentors/bookings", label: "Session requests", icon: CalendarClock },
+        { href: "/mentors/bookings", label: "Mentor sessions", icon: CalendarClock },
         { href: "/incubators", label: "Incubators", icon: Building2 },
         { href: "/universities", label: "Universities", icon: School },
         COMMUNITY,
@@ -111,7 +111,7 @@ const ROLE_NAV: Record<string, NavGroup[]> = {
     {
       items: [
         { href: "/home", label: "Home", icon: LayoutDashboard },
-        { href: "/mentors/bookings", label: "Session requests", icon: CalendarClock },
+        { href: "/mentors/bookings", label: "Sessions", icon: CalendarClock },
       ],
     },
     DIRECTORIES,

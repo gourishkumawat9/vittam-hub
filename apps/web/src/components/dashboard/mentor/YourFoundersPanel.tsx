@@ -7,24 +7,30 @@ import Link from "next/link";
 import { PanelLink, PanelTitle } from "../PageHeader";
 import { STAGE_LABEL } from "../founder/startup-labels";
 
+import { formatSessionTime } from "./sessions";
+
 interface FounderRelationship {
   founder: MentorBookingWithRelations["founder"];
   startup: MentorBookingWithRelations["startup"];
-  sessions: number;
+  /** Sessions marked done. */
+  done: number;
+  /** The next session with a time still ahead, if any. */
+  nextAt: string | null;
   lastAt: string;
 }
 
 /** Accepted sessions grouped by founder: the mentor's ongoing relationships, newest first. */
 function groupByFounder(bookings: MentorBookingWithRelations[]): FounderRelationship[] {
+  const now = Date.now();
   const byFounder = new Map<string, FounderRelationship>();
   for (const booking of bookings) {
-    const existing = byFounder.get(booking.founder.id);
-    if (existing) {
-      existing.sessions += 1;
-      if (booking.createdAt > existing.lastAt) existing.lastAt = booking.createdAt;
-    } else {
-      byFounder.set(booking.founder.id, { founder: booking.founder, startup: booking.startup, sessions: 1, lastAt: booking.createdAt });
+    const rel = byFounder.get(booking.founder.id) ?? { founder: booking.founder, startup: booking.startup, done: 0, nextAt: null, lastAt: booking.createdAt };
+    if (booking.completedAt) rel.done += 1;
+    if (booking.scheduledAt && !booking.completedAt && new Date(booking.scheduledAt).getTime() > now && (!rel.nextAt || booking.scheduledAt < rel.nextAt)) {
+      rel.nextAt = booking.scheduledAt;
     }
+    if (booking.createdAt > rel.lastAt) rel.lastAt = booking.createdAt;
+    byFounder.set(booking.founder.id, rel);
   }
   return [...byFounder.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
 }
@@ -38,7 +44,7 @@ export function YourFoundersPanel({ accepted }: { accepted: MentorBookingWithRel
       {relationships.length === 0 ? (
         <div className="flex flex-col gap-1 rounded-button bg-background-secondary p-4">
           <p className="body-5 text-text-primary">No founders yet</p>
-          <p className="caption-5">When you accept a request, the founder appears here with how often you have met.</p>
+          <p className="caption-5">When you accept a request, the founder appears here with your sessions together.</p>
         </div>
       ) : (
         <ul className="flex flex-col">
@@ -63,9 +69,9 @@ export function YourFoundersPanel({ accepted }: { accepted: MentorBookingWithRel
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="font-numeric text-sm font-semibold text-text-primary">
-                    {rel.sessions} session{rel.sessions === 1 ? "" : "s"}
+                    {rel.done} session{rel.done === 1 ? "" : "s"} done
                   </p>
-                  <p className="caption-5">Latest request {formatRelativeTime(rel.lastAt)}</p>
+                  <p className="caption-5">{rel.nextAt ? `Next ${formatSessionTime(rel.nextAt, null)}` : `Latest request ${formatRelativeTime(rel.lastAt)}`}</p>
                 </div>
               </div>
             </li>

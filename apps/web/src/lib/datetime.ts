@@ -23,3 +23,12 @@ export function formatDateTime(iso: string): string {
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
+
+/** A saved moment, in the format a `datetime-local` input takes, so an edit opens on the time already set. */
+export function isoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+}
