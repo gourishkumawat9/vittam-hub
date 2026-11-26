@@ -5,9 +5,21 @@ import { Badge, Button, Card } from "@vittamhub/ui";
 import { formatCompactMoney } from "@vittamhub/utils";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { INDUSTRY_LABEL } from "@/lib/startup-options";
 
-/** One investor in the founder's lists: who they are, what they back, and a Connect button. */
-export function InvestorCard({ investor, onConnect }: { investor: InvestorWithOwner; onConnect: (investor: InvestorWithOwner) => void }) {
+/**
+ * One investor in the founder's lists: who they are, what they back, and a
+ * Connect button. `preview` shows the investor their own card, button inert.
+ */
+export function InvestorCard({
+  investor,
+  onConnect,
+  preview = false,
+}: {
+  investor: InvestorWithOwner;
+  onConnect?: (investor: InvestorWithOwner) => void;
+  preview?: boolean;
+}) {
   const responseRate = investor.metrics?.responseRate;
   const responseHours = investor.metrics?.avgResponseTimeHours;
   return (
@@ -28,10 +40,10 @@ export function InvestorCard({ investor, onConnect }: { investor: InvestorWithOw
       <div className="flex flex-wrap gap-1.5">
         {investor.preferredIndustries.slice(0, 4).map((industry) => (
           <Badge key={industry} variant="neutral">
-            {industry}
+            {INDUSTRY_LABEL[industry] ?? industry}
           </Badge>
         ))}
-        {investor.trust && investor.trust.band !== "STARTING" && <Badge variant="brand">{investor.trust.band} trust</Badge>}
+        {investor.trust && investor.trust.band !== "STARTING" && <Badge variant="brand">{investor.trust.band.charAt(0) + investor.trust.band.slice(1).toLowerCase()} trust</Badge>}
       </div>
 
       {(responseRate != null || investor.metrics?.isActive) && (
@@ -54,7 +66,7 @@ export function InvestorCard({ investor, onConnect }: { investor: InvestorWithOw
             {formatCompactMoney(Number(investor.checkSizeMaxAmount), investor.currency)}
           </span>
         </span>
-        <Button size="sm" onClick={() => onConnect(investor)} disabled={!investor.openForPitches}>
+        <Button size="sm" onClick={() => onConnect?.(investor)} disabled={preview || !investor.openForPitches} tabIndex={preview ? -1 : undefined}>
           Send connect request
         </Button>
       </div>
