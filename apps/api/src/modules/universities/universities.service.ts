@@ -38,6 +38,14 @@ export class UniversitiesService {
     return buildPaginatedResult(items, totalItems, filters.page, filters.pageSize);
   }
 
+  /** The caller's own profile, published or not; null until onboarding creates it. */
+  getMine(ownerId: string) {
+    return this.prisma.universityProfile.findUnique({
+      where: { ownerId },
+      include: { owner: { select: { fullName: true, avatarUrl: true } } },
+    });
+  }
+
   async getById(id: string) {
     const university = await this.prisma.universityProfile.findUnique({
       where: { id },

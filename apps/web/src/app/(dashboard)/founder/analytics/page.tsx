@@ -160,8 +160,8 @@ function NextStepsCard({ completion, onAddMilestone }: { completion: number; onA
       <PanelTitle icon={Lightbulb} title="Get more views" />
       <ul className="flex flex-col divide-y divide-border">
         {steps.map((step) => (
-          <li key={step.label}>
-            <Link href={step.href} className="group flex items-center justify-between gap-3 py-3 first:pt-0">
+          <li key={step.label} className="py-3 first:pt-0">
+            <Link href={step.href} className="group flex items-center justify-between gap-3">
               <span className="flex flex-col gap-0.5">
                 <span className="body-5 text-text-primary group-hover:text-brand-primary">{step.label}</span>
                 <span className="caption-5">{step.hint}</span>

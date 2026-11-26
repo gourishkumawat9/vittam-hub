@@ -18,4 +18,6 @@ export const universitiesApi = {
     return apiRequest<PaginatedResult<UniversityWithOwner>>(`/v1/universities?${params.toString()}`);
   },
   getById: (id: string) => apiRequest<UniversityWithOwner>(`/v1/universities/${id}`),
+  /** The signed-in university's own profile, or null before it's published. */
+  mine: () => apiRequest<UniversityWithOwner | null>("/v1/universities/me"),
 };

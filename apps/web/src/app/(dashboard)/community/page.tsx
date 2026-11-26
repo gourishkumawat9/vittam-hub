@@ -20,7 +20,8 @@ import { Avatar, Badge, Button, Card, Dialog, EmptyState, Input, Select, TagsInp
 import { formatRelativeTime } from "@vittamhub/utils";
 import { BarChart3, Bookmark, CalendarDays, Check, ExternalLink, Heart, MapPin, MessageSquare, Rocket, Sparkles, Trash2, Users } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
@@ -503,6 +504,21 @@ function UpcomingEventsCard() {
   );
 }
 
+const COMPOSE_PARAM: Record<string, PostType> = { post: "FOUNDER_POST", update: "STARTUP_UPDATE", poll: "POLL", event: "EVENT" };
+
+/** Opens the composer when a link asks for it, e.g. /community?compose=event from a home page. */
+function ComposeFromLink({ onCompose }: { onCompose: (type: PostType) => void }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const requested = COMPOSE_PARAM[searchParams.get("compose") ?? ""];
+  useEffect(() => {
+    if (!requested) return;
+    onCompose(requested);
+    router.replace("/community", { scroll: false });
+  }, [requested, onCompose, router]);
+  return null;
+}
+
 const GUIDELINES = [
   "Share real progress, with numbers when you can",
   "Ask specific questions; you'll get better answers",
@@ -656,6 +672,10 @@ export default function CommunityPage() {
           )}
         </aside>
       </div>
+
+      <Suspense fallback={null}>
+        <ComposeFromLink onCompose={setComposeType} />
+      </Suspense>
 
       <CreatePostDialog
         open={composeType !== null}
