@@ -167,10 +167,10 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         description:
           "Demo incubator profile for trying VittamHub. Takes student and first-time founders in edtech and fintech from idea to a working MVP.",
         industries: ["EDTECH", "FINTECH"],
+        portfolioCompanies: ["Demo Startup", "Demo Fintech Startup"],
         hostType: "ACADEMIC" as const,
         city: "Jaipur",
         state: "Rajasthan",
-        portfolioCompanies: ["Demo Startup", "Demo Fintech Startup"],
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
       };

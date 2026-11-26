@@ -202,8 +202,8 @@ export function IncubatorHome() {
         </div>
 
         <div className="flex flex-col gap-6">
-          {incubator && <IncubatorProfilePreview incubator={incubator} />}
           <ProfileStrengthCard />
+          {incubator && <IncubatorProfilePreview incubator={incubator} />}
           <VerificationChecklist />
         </div>
       </div>

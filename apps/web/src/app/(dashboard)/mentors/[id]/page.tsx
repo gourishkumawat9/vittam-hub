@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useBookMentor, useMentor } from "@vittamhub/api-client";
 import { createMentorBookingInputSchema, SessionType, type CreateMentorBookingInput } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, Dialog, ErrorState, Select, Skeleton, Textarea, Input } from "@vittamhub/ui";
-import { Briefcase, Building2, CalendarClock, CheckCircle2, Clock, Languages, MapPin, Rocket, Star, UserRound, Wallet } from "lucide-react";
+import { Briefcase, Building2, CalendarClock, CheckCircle2, Clock, Languages, MonitorSmartphone, Rocket, Star, Wallet } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -146,14 +146,9 @@ export default function MentorDetailPage() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="heading-5">{mentor.owner.fullName}</h1>
               <VerifiedBadge status={mentor.verificationStatus} />
+              {mentor.mentorType && <Badge variant="neutral">{MENTOR_TYPE_LABEL[mentor.mentorType] ?? mentor.mentorType}</Badge>}
             </div>
             {mentor.headline && <p className="body-6 text-text-secondary">{mentor.headline}</p>}
-            {mentor.mentorType && (
-              <p className="flex items-center gap-1.5 caption-2">
-                <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
-                {MENTOR_TYPE_LABEL[mentor.mentorType] ?? mentor.mentorType}
-              </p>
-            )}
             <p className="flex items-center gap-1.5 caption-2">
               {averageRating != null ? (
                 <>
@@ -211,7 +206,7 @@ export default function MentorDetailPage() {
             )}
             {mentor.stagesHelped && mentor.stagesHelped.length > 0 && (
               <div className="flex flex-col gap-2">
-                <p className="caption-4">Stages</p>
+                <p className="caption-4">Stages they help at</p>
                 <div className="flex flex-wrap gap-2">
                   {mentor.stagesHelped.map((stage) => (
                     <Badge key={stage} variant="neutral">
@@ -280,7 +275,7 @@ export default function MentorDetailPage() {
               )}
               {mentor.meetingMode && (
                 <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+                  <MonitorSmartphone className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
                   <div>
                     <dt className="caption-4">Meets</dt>
                     <dd className="body-5 text-text-primary">{MEETING_MODE_LABEL[mentor.meetingMode] ?? mentor.meetingMode}</dd>

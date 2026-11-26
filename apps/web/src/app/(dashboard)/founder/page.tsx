@@ -7,6 +7,7 @@ import {
   useMyStartup,
   useMyStartupAnalytics,
   useMyStartupHealth,
+  useProfileStrength,
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
 import { Badge, Button, Card, ErrorState, Skeleton } from "@vittamhub/ui";
@@ -47,6 +48,8 @@ export default function FounderDashboardPage() {
   const { data: benchmark } = useMyGrowthBenchmark();
   const { data: quota } = useConnectionQuota();
   const { data: analytics } = useMyStartupAnalytics();
+  // The same percentage as the Profile strength card below, so the page shows one number for it.
+  const { data: strength } = useProfileStrength();
   const { data: recommendations, isLoading: recommendationsLoading } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
   // One "Add milestone" dialog, opened from Next actions, Profile completion and the header.
@@ -161,10 +164,10 @@ export default function FounderDashboardPage() {
             },
             { label: "Followers", value: analytics.followerCount, hint: "People following your updates" },
             {
-              label: "Profile complete",
-              value: `${analytics.profileCompletionPercent}%`,
-              hint: analytics.profileCompletionPercent < 100 ? "More detail, more investor interest" : "Everything investors look for",
-              href: "/onboarding/founder",
+              label: "Profile strength",
+              value: strength ? `${strength.percent}%` : "…",
+              hint: strength && strength.percent < 100 ? "More detail, more investor interest" : "Everything investors look for",
+              href: "#profile-strength",
             },
           ]}
         />
