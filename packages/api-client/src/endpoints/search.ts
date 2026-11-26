@@ -5,6 +5,7 @@ import { apiRequest } from "../http";
 import type { IncubatorWithPrograms } from "./incubators";
 import type { InvestorWithOwner } from "./investors";
 import type { MentorWithOwner } from "./mentors";
+import type { UniversityWithOwner } from "./universities";
 
 /** Raw `StartupsService.search` rows — no Trust/Match Score here, those are only computed on the full Discover Startups endpoint. */
 export interface GlobalSearchStartupItem extends Startup {
@@ -16,6 +17,7 @@ export interface GlobalSearchResults {
   investors: InvestorWithOwner[];
   mentors: MentorWithOwner[];
   incubators: IncubatorWithPrograms[];
+  universities: UniversityWithOwner[];
 }
 
 export const searchApi = {
