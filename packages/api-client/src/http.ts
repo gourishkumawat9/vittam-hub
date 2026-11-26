@@ -192,8 +192,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       } | null;
       const requestId = response.headers.get("x-request-id") ?? "unknown";
       // A 502/503/504 without our JSON error shape came from the hosting
-      // provider, not the API — the API is down or still starting.
-      if (!errorBody?.error && UNAVAILABLE_STATUSES.has(response.status)) {
+      // provider, not the API — the API is down or still starting. So does a
+      // bare 404: Railway answers "train has not arrived" when no deployment
+      // is serving the domain, while the API's own 404s always carry `error`.
+      if (!errorBody?.error && (UNAVAILABLE_STATUSES.has(response.status) || response.status === 404)) {
         setApiStatus("unreachable");
         throw unavailableError(requestId);
       }
