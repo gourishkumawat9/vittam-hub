@@ -47,6 +47,10 @@ const imgSrc = [
 // its frame were both blocked here, so switching the CAPTCHA on would have made signing up and logging in impossible.
 const TURNSTILE = "https://challenges.cloudflare.com";
 
+// Vercel Web Analytics. In production its script and reports use this site's own origin (/_vercel/insights), which
+// 'self' already covers. Only the dev server loads a debug copy from Vercel's CDN, which records nothing.
+const VERCEL_ANALYTICS_DEV = isProduction ? "" : " https://va.vercel-scripts.com";
+
 /** Canonical host — www redirects here so the app is served from exactly one origin. */
 const CANONICAL_HOST = "vittamhub.com";
 
@@ -68,7 +72,7 @@ const securityHeaders = [
       "default-src 'self'",
       // 'unsafe-eval' is only for the dev server's hot reload; a production build never needs it.
       // 'unsafe-inline' stays until scripts carry nonces (Next.js writes inline ones).
-      `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} ${TURNSTILE}`,
+      `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} ${TURNSTILE}${VERCEL_ANALYTICS_DEV}`,
       "style-src 'self' 'unsafe-inline'",
       `img-src ${imgSrc}`,
       "font-src 'self' data:",
