@@ -2,7 +2,7 @@
 
 import { Drawer, ProgressBar, Skeleton } from "@vittamhub/ui";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Cloud, CloudOff, ListTree, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Check, Cloud, CloudOff, LayoutDashboard, ListTree, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -29,6 +29,12 @@ interface WizardShellProps {
   isEditing?: boolean;
   /** Where "Back to dashboard" goes while editing. */
   exitHref?: string;
+  /**
+   * While onboarding: where "Finish later" goes. Only for a role whose
+   * dashboard works without a published profile (founders). Answers are
+   * autosaved, so leaving loses nothing.
+   */
+  finishLaterHref?: string;
   /** False until the saved answers have loaded for the person signed in. */
   ready?: boolean;
   /** The saved answers couldn't be loaded. */
@@ -155,6 +161,7 @@ export function WizardShell({
   autosaveStatus = "idle",
   isEditing = false,
   exitHref,
+  finishLaterHref,
   ready = true,
   failed = false,
   onRetry,
@@ -190,6 +197,16 @@ export function WizardShell({
                 <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="hidden sm:inline">Back to dashboard</span>
                 <span className="sm:hidden">Back</span>
+              </Link>
+            )}
+            {!isEditing && finishLaterHref && (
+              <Link
+                href={finishLaterHref}
+                title="Go to your dashboard. Your answers are saved, so you can carry on from here any time."
+                className="flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-background-secondary"
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
+                Finish later
               </Link>
             )}
             {steps.length > 1 && (

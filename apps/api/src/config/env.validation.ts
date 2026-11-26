@@ -1,6 +1,22 @@
 import { z } from "zod";
 
 /**
+ * An OAuth client id or secret, as pasted into a hosting dashboard. A stray
+ * space, line break or pair of quotes copied along with it is sent to the
+ * provider as part of the id, and Google then answers every sign-in with
+ * "Error 401: invalid_client, The OAuth client was not found".
+ */
+const oauthCredential = z.preprocess(
+  // An all-blank value stays "" rather than undefined: ConfigService falls back
+  // to the raw process.env value for undefined, which would bring the blanks back.
+  (value) => (typeof value === "string" ? value.trim().replace(/^(["'])(.*)\1$/, "$2").trim() : value),
+  z.string().optional(),
+);
+
+/** What every Google OAuth client id looks like: "<digits>-<letters and digits>.apps.googleusercontent.com". */
+export const GOOGLE_CLIENT_ID_PATTERN = /^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
+
+/**
  * Fails fast at boot if a required env var is missing/malformed, instead of
  * surfacing a confusing runtime error the first time a route touches it.
  */
@@ -15,12 +31,12 @@ export const envSchema = z.object({
   JWT_ACCESS_TTL: z.string().default("15m"),
   JWT_REFRESH_TTL: z.string().default("30d"),
   SESSION_COOKIE_NAME: z.string().default("vh_session"),
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  LINKEDIN_CLIENT_ID: z.string().optional(),
-  LINKEDIN_CLIENT_SECRET: z.string().optional(),
-  GITHUB_CLIENT_ID: z.string().optional(),
-  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_CLIENT_ID: oauthCredential,
+  GOOGLE_CLIENT_SECRET: oauthCredential,
+  LINKEDIN_CLIENT_ID: oauthCredential,
+  LINKEDIN_CLIENT_SECRET: oauthCredential,
+  GITHUB_CLIENT_ID: oauthCredential,
+  GITHUB_CLIENT_SECRET: oauthCredential,
   CAPTCHA_SITE_KEY: z.string().optional(),
   CAPTCHA_SECRET_KEY: z.string().optional(),
   STORAGE_ENDPOINT: z.string().url().optional(),
@@ -91,6 +107,16 @@ export function validateEnv(config: Record<string, unknown>): Env {
   const parsed = envSchema.safeParse(config);
   if (!parsed.success) {
     throw new Error(`Invalid environment configuration:\n${parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n")}`);
+  }
+
+  // Not fatal (email sign-in still works), but said at boot: otherwise the
+  // first sign of it is a founder looking at Google's "OAuth client was not found".
+  if (parsed.data.GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID_PATTERN.test(parsed.data.GOOGLE_CLIENT_ID)) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[env] GOOGLE_CLIENT_ID doesn't look like a Google OAuth client id (<number>-<code>.apps.googleusercontent.com). " +
+        "Google sign-in will fail with \"invalid_client\" until it is copied again from Google Cloud Console → APIs & Services → Credentials.",
+    );
   }
 
   if (parsed.data.NODE_ENV === "production") {
