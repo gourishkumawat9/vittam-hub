@@ -1,20 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createMentorInputSchema, SessionType, type CreateMentorInput } from "@vittamhub/types";
+import { createMentorInputSchema, type CreateMentorInput, type SessionType } from "@vittamhub/types";
 import { Input, TagsInput } from "@vittamhub/ui";
 import { Controller, useForm } from "react-hook-form";
 
+import { SESSION_TYPE_LABEL } from "@/components/dashboard/mentor/labels";
 import { useAutosave } from "@/hooks/useAutosave";
 import { usePublishProfile } from "@/hooks/usePublishProfile";
+import { optionsFrom } from "@/lib/startup-options";
 
 import { WizardNav } from "../WizardNav";
+import { ChoiceChips, hasAny, MoreDetails, StepHeader } from "../fields";
 
-const SESSION_TYPE_OPTIONS = Object.values(SessionType);
-
-function titleCase(value: string) {
-  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
+const SESSION_TYPE_OPTIONS = optionsFrom<SessionType>(SESSION_TYPE_LABEL);
 
 interface MentorInfoStepProps {
   defaultValues?: Partial<CreateMentorInput>;
@@ -51,70 +50,84 @@ export function MentorInfoStep({ defaultValues, onBack, isEditing = false }: Men
     publishProfile({ mentorInfo: data }, { isEditing, redirectTo: (profile) => `/mentors/${profile.id}` }),
   );
 
+  const moreFilled = hasAny([values.industries, values.yearsExperience, values.pricingModel, values.languages, values.pastStartups]);
+
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Mentor profile</h2>
-        <p className="mt-1 text-sm text-text-secondary">Help founders find you for the right kind of guidance.</p>
-      </div>
-
-      <Input label="Headline" hint='e.g. "Ex-Stripe PM, GTM & growth"' error={errors.headline?.message} {...register("headline")} />
-
-      <Controller
-        control={control}
-        name="expertise"
-        render={({ field }) => (
-          <TagsInput label="Areas of expertise" value={field.value ?? []} onChange={field.onChange} error={errors.expertise?.message} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="industries"
-        render={({ field }) => (
-          <TagsInput label="Industries" value={field.value ?? []} onChange={field.onChange} error={errors.industries?.message} />
-        )}
+    <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <StepHeader
+        title="Your mentor profile"
+        minutes={2}
+        description="Founders choose a mentor on four things: what you have done, what you can help with, how you like to meet and when you are free. That is all we ask for now."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Years of experience" type="number" error={errors.yearsExperience?.message} {...register("yearsExperience")} />
-        <Input label="Availability" hint='e.g. "2 hours / week"' error={errors.availability?.message} {...register("availability")} />
+      <div className="flex flex-col gap-5">
+        <Input
+          label="Headline"
+          required
+          placeholder="Ex product lead at a payments company. Pricing and go to market."
+          hint="One line founders read first in the mentor directory"
+          error={errors.headline?.message}
+          {...register("headline")}
+        />
+
+        <Controller
+          control={control}
+          name="expertise"
+          render={({ field }) => (
+            <TagsInput
+              label="What you can help with"
+              hint="Press Enter after each one, for example Pricing, Fundraising, Hiring"
+              value={field.value ?? []}
+              onChange={field.onChange}
+              error={errors.expertise?.message}
+            />
+          )}
+        />
+
+        <ChoiceChips
+          label="How you like to meet"
+          required
+          multiple
+          options={SESSION_TYPE_OPTIONS}
+          value={values.sessionTypes}
+          onChange={toggleSessionType}
+          error={errors.sessionTypes?.message}
+        />
+
+        <Input
+          label="When founders can book you"
+          required
+          placeholder="Weekday evenings, about 2 hours a week"
+          error={errors.availability?.message}
+          {...register("availability")}
+        />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-text-primary">Session types</span>
-        <div className="flex flex-wrap gap-2">
-          {SESSION_TYPE_OPTIONS.map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => toggleSessionType(type)}
-              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                (values.sessionTypes ?? []).includes(type)
-                  ? "border-brand-primary bg-brand-100 text-brand-700"
-                  : "border-border text-text-secondary hover:bg-background-secondary"
-              }`}
-            >
-              {titleCase(type)}
-            </button>
-          ))}
+      <MoreDetails title="More about your mentoring" description="Optional. These help founders filter, and you can add them any time." defaultOpen={moreFilled}>
+        <Controller
+          control={control}
+          name="industries"
+          render={({ field }) => (
+            <TagsInput label="Industries you know well" value={field.value ?? []} onChange={field.onChange} error={errors.industries?.message} />
+          )}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Years of experience" type="number" min={0} error={errors.yearsExperience?.message} {...register("yearsExperience")} />
+          <Input label="Fee" placeholder="Free, or ₹2,000 a session" error={errors.pricingModel?.message} {...register("pricingModel")} />
         </div>
-        {errors.sessionTypes?.message && <p className="text-xs text-danger-600">{errors.sessionTypes.message}</p>}
-      </div>
-
-      <Input label="Pricing model" hint='e.g. "Free", "₹2,000 per session"' error={errors.pricingModel?.message} {...register("pricingModel")} />
-
-      <Controller
-        control={control}
-        name="languages"
-        render={({ field }) => (
-          <TagsInput label="Languages" value={field.value ?? []} onChange={field.onChange} error={errors.languages?.message} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="pastStartups"
-        render={({ field }) => <TagsInput label="Past startups you've worked with" value={field.value ?? []} onChange={field.onChange} />}
-      />
+        <Controller
+          control={control}
+          name="languages"
+          render={({ field }) => (
+            <TagsInput label="Languages" value={field.value ?? []} onChange={field.onChange} error={errors.languages?.message} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="pastStartups"
+          render={({ field }) => <TagsInput label="Startups you have helped before" value={field.value ?? []} onChange={field.onChange} />}
+        />
+      </MoreDetails>
 
       {publishError && (
         <p role="alert" className="rounded-button border border-danger-600/30 bg-danger-50 px-3 py-2 text-sm text-danger-600">

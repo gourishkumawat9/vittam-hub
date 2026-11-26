@@ -23,13 +23,14 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
         aria-valuenow={Math.round(clamped)}
         aria-valuemin={0}
         aria-valuemax={100}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-background-secondary"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-white/10"
       >
+        {/* Scales instead of animating width, so the bar moves on the GPU. */}
         <motion.div
-          className="h-full rounded-full bg-brand-primary"
+          className="h-full w-full origin-left rounded-full bg-brand-primary"
           initial={false}
-          animate={{ width: `${clamped}%` }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          animate={{ scaleX: clamped / 100 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         />
       </div>
     </div>

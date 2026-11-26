@@ -520,6 +520,70 @@ describe("Security rules (e2e)", () => {
     });
   });
 
+  describe("mentor sessions", () => {
+    /** A founder with a startup, a published mentor, and a request from one to the other that the mentor has accepted. */
+    async function acceptedSession() {
+      const { founder } = await founderWithStartup();
+      const mentor = await registerViaApi(app, { role: "MENTOR" });
+      const published = await send("post", "/v1/onboarding/publish", mentor, {
+        personalDetails: PERSONAL_DETAILS,
+        mentorInfo: { headline: "Pricing for early SaaS", expertise: ["Pricing"], availability: "Evenings", sessionTypes: ["ONE_ON_ONE"] },
+      });
+      if (published.status !== 201) throw new Error(`mentor publish failed: ${JSON.stringify(published.body)}`);
+      const mentorUser = await testDb.user.findUniqueOrThrow({ where: { email: mentor.email } });
+      const profile = await testDb.mentorProfile.findFirstOrThrow({ where: { ownerId: mentorUser.id } });
+      const booked = await send("post", `/v1/mentors/${profile.id}/book`, founder, { message: "Help with pricing" });
+      expect(booked.status).toBe(201);
+      const bookingId = booked.body.data.id as string;
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/respond`, mentor, { action: "ACCEPT" })).status).toBe(201);
+      return { founder, mentor, bookingId };
+    }
+
+    const inAnHour = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    it("only the mentor on the session can set its time, and only to a time ahead", async () => {
+      const { founder, mentor, bookingId } = await acceptedSession();
+      const otherMentor = await registerViaApi(app, { role: "MENTOR" });
+      const body = { scheduledAt: inAnHour(), durationMinutes: 45, meetingUrl: "https://meet.google.com/abc-defg-hij" };
+
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/schedule`, founder, body)).status).toBe(403);
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/schedule`, otherMentor, body)).status).toBe(403);
+      expect(
+        (await send("post", `/v1/mentors/bookings/${bookingId}/schedule`, mentor, { ...body, scheduledAt: new Date(Date.now() - 60_000).toISOString() }))
+          .status,
+      ).toBe(400);
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/schedule`, mentor, { ...body, meetingUrl: "javascript:alert(1)" })).status).toBe(400);
+
+      const scheduled = await send("post", `/v1/mentors/bookings/${bookingId}/schedule`, mentor, body);
+      expect(scheduled.status).toBe(201);
+      const seenByFounder = (await get("/v1/mentors/bookings", founder)).body.data[0];
+      expect(seenByFounder.meetingUrl).toBe(body.meetingUrl);
+      expect(seenByFounder.durationMinutes).toBe(45);
+    });
+
+    it("a session can't be marked done before it happens, and reviews wait until it is done", async () => {
+      const { founder, mentor, bookingId } = await acceptedSession();
+      const review = { rating: 5, comment: "Clear and kind" };
+
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/review-mentor`, founder, review)).status).toBe(409);
+
+      await send("post", `/v1/mentors/bookings/${bookingId}/schedule`, mentor, { scheduledAt: inAnHour(), durationMinutes: 30 });
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/complete`, founder)).status).toBe(409);
+
+      // The hour passes.
+      await testDb.mentorBookingRequest.update({ where: { id: bookingId }, data: { scheduledAt: new Date(Date.now() - 60_000) } });
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/complete`, founder)).status).toBe(201);
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/complete`, mentor)).status).toBe(409);
+
+      expect((await send("post", `/v1/mentors/bookings/${bookingId}/review-mentor`, founder, review)).status).toBe(201);
+      const mentorProfile = (await get("/v1/mentors/me", mentor)).body.data;
+      expect(mentorProfile.reputation.sessionsCompleted).toBe(1);
+      expect((await get("/v1/mentors/bookings", founder)).body.data[0].reviewedByMe).toBe(true);
+      // The mentor hasn't reviewed the founder, and the founder isn't told either way.
+      expect((await get("/v1/mentors/bookings", mentor)).body.data[0].reviewedByMe).toBe(false);
+    });
+  });
+
   describe("the billing webhook", () => {
     it("answers 503, not a server error, while billing isn't set up", async () => {
       const res = await request(app.getHttpServer())

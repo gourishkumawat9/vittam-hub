@@ -69,12 +69,12 @@ describe("middleware", () => {
     expect(visit("/community", mentor)).toBeNull();
     expect(visit("/onboarding/mentor", mentor)).toBeNull();
     expect(visit("/settings", mentor)).toBeNull();
-    expect(visit("/investor", mentor)).toBe("/mentors/bookings");
+    expect(visit("/investor", mentor)).toBe("/home");
   });
 
   it("leaves public pages alone", () => {
     expect(visit("/")).toBeNull();
-    expect(visit("/pricing")).toBeNull();
+    expect(visit("/about")).toBeNull();
     expect(visit("/startups/some-startup")).toBeNull();
   });
 

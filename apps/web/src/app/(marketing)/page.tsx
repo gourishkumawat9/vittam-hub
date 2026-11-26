@@ -11,9 +11,6 @@ import { WhyVittamHub } from "@/components/marketing/WhyVittamHub";
 
 // Below-the-fold sections are dynamically imported so the initial bundle stays
 // lean — see docs/10-deployment-infrastructure.md's performance section.
-const EcosystemDiagram = dynamic(() => import("@/components/marketing/EcosystemDiagram").then((m) => m.EcosystemDiagram), {
-  loading: () => <SectionSkeleton />,
-});
 const DiscoverStartups = dynamic(() => import("@/components/marketing/DiscoverStartups").then((m) => m.DiscoverStartups), {
   loading: () => <SectionSkeleton />,
 });
@@ -26,7 +23,7 @@ const CommunitySection = dynamic(() => import("@/components/marketing/CommunityS
 export const metadata: Metadata = {
   title: "Visibility for Tomorrow's Unicorns",
   description:
-    "VittamHub is the digital identity platform for startups. Build trust, showcase your journey, and connect with investors, mentors, incubators, and strategic partners in one ecosystem.",
+    "VittamHub is the digital identity platform for startups. Build a profile investors can read in a minute, learn from mentors, and grow with a community of founders.",
 };
 
 export default function HomePage() {
@@ -37,7 +34,6 @@ export default function HomePage() {
       <StartupJourney />
       <WhyVittamHub />
       <HowItWorks />
-      <EcosystemDiagram />
       <DiscoverStartups />
       <FeaturedInvestors />
       <CommunitySection />

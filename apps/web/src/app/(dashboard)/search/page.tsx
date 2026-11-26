@@ -20,7 +20,7 @@ function SearchContent() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Search results</h1>
+        <h1 className="heading-5">Search results</h1>
         <p className="text-sm text-text-secondary">Showing results for &ldquo;{query}&rdquo;</p>
       </div>
 

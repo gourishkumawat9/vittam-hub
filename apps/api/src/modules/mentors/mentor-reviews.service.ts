@@ -8,7 +8,7 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 /**
  * The founder's review of a mentor — spec §5's actual mentor-trust
  * mechanism ("reputation is earned"). Mirrors FounderReviewsService exactly,
- * direction reversed: gated on the booking being ACCEPTED, one review per
+ * direction reversed: gated on the session being marked done, one review per
  * booking (unique constraint), and it's the founder — not the mentor — who
  * calls `create()` here.
  */
@@ -23,7 +23,7 @@ export class MentorReviewsService {
     const booking = await this.prisma.mentorBookingRequest.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException("Booking request not found");
     if (booking.founderId !== founderId) throw new ForbiddenException("Not your booking to review");
-    if (booking.status !== "ACCEPTED") throw new ConflictException("Only accepted bookings can be reviewed");
+    if (booking.status !== "ACCEPTED" || !booking.completedAt) throw new ConflictException("Mark the session done before reviewing it");
 
     try {
       const review = await this.prisma.mentorReview.create({

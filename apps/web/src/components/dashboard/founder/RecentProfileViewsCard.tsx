@@ -1,22 +1,20 @@
 "use client";
 
 import { useMyStartupProfileViews } from "@vittamhub/api-client";
-import { Card, CardHeader, CardTitle, EmptyState, ErrorState } from "@vittamhub/ui";
+import { Card, EmptyState, ErrorState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { Eye } from "lucide-react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+
+import { PanelTitle } from "../PageHeader";
 
 export function RecentProfileViewsCard() {
   const { data: views, isLoading, isError } = useMyStartupProfileViews();
 
   return (
     <Card className="flex flex-col gap-4">
-      <CardHeader className="pb-0">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Eye className="h-4 w-4 text-brand-primary" /> Recent Investor Views
-        </CardTitle>
-      </CardHeader>
+      <PanelTitle icon={Eye} title="Recent investor views" />
 
       {isLoading ? (
         <ListRowsSkeleton />

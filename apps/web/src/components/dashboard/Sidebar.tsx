@@ -3,26 +3,27 @@
 import { useCurrentUser } from "@vittamhub/api-client";
 import {
   BarChart3,
-  Bell,
   Bookmark,
   Briefcase,
   Building2,
   Calendar,
   CalendarClock,
+  ChevronDown,
   Compass,
   FolderLock,
   GraduationCap,
+  Handshake,
   Inbox,
   Kanban,
   LayoutDashboard,
   MessageCircle,
   Network,
+  School,
   Search,
   Settings,
   Shield,
   Sparkles,
   Target,
-  UserCircle,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -30,74 +31,118 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-const ROLE_NAV: Record<string, { href: string; label: string; icon: typeof LayoutDashboard }[]> = {
-  FOUNDER: [
-    { href: "/founder", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/founder/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/founder/documents", label: "Documents", icon: FolderLock },
-    { href: "/mentors", label: "Mentors", icon: GraduationCap },
-    { href: "/mentors/bookings", label: "Session Requests", icon: CalendarClock },
-    { href: "/incubators", label: "Incubators", icon: Building2 },
-    { href: "/universities", label: "Universities", icon: GraduationCap },
-    { href: "/community", label: "Community", icon: Users },
-    { href: "/onboarding/founder", label: "Edit Startup Profile", icon: UserCircle },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ],
-  MENTOR: [
-    { href: "/mentors/bookings", label: "Session Requests", icon: CalendarClock },
-    { href: "/mentors", label: "Mentors", icon: GraduationCap },
-    { href: "/community", label: "Community", icon: Users },
-    { href: "/onboarding/mentor", label: "Edit Mentor Profile", icon: UserCircle },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ],
-  INVESTOR: [
-    { href: "/investor", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/investor/discover", label: "Discover Startups", icon: Compass },
-    { href: "/investor/portfolio", label: "My Portfolio", icon: Briefcase },
-    { href: "/investor/requests", label: "Connection Requests", icon: Inbox },
-    { href: "/investor/watchlist?tab=saved", label: "Saved Startups", icon: Bookmark },
-    { href: "/investor/watchlist?tab=watchlist", label: "Watchlist", icon: Sparkles },
-    { href: "/investor/watchlist?tab=triggers", label: "Watchlist Alerts", icon: Bell },
-    { href: "/investor/meetings", label: "Meetings", icon: Calendar },
-    { href: "/investor/messages", label: "Messages", icon: MessageCircle },
-    { href: "/investor/pipeline", label: "Investment Pipeline", icon: Kanban },
-    { href: "/investor/mandates", label: "Mandates", icon: Target },
-    { href: "/investor/saved-searches", label: "Saved Searches", icon: Search },
-    { href: "/investor/co-investors", label: "Co-Investor Graph", icon: Network },
-    { href: "/investor/recommendations", label: "AI Recommendations", icon: Sparkles },
-    { href: "/investor/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/investor/documents", label: "Documents", icon: FolderLock },
-    { href: "/community", label: "Community", icon: Users },
-    { href: "/investor/profile", label: "Edit Investor Profile", icon: UserCircle },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ],
-  ADMIN: [
-    { href: "/admin", label: "Admin", icon: Shield },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ],
-  INCUBATOR: [
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
+type NavGroup = { label?: string; items: NavItem[]; /** Folded away until opened, or until one of its pages is open. */ collapsible?: boolean };
+
+const SETTINGS: NavItem = { href: "/settings", label: "Settings", icon: Settings };
+const COMMUNITY: NavItem = { href: "/community", label: "Community", icon: Users };
+const DIRECTORIES: NavGroup = {
+  label: "Ecosystem",
+  items: [
     { href: "/mentors", label: "Mentors", icon: GraduationCap },
     { href: "/incubators", label: "Incubators", icon: Building2 },
-    { href: "/universities", label: "Universities", icon: GraduationCap },
-    { href: "/community", label: "Community", icon: Users },
-    { href: "/onboarding/incubator", label: "Edit Incubator Profile", icon: UserCircle },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ],
-  UNIVERSITY: [
-    { href: "/mentors", label: "Mentors", icon: GraduationCap },
-    { href: "/incubators", label: "Incubators", icon: Building2 },
-    { href: "/universities", label: "Universities", icon: GraduationCap },
-    { href: "/community", label: "Community", icon: Users },
-    { href: "/onboarding/university", label: "Edit University Profile", icon: UserCircle },
-    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/universities", label: "Universities", icon: School },
+    COMMUNITY,
   ],
 };
 
+/**
+ * Each role's navigation, in labelled groups. Every role starts at a Home
+ * page; editing a public profile lives in the account menu (Topbar) and in
+ * Settings, so it doesn't take a nav slot.
+ */
+const ROLE_NAV: Record<string, NavGroup[]> = {
+  FOUNDER: [
+    { items: [{ href: "/founder", label: "Home", icon: LayoutDashboard }] },
+    {
+      label: "Fundraising",
+      items: [
+        { href: "/founder/investors", label: "Investors", icon: Handshake },
+        { href: "/founder/analytics", label: "Analytics", icon: BarChart3 },
+        { href: "/founder/documents", label: "Documents", icon: FolderLock },
+      ],
+    },
+    {
+      label: "Support",
+      items: [
+        { href: "/mentors", label: "Mentors", icon: GraduationCap },
+        { href: "/mentors/bookings", label: "Mentor sessions", icon: CalendarClock },
+        { href: "/incubators", label: "Incubators", icon: Building2 },
+        { href: "/universities", label: "Universities", icon: School },
+        COMMUNITY,
+      ],
+    },
+    { items: [SETTINGS] },
+  ],
+  INVESTOR: [
+    { items: [{ href: "/investor", label: "Home", icon: LayoutDashboard }] },
+    {
+      label: "Deal flow",
+      items: [
+        { href: "/investor/discover", label: "Discover startups", icon: Compass },
+        { href: "/investor/requests", label: "Connect requests", icon: Inbox },
+        { href: "/investor/pipeline", label: "Pipeline", icon: Kanban },
+        { href: "/investor/watchlist", label: "Watchlist", icon: Bookmark },
+      ],
+    },
+    {
+      label: "Relationships",
+      items: [
+        { href: "/investor/meetings", label: "Meetings", icon: Calendar },
+        { href: "/investor/messages", label: "Messages", icon: MessageCircle },
+        { href: "/investor/portfolio", label: "Portfolio", icon: Briefcase },
+      ],
+    },
+    {
+      label: "More",
+      collapsible: true,
+      items: [
+        { href: "/investor/analytics", label: "Analytics", icon: BarChart3 },
+        { href: "/investor/recommendations", label: "Recommendations", icon: Sparkles },
+        { href: "/investor/mandates", label: "Mandates", icon: Target },
+        { href: "/investor/saved-searches", label: "Saved searches", icon: Search },
+        { href: "/investor/co-investors", label: "Co-investors", icon: Network },
+        { href: "/investor/documents", label: "Documents", icon: FolderLock },
+      ],
+    },
+    { items: [COMMUNITY, SETTINGS] },
+  ],
+  MENTOR: [
+    {
+      items: [
+        { href: "/home", label: "Home", icon: LayoutDashboard },
+        { href: "/mentors/bookings", label: "Sessions", icon: CalendarClock },
+      ],
+    },
+    DIRECTORIES,
+    { items: [SETTINGS] },
+  ],
+  INCUBATOR: [{ items: [{ href: "/home", label: "Home", icon: LayoutDashboard }] }, DIRECTORIES, { items: [SETTINGS] }],
+  UNIVERSITY: [{ items: [{ href: "/home", label: "Home", icon: LayoutDashboard }] }, DIRECTORIES, { items: [SETTINGS] }],
+  ADMIN: [{ items: [{ href: "/admin", label: "Admin", icon: Shield }, SETTINGS] }],
+};
+
 /** Roles paused until after the growth stage (service providers, job seekers) keep a way into the community. */
-const FALLBACK_NAV = [
-  { href: "/community", label: "Community", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+const FALLBACK_NAV: NavGroup[] = [{ items: [COMMUNITY, SETTINGS] }];
+
+function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-3 rounded-button px-3 py-2 text-sm transition-colors duration-300 ease-base",
+        active
+          ? "bg-brand-100 font-semibold text-brand-800 dark:bg-brand-primary/15 dark:text-brand-200"
+          : "font-medium text-text-secondary hover:bg-text-primary/5 hover:text-text-primary",
+      )}
+    >
+      <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-brand-700 dark:text-brand-300" : "")} aria-hidden="true" />
+      <span className="truncate">{item.label}</span>
+    </Link>
+  );
+}
 
 /**
  * Nav content shared by the persistent desktop `<aside>` and the mobile
@@ -108,30 +153,43 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { data: user } = useCurrentUser();
   const pathname = usePathname();
 
-  const primaryNav = user ? (ROLE_NAV[user.role] ?? FALLBACK_NAV) : [];
+  const groups = user ? (ROLE_NAV[user.role] ?? FALLBACK_NAV) : [];
+  // The most specific match wins, so /mentors/bookings doesn't also light up /mentors.
+  const allHrefs = groups.flatMap((group) => group.items.map((item) => item.href));
+  const activeHref = allHrefs
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
-    <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label="Dashboard">
-      {primaryNav.map((item) => {
-        const isActive = pathname === item.href.split("?")[0];
+    <nav className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4" aria-label="Dashboard">
+      {groups.map((group, index) => {
+        const links = (
+          <ul className="flex flex-col gap-0.5">
+            {group.items.map((item) => (
+              <li key={item.href}>
+                <NavLink item={item} active={item.href === activeHref} onNavigate={onNavigate} />
+              </li>
+            ))}
+          </ul>
+        );
+        const key = group.label ?? `group-${index}`;
+        if (group.collapsible && group.label) {
+          const holdsActive = group.items.some((item) => item.href === activeHref);
+          return (
+            <details key={key} open={holdsActive || undefined} className="group/more flex flex-col gap-1">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-button px-3 py-1 text-xs font-semibold text-text-secondary transition-colors duration-300 ease-base hover:text-text-primary [&::-webkit-details-marker]:hidden">
+                {group.label}
+                <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 ease-base group-open/more:rotate-180" aria-hidden="true" />
+              </summary>
+              <div className="pt-1">{links}</div>
+            </details>
+          );
+        }
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            aria-current={isActive ? "page" : undefined}
-            className={cn(
-              "relative flex items-center gap-2.5 rounded-button px-3 py-2 text-sm font-medium transition-colors",
-              // The active page gets a blue bar on its left edge as well as the tinted pill.
-              "before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-brand-primary before:opacity-0",
-              isActive
-                ? "bg-brand-100 font-semibold text-brand-700 before:opacity-100 dark:bg-brand-primary/15 dark:text-brand-primary"
-                : "text-text-secondary hover:bg-text-primary/5 hover:text-text-primary",
-            )}
-          >
-            <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">{item.label}</span>
-          </Link>
+          <div key={key} className="flex flex-col gap-1">
+            {group.label && <p className="px-3 text-xs font-semibold text-text-secondary">{group.label}</p>}
+            {links}
+          </div>
         );
       })}
     </nav>

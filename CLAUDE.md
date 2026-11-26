@@ -55,6 +55,7 @@ Design every module so these can be added later without a rewrite: AI fraud dete
 - **Uploads** go from the browser straight to Cloudflare R2 on a pre-signed **PUT** (R2 doesn't support presigned POST), signed with the file's content type and length. Public folders: `logos`, `avatars`, `pictures`; private: `documents`, `resumes`. The bucket needs the CORS rule in docs/10-deployment-infrastructure.md, and the web CSP's connect-src must include the storage origin.
 - **Sessions**: the access token carries `sid`, the refresh-token family, and every request checks that the family is still live, so signing out or ending a session elsewhere takes effect at once.
 - **Editing a published profile** reopens the onboarding wizard on the live profile; saving updates it in place (no second startup, no second signature), and unsaved edits can be discarded.
+- **Mentor sessions** (`MentorBookingRequest`): a founder requests, the mentor accepts or declines, then the mentor sets the time, length and meeting link (`POST /v1/mentors/bookings/:id/schedule`), and either side marks it done once it has happened (`/complete`). Reviews and a mentor's "sessions completed" count only sessions marked done.
 - **Demo accounts** are shared and re-seeded on every API boot; their password lives only in the `DEMO_ACCOUNTS_PASSWORD` env var. They can't upload government ID, PAN or a digital signature.
 - **Code style**: there is no Prettier config, so don't run Prettier; fix lint with `eslint --fix`.
 - **Stack**: Next.js 15 with React 19 (route `params` are Promises in server components), NestJS 10, Prisma 5.
@@ -67,7 +68,7 @@ The product should read as trustworthy, transparent, innovative, professional, a
 
 The owner's own blue is the brand colour: `brand-600` `#5F89C8` and its scale in `packages/tokens`, the same calm mid-blue family as the Goldman Sachs logo. A navy "trust blue" redesign was tried and rolled back at the owner's request, so don't bring it back. Keep pages light: white and light-grey sections, blue accents and blue gradient cards, and no near-black or navy bands anywhere, dashboards included (the owner asked for no black).
 
-The home page is the original one (hero film, audience cards, journey, features, how it works, ecosystem, example startups and investors, community, closing card) and keeps its motion: fade-ups on scroll, the hero film and parallax, the marquee and hover lifts. Use pictures where a section needs one: real VittamHub screens captured on the demo accounts (`ProductShot`, `data/product-shots.ts`), or photos the owner provides, and never present a photo of people as VittamHub members (§2). The login and sign-up pages show the home page's film (`HeroFilm`) beside the form, not a product screen, at the owner's request. BCG careers (careers.bcg.com) stays a reference for layout ideas. See docs/02-design-system.md.
+The home page is the original one (hero film, audience cards, journey, features, how it works, example startups and investors, community, closing card) and keeps its motion: fade-ups on scroll, the hero film and parallax, the marquee and hover lifts. Use pictures where a section needs one: real VittamHub screens captured on the demo accounts (`ProductShot`, `data/product-shots.ts`), or photos the owner provides, and never present a photo of people as VittamHub members (§2). The login and sign-up pages show the home page's film (`HeroFilm`) beside the form, not a product screen, at the owner's request. BCG careers (careers.bcg.com) stays a reference for layout ideas. See docs/02-design-system.md.
 
 ## 10. North star
 
@@ -82,6 +83,8 @@ Until after the growth stage, the live platform covers six areas only: **founder
 - **"Coming soon" modules list** (Startup Passport as a module, AI tools, marketplaces, grants, government schemes, office space and the rest of `FUTURE_MODULES`): removed from the dashboard. `FUTURE_MODULES` stays in `packages/types` as the roadmap.
 
 Don't add new features outside the six areas without the owner asking.
+
+**Public site (November 2026)**: the owner asked for the website to show only what is being worked on now: founders, investors, mentors and the community. The home features grid has four cards (startup profile, investor connect, mentorship, community); the ecosystem diagram, the Discover and Ecosystem menus, the pricing page (`/pricing` redirects to `/`, not permanently) and Trust Score, Startup Passport, verification and timeline cards are gone from the marketing pages. Incubator and university pages stay, linked from the footer only.
 
 ## graphify
 

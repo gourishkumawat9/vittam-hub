@@ -23,11 +23,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   },
   {
     id: "2",
-    // A made-up incubator, not a VittamHub programme: example posts must never announce real-sounding platform activity (CLAUDE.md §2).
-    authorName: "Example Incubator",
-    authorRole: "Programme update",
-    initials: "EI",
-    content: "Applications for our next pre-seed cohort are open. MVP-stage startups in climate and agritech are especially welcome.",
+    // A made-up mentor, not a VittamHub member: example posts must never announce real-sounding platform activity (CLAUDE.md §2).
+    authorName: "Example Mentor",
+    authorRole: "Mentor",
+    initials: "EM",
+    content: "Opening two office-hour slots this week for MVP-stage founders working on pricing. Send a session request with your question.",
     likes: 96,
     comments: 11,
     timeAgo: "5h ago",

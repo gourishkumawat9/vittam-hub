@@ -72,6 +72,7 @@ export function middleware(request: NextRequest) {
 // rather than built from SIGNED_IN_AREAS. middleware.test.ts checks the two agree.
 export const config = {
   matcher: [
+    "/home/:path*",
     "/founder/:path*",
     "/investor/:path*",
     "/admin/:path*",

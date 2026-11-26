@@ -133,14 +133,28 @@ export class FounderActivityService {
       })),
     ];
 
-    // One synthetic entry for traction changes — only if traction was ever
-    // touched after publish, so a freshly-published startup that never
-    // revisited its traction numbers doesn't get a noise entry.
-    if (startup.traction && startup.publishedAt && startup.traction.updatedAt > startup.publishedAt) {
+    // One synthetic entry for traction changes, only if a number was actually
+    // updated after publishing. The traction row is written in the same save
+    // as the publish, a few milliseconds after publishedAt, so a plain
+    // "updated after publish" check put this entry on every new startup,
+    // including ones that never entered a single metric.
+    const traction = startup.traction;
+    const hasMetric =
+      !!traction &&
+      [traction.monthlyRevenueAmount, traction.arrAmount, traction.mrrAmount, traction.totalUsers, traction.totalCustomers, traction.downloads].some(
+        (value) => value !== null && value !== undefined,
+      );
+    const PUBLISH_SAVE_WINDOW_MS = 60_000;
+    if (
+      traction &&
+      hasMetric &&
+      startup.publishedAt &&
+      traction.updatedAt.getTime() - startup.publishedAt.getTime() > PUBLISH_SAVE_WINDOW_MS
+    ) {
       entries.push({
         id: `traction:${startup.id}`,
         type: "TRACTION_UPDATED",
-        occurredAt: startup.traction.updatedAt.toISOString(),
+        occurredAt: traction.updatedAt.toISOString(),
         title: "Updated traction metrics",
         description: null,
       });

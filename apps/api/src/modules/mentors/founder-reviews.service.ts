@@ -6,9 +6,8 @@ import type { CreateFounderReviewInput } from "@vittamhub/types";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 /**
- * A mentor's review of a founder — gated on the booking being ACCEPTED
- * (there's no real session-datetime field to gate a genuine "completed"
- * state on yet; accepting already means the mentor consented to engage).
+ * A mentor's review of a founder — gated on the session being marked done
+ * (`completedAt`), so a review always follows a session that happened.
  * Feeds FounderReputationService. See FounderReview in schema.prisma.
  */
 @Injectable()
@@ -22,7 +21,7 @@ export class FounderReviewsService {
     const booking = await this.prisma.mentorBookingRequest.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException("Booking request not found");
     if (booking.mentorId !== mentorId) throw new ForbiddenException("Not your booking to review");
-    if (booking.status !== "ACCEPTED") throw new ConflictException("Only accepted bookings can be reviewed");
+    if (booking.status !== "ACCEPTED" || !booking.completedAt) throw new ConflictException("Mark the session done before reviewing it");
 
     try {
       const review = await this.prisma.founderReview.create({

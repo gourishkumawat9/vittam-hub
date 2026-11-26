@@ -9,6 +9,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
+import { StepHeader } from "../fields";
 
 interface StepProps {
   defaultValues?: Partial<TractionStepInput>;
@@ -33,13 +34,8 @@ export function Step6Traction({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Traction</h2>
-        <p className="mt-1 text-sm text-text-secondary">
-          Optional if you&apos;re pre-revenue. Investors filter by stage, so this only helps once it applies.
-        </p>
-      </div>
+    <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <StepHeader optional title="Traction" description="Users, customers and revenue, once you have them. Investors filter by these, so it helps as soon as it applies." />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Input label="Monthly revenue (₹)" type="number" {...register("monthlyRevenueAmount")} />
@@ -77,7 +73,7 @@ export function Step6Traction({ defaultValues, onNext, onBack }: StepProps) {
         render={({ field }) => <TagsInput label="Media mentions" value={field.value ?? []} onChange={field.onChange} />}
       />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} />
+      <WizardNav onBack={onBack} onNext={onSubmit} backLabel="Back to review" nextLabel="Save and review" />
     </form>
   );
 }

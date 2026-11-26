@@ -115,6 +115,9 @@ const nextConfig = {
         destination: `https://${CANONICAL_HOST}/:path*`,
         permanent: true,
       },
+      // Plans aren't sold yet (CLAUDE.md §5), so the pricing page is off the
+      // site for now. Not permanent, so it can come back at the same address.
+      { source: "/pricing", destination: "/", permanent: false },
     ];
   },
 };

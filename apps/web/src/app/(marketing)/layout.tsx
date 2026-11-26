@@ -2,7 +2,7 @@ import { Footer } from "@/components/marketing/Footer";
 import { NavBar } from "@/components/marketing/NavBar";
 
 /**
- * Public marketing shell: home, pricing, about, startup/investor directories
+ * Public marketing shell: home, about, startup/investor directories
  * (public profile pages), blog. No auth required. Route group keeps this
  * layout (nav + footer) isolated from the dashboard chrome.
  */

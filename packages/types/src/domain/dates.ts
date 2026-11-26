@@ -27,3 +27,23 @@ export const dateOfBirthSchema = z
     },
     { message: "Enter a valid date of birth" },
   );
+
+/**
+ * A date of birth that may be left out. Most of the profile is optional at
+ * sign-up (only what a profile needs to go live is asked for first), so an
+ * empty field is accepted, and anything typed still has to be a real date.
+ */
+export const optionalDateOfBirthSchema = z
+  .string()
+  .max(40)
+  .optional()
+  .transform((value) => (value === "" ? undefined : value))
+  .refine(
+    (value) => {
+      if (value === undefined) return true;
+      if (!isDate(value)) return false;
+      const date = new Date(value);
+      return date.getTime() < Date.now() && date.getUTCFullYear() >= 1900;
+    },
+    { message: "Enter a valid date of birth" },
+  );

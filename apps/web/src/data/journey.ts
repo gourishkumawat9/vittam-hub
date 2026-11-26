@@ -22,13 +22,13 @@ export const JOURNEY_STAGES: JourneyStage[] = [
     id: "prototype",
     label: "Prototype",
     description: "Building the first tangible version to test with real users.",
-    howVittamHelps: "Get product feedback from mentors and find incubation programmes that take early-stage startups.",
+    howVittamHelps: "Get product feedback from mentors who have built in your space.",
   },
   {
     id: "mvp",
     label: "MVP",
     description: "Launching a minimum viable product into the market.",
-    howVittamHelps: "Get your first Trust Score and start a dated, public record of your progress.",
+    howVittamHelps: "Publish your startup profile and start a dated, public record of your progress.",
   },
   {
     id: "customers",

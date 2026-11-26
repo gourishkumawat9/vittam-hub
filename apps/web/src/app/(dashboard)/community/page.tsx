@@ -431,7 +431,7 @@ export default function CommunityPage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-text-primary">Community</h1>
+          <h1 className="heading-5">Community</h1>
           <p className="text-sm text-text-secondary">Updates, polls and events from people on VittamHub.</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>Create post</Button>

@@ -2,9 +2,11 @@
 
 import { useUpdateMyVisibility } from "@vittamhub/api-client";
 import { MetricVisibility, ProfileVisibility, type Startup } from "@vittamhub/types";
-import { Card, CardHeader, CardTitle, Select } from "@vittamhub/ui";
+import { Card, Select } from "@vittamhub/ui";
 import { Eye } from "lucide-react";
 import { useState } from "react";
+
+import { PanelTitle } from "../PageHeader";
 
 function titleCase(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -29,11 +31,7 @@ export function VisibilitySettingsCard({ startup }: { startup: Startup }) {
 
   return (
     <Card className="flex flex-col gap-3">
-      <CardHeader className="pb-0">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Eye className="h-4 w-4 text-brand-primary" /> Who can see this
-        </CardTitle>
-      </CardHeader>
+      <PanelTitle icon={Eye} title="Who can see this" />
       <div className="grid gap-3 sm:grid-cols-2">
         <Select
           label="Profile visibility"

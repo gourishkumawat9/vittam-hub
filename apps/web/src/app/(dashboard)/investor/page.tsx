@@ -2,41 +2,26 @@
 
 import {
   useConnections,
+  useCurrentUser,
   useInvestorRecommendations,
   useMyInvestorProfile,
   useMyMeetings,
   usePortfolio,
-  useUnreadNotificationCount,
   useWatchlist,
   useWorkspaceHome,
 } from "@vittamhub/api-client";
-import { Badge, Card, CardHeader, CardTitle, EmptyState, Input, ProgressBar } from "@vittamhub/ui";
-import { formatRelativeTime } from "@vittamhub/utils";
-import {
-  BarChart3,
-  Bookmark,
-  Briefcase,
-  Calendar,
-  CalendarClock,
-  Compass,
-  Handshake,
-  ListChecks,
-  MessageCircle,
-  Network,
-  Plus,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Target,
-  TrendingUp,
-  UserCheck,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Badge, Button, Card, ProgressBar, Skeleton } from "@vittamhub/ui";
+import { CalendarClock, Gauge, Inbox, ShieldCheck, TrendingUp, UserCheck } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
-const WEEKDAY_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" });
+import { PageHeader, PanelLink, PanelTitle, SectionHeader } from "@/components/dashboard/PageHeader";
+import { StatStrip } from "@/components/dashboard/StatStrip";
+import { PendingRequestCard } from "@/components/dashboard/investor/PendingRequestCard";
+import { INDUSTRY_LABEL, labelFor } from "@/lib/startup-options";
+
+const DAY = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" });
+const TIME = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 function computeProfileCompletion(investor: ReturnType<typeof useMyInvestorProfile>["data"]) {
   if (!investor) return 0;
@@ -52,313 +37,280 @@ function computeProfileCompletion(investor: ReturnType<typeof useMyInvestorProfi
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
-function DashboardCard({
-  icon: Icon,
-  title,
-  value,
-  href,
-  description,
-}: {
-  icon: LucideIcon;
-  title: string;
-  value: string | number;
-  href: string;
-  description?: string;
-}) {
-  return (
-    <Link href={href}>
-      <Card interactive className="flex flex-col gap-2">
-        <CardHeader className="flex-row items-center gap-2 pb-0">
-          <Icon className="h-4 w-4 text-brand-primary" />
-          <CardTitle className="text-xs font-medium text-text-secondary">{title}</CardTitle>
-        </CardHeader>
-        <span className="font-numeric text-2xl font-bold text-text-primary">{value}</span>
-        {description && <p className="text-xs text-text-secondary">{description}</p>}
-      </Card>
-    </Link>
-  );
-}
-
+/**
+ * The investor's home, action first: the founders waiting for an answer come
+ * before anything else, then this week's meetings and today's best matches,
+ * and the market signals last. Search and quick links live in the sidebar
+ * and the top bar, so they are not repeated here.
+ */
 export default function InvestorDashboardPage() {
-  const router = useRouter();
-  const [query, setQuery] = useState("");
-  const { data: pendingConnectionsResult } = useConnections({ status: ["PENDING"], page: 1, pageSize: 20 });
+  const { data: user } = useCurrentUser();
+  const { data: pendingResult, isLoading: pendingLoading } = useConnections({ status: ["PENDING"], page: 1, pageSize: 20 });
   const { data: watchlist } = useWatchlist();
   const { data: portfolio } = usePortfolio();
   const { data: meetings } = useMyMeetings();
-  const { data: unread } = useUnreadNotificationCount();
   const { data: recommendations } = useInvestorRecommendations();
   const { data: investorProfile } = useMyInvestorProfile();
-  const { data: home } = useWorkspaceHome();
+  const { data: home, isLoading: homeLoading } = useWorkspaceHome();
 
-  const pendingRequests = pendingConnectionsResult?.items ?? [];
-  const savedCount = (watchlist ?? []).filter((f) => !f.notifyOnUpdate).length;
-  const upcomingMeetings = (meetings ?? []).filter((m) => new Date(m.scheduledAt) > new Date());
-  const profileCompletion = computeProfileCompletion(investorProfile);
-
-  const meetingsThisWeek = upcomingMeetings.filter((m) => {
-    const days = (new Date(m.scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-    return days <= 7;
-  });
-  const meetingsByDay = new Map<string, typeof meetingsThisWeek>();
-  for (const meeting of meetingsThisWeek) {
-    const key = WEEKDAY_FORMATTER.format(new Date(meeting.scheduledAt));
+  const pending = [...(pendingResult?.items ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const pendingTotal = pendingResult?.totalItems ?? pending.length;
+  const savedCount = (watchlist ?? []).filter((follow) => !follow.notifyOnUpdate).length;
+  const now = Date.now();
+  const thisWeek = (meetings ?? [])
+    .filter((meeting) => {
+      const at = new Date(meeting.scheduledAt).getTime();
+      return at > now && at - now <= WEEK_MS;
+    })
+    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+  const meetingsByDay = new Map<string, typeof thisWeek>();
+  for (const meeting of thisWeek) {
+    const key = DAY.format(new Date(meeting.scheduledAt));
     meetingsByDay.set(key, [...(meetingsByDay.get(key) ?? []), meeting]);
   }
-
-  const submitSearch = () => {
-    router.push(query.trim() ? `/investor/discover?query=${encodeURIComponent(query.trim())}` : "/investor/discover");
-  };
+  const profileCompletion = computeProfileCompletion(investorProfile);
+  const firstName = user?.fullName.split(" ")[0] ?? "";
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Investor dashboard</h1>
-        <div className="flex w-full max-w-xs gap-2 sm:w-auto">
-          <Input
-            placeholder="Search startups…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submitSearch()}
-          />
-          <button
-            type="button"
-            onClick={submitSearch}
-            aria-label="Search"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button border border-border text-text-secondary hover:bg-background-secondary hover:text-text-primary"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {home && (
-        <Card className="flex flex-wrap items-center gap-x-8 gap-y-3">
-          <div>
-            <p className="text-xs text-text-secondary">Trust Score</p>
-            <p className="flex items-center gap-2">
-              <span className="font-numeric text-xl font-bold text-text-primary">{home.header.trustScore ?? "—"}</span>
-              {home.header.trustBand && <Badge variant="neutral">{home.header.trustBand}</Badge>}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-text-secondary">Response rate</p>
-            <p className="font-numeric text-xl font-bold text-text-primary">
-              {home.header.responseRate != null ? `${Math.round(home.header.responseRate * 100)}%` : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-text-secondary">Avg response time</p>
-            <p className="font-numeric text-xl font-bold text-text-primary">
-              {home.header.avgResponseTimeHours != null ? `${Math.round(home.header.avgResponseTimeHours)}h` : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-text-secondary">Deploying capital</p>
+    <div className="flex flex-col gap-10">
+      <PageHeader
+        title={firstName ? `Welcome back, ${firstName}` : "Deal flow"}
+        description={
+          pendingLoading
+            ? " "
+            : pendingTotal > 0
+              ? `${pendingTotal} founder${pendingTotal === 1 ? " is" : "s are"} waiting for your answer.`
+              : "No requests waiting. Your best matches for today are below."
+        }
+        meta={
+          home ? (
             <Badge variant={home.header.currentlyDeployingCapital ? "success" : "neutral"}>
-              {home.header.currentlyDeployingCapital ? "Yes" : "Not now"}
+              {home.header.currentlyDeployingCapital ? "Deploying capital" : "Not deploying right now"}
             </Badge>
-          </div>
-          <Link href="/investor/mandates" className="text-xs">
-            <p className="text-text-secondary">Open mandates</p>
-            <p className="font-numeric text-xl font-bold text-brand-primary">{home.header.openMandatesCount}</p>
-          </Link>
-          <Link href="/investor/messages" className="text-xs">
-            <p className="text-text-secondary">Unread alerts</p>
-            <p className="font-numeric text-xl font-bold text-brand-primary">{home.header.unreadNotifications}</p>
-          </Link>
-        </Card>
-      )}
+          ) : undefined
+        }
+        actions={
+          <>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/investor/profile">Edit thesis</Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link href="/investor/discover">Discover startups</Link>
+            </Button>
+          </>
+        }
+      />
 
-      {home && home.bestMatchesToday.length > 0 && (
-        <Card className="flex flex-col gap-3">
-          <CardHeader className="flex-row items-center gap-2 pb-0">
-            <Target className="h-4 w-4 text-brand-primary" />
-            <CardTitle className="text-base">Best matches today</CardTitle>
-          </CardHeader>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {home.bestMatchesToday.map((match) => (
+      <StatStrip
+        stats={[
+          {
+            label: "Requests waiting",
+            value: pendingLoading ? "…" : pendingTotal,
+            hint: pendingTotal > 0 ? "Oldest first below" : "You're all caught up",
+            href: "/investor/requests",
+          },
+          { label: "Meetings this week", value: meetings ? thisWeek.length : "…", hint: "Proposed and confirmed", href: "/investor/meetings" },
+          { label: "Saved startups", value: watchlist ? savedCount : "…", hint: "On your watchlist", href: "/investor/watchlist?tab=saved" },
+          { label: "Portfolio", value: portfolio ? portfolio.length : "…", hint: "Companies you track", href: "/investor/portfolio" },
+        ]}
+      />
+
+      <section className="flex flex-col gap-4" aria-labelledby="reply-heading">
+        <SectionHeader
+          id="reply-heading"
+          title="Needs your reply"
+          description="Accepting opens chat, documents and meetings with the founder. Declining lets them know kindly."
+          href={pendingTotal > 2 ? "/investor/requests" : undefined}
+          linkLabel={`All ${pendingTotal} requests`}
+        />
+        {pendingLoading ? (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        ) : pending.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {pending.slice(0, 2).map((connection) => (
+              <PendingRequestCard key={connection.id} connection={connection} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 rounded-card border border-dashed border-border px-6 py-8">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-background-secondary">
+              <Inbox className="h-5 w-5 text-text-secondary" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="body-5 text-text-primary">No requests waiting</p>
+              <p className="caption-5">When a founder sends a connect request, it shows up here first with their ask and deck.</p>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-4" aria-labelledby="matches-heading">
+        <SectionHeader
+          id="matches-heading"
+          title="Best matches today"
+          description="Startups that fit your mandates, scored on stage, industry and ticket size."
+          href="/investor/discover"
+          linkLabel="Discover more"
+        />
+        {homeLoading ? (
+          <Skeleton className="h-32 w-full" />
+        ) : home && home.bestMatchesToday.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {home.bestMatchesToday.slice(0, 4).map((match) => (
               <Link
                 key={match.startupId}
                 href={`/startups/${match.startup.slug}`}
-                className="flex flex-col gap-1 rounded-card border border-border p-3 hover:bg-background-secondary"
+                className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4 transition-colors duration-300 ease-base hover:border-brand-300"
               >
-                <span className="text-sm font-medium text-text-primary">{match.startup.name}</span>
-                <span className="text-xs text-text-secondary">{match.startup.industry}</span>
-                <Badge variant="brand" className="w-fit">
+                <span className="title-4 truncate">{match.startup.name}</span>
+                <span className="caption-5">{labelFor(INDUSTRY_LABEL, match.startup.industry)}</span>
+                <Badge variant="brand" className="font-numeric mt-auto w-fit">
                   {match.score}% match
                 </Badge>
               </Link>
             ))}
           </div>
-        </Card>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard icon={Handshake} title="New connection requests" value={pendingConnectionsResult?.totalItems ?? 0} href="/investor/requests" />
-        <DashboardCard icon={Bookmark} title="Saved startups" value={savedCount} href="/investor/watchlist?tab=saved" />
-        <DashboardCard icon={Briefcase} title="Portfolio companies" value={(portfolio ?? []).length} href="/investor/portfolio" />
-        <DashboardCard icon={Calendar} title="Upcoming meetings" value={upcomingMeetings.length} href="/investor/meetings" />
-        <DashboardCard icon={MessageCircle} title="Unread notifications" value={unread?.count ?? 0} href="/investor/messages" />
-        <DashboardCard
-          icon={Sparkles}
-          title="Recommended today"
-          value={recommendations?.highPotentialStartups.length ?? 0}
-          href="/investor/recommendations"
-        />
-        <DashboardCard icon={Compass} title="Investment opportunities" value={recommendations?.fastestGrowingCompanies.length ?? 0} href="/investor/discover" />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="flex flex-col gap-3 lg:col-span-2">
-          <CardHeader className="pb-0">
-            <CardTitle className="text-base">Recent updates</CardTitle>
-          </CardHeader>
-          {pendingRequests.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              {pendingRequests.slice(0, 5).map((connection) => (
-                <div key={connection.id} className="flex items-center justify-between text-sm">
-                  <span className="text-text-primary">{connection.startup?.name ?? connection.requester.fullName} sent a connect request</span>
-                  <span className="text-xs text-text-secondary">{formatRelativeTime(connection.createdAt)}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-secondary">No recent activity yet.</p>
-          )}
-        </Card>
-
-        <Card className="flex flex-col gap-4">
-          <CardHeader className="pb-0">
-            <CardTitle className="text-base">Profile completion</CardTitle>
-          </CardHeader>
-          <ProgressBar value={profileCompletion} />
-          <Link href="/investor/profile" className="text-xs font-medium text-brand-primary hover:underline">
-            Complete your profile →
-          </Link>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="flex flex-col gap-3">
-          <CardHeader className="flex-row items-center gap-2 pb-0">
-            <TrendingUp className="h-4 w-4 text-brand-primary" />
-            <CardTitle className="text-base">Trending industries</CardTitle>
-          </CardHeader>
-          {recommendations && recommendations.trendingIndustries.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {recommendations.trendingIndustries.slice(0, 8).map((entry) => (
-                <Badge key={entry.industry} variant="brand">
-                  {entry.industry} · {entry.count}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-secondary">Not enough activity yet to spot a trend.</p>
-          )}
-        </Card>
-
-        <Card className="flex flex-col gap-3">
-          <CardHeader className="flex-row items-center gap-2 pb-0">
-            <ShieldCheck className="h-4 w-4 text-brand-primary" />
-            <CardTitle className="text-base">Recently verified</CardTitle>
-          </CardHeader>
-          {recommendations && recommendations.recentlyVerifiedStartups.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {recommendations.recentlyVerifiedStartups.slice(0, 5).map((startup) => (
-                <li key={startup.id}>
-                  <Link href={`/startups/${startup.slug}`} className="text-sm font-medium text-text-primary hover:text-brand-primary hover:underline">
-                    {startup.name}
-                  </Link>
-                  <p className="text-xs text-text-secondary">{startup.industry}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-secondary">No newly verified startups yet.</p>
-          )}
-        </Card>
-
-        <Card className="flex flex-col gap-3">
-          <CardHeader className="flex-row items-center gap-2 pb-0">
-            <UserCheck className="h-4 w-4 text-brand-primary" />
-            <CardTitle className="text-base">Recently active founders</CardTitle>
-          </CardHeader>
-          {recommendations && recommendations.recentlyActiveFounders.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {recommendations.recentlyActiveFounders.slice(0, 5).map((startup) => (
-                <li key={startup.id}>
-                  <Link href={`/startups/${startup.slug}`} className="text-sm font-medium text-text-primary hover:text-brand-primary hover:underline">
-                    {startup.name}
-                  </Link>
-                  <p className="text-xs text-text-secondary">{startup.industry}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-secondary">No recent founder activity yet.</p>
-          )}
-        </Card>
-      </div>
-
-      <Card className="flex flex-col gap-3">
-        <CardHeader className="flex-row items-center gap-2 pb-0">
-          <CalendarClock className="h-4 w-4 text-brand-primary" />
-          <CardTitle className="text-base">Upcoming meetings this week</CardTitle>
-        </CardHeader>
-        {meetingsByDay.size > 0 ? (
-          <div className="flex flex-col gap-3">
-            {Array.from(meetingsByDay.entries()).map(([day, dayMeetings]) => (
-              <div key={day}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{day}</p>
-                <div className="mt-1 flex flex-col gap-1">
-                  {dayMeetings.map((meeting) => (
-                    <div key={meeting.id} className="flex items-center justify-between text-sm">
-                      <span className="text-text-primary">
-                        {meeting.connection.startup?.name ?? meeting.connection.requester.fullName}
-                      </span>
-                      <span className="text-xs text-text-secondary">
-                        {new Date(meeting.scheduledAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
-          <EmptyState icon={CalendarClock} title="No meetings this week" description="Proposed meeting times will show up here." className="py-6" />
+          <Card className="flex flex-col items-start gap-3">
+            <p className="body-5 text-text-primary">No matches yet</p>
+            <p className="caption-5 max-w-xl">
+              Matches come from your mandates. Add one with the stages, industries and ticket size you invest in, and the best fits
+              show up here every day.
+            </p>
+            <PanelLink href="/investor/mandates">Set up a mandate</PanelLink>
+          </Card>
         )}
-      </Card>
+      </section>
 
-      <Card className="flex flex-col gap-3">
-        <CardHeader className="pb-0">
-          <CardTitle className="text-base">Quick actions</CardTitle>
-        </CardHeader>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Link href="/investor/discover" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
-            <Compass className="h-4 w-4 text-brand-primary" /> Discover
-          </Link>
-          <Link href="/investor/pipeline" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
-            <Plus className="h-4 w-4 text-brand-primary" /> Pipeline
-          </Link>
-          <Link href="/investor/requests" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
-            <Handshake className="h-4 w-4 text-brand-primary" /> Requests
-          </Link>
-          <Link href="/investor/analytics" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
-            <BarChart3 className="h-4 w-4 text-brand-primary" /> Analytics
-          </Link>
-          <Link href="/investor/mandates" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
-            <Target className="h-4 w-4 text-brand-primary" /> Mandates
-          </Link>
-          <Link href="/investor/watchlist?tab=triggers" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
-            <ListChecks className="h-4 w-4 text-brand-primary" /> Watchlist alerts
-          </Link>
-          <Link href="/investor/co-investors" className="flex flex-col items-center gap-1.5 rounded-card border border-border p-3 text-xs font-medium text-text-primary hover:bg-background-secondary">
-            <Network className="h-4 w-4 text-brand-primary" /> Co-investors
-          </Link>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <Card className="flex flex-col gap-4 lg:col-span-2">
+          <PanelTitle icon={CalendarClock} title="This week" right={<PanelLink href="/investor/meetings">All meetings</PanelLink>} />
+          {meetingsByDay.size > 0 ? (
+            <div className="flex flex-col gap-4">
+              {Array.from(meetingsByDay.entries()).map(([day, dayMeetings]) => (
+                <div key={day} className="flex flex-col gap-2">
+                  <p className="caption-5 font-semibold">{day}</p>
+                  <ul className="flex flex-col divide-y divide-border rounded-button border border-border">
+                    {dayMeetings.map((meeting) => (
+                      <li key={meeting.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                        <span className="body-6 truncate text-text-primary">
+                          {meeting.connection.startup?.name ?? meeting.connection.requester.fullName}
+                        </span>
+                        <span className="font-numeric caption-5 shrink-0">{TIME.format(new Date(meeting.scheduledAt))}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="caption-5">No meetings in the next seven days. Meetings you propose to founders you have accepted show up here.</p>
+          )}
+        </Card>
+
+        <Card className="flex flex-col gap-5">
+          <PanelTitle icon={Gauge} title="Your standing" />
+          <dl className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <dt className="caption-5">Trust score</dt>
+              <dd className="font-numeric heading-6">{home?.header.trustScore ?? "None yet"}</dd>
+            </div>
+            <div className="flex flex-col gap-1">
+              <dt className="caption-5">Reply rate</dt>
+              <dd className="font-numeric heading-6">
+                {home?.header.responseRate != null ? `${Math.round(home.header.responseRate * 100)}%` : "None yet"}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1">
+              <dt className="caption-5">Typical reply time</dt>
+              <dd className="font-numeric heading-6">
+                {home?.header.avgResponseTimeHours != null ? `${Math.round(home.header.avgResponseTimeHours)} h` : "None yet"}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1">
+              <dt className="caption-5">Open mandates</dt>
+              <dd className="font-numeric heading-6">{home?.header.openMandatesCount ?? 0}</dd>
+            </div>
+          </dl>
+          <div className="flex flex-col gap-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <span className="title-4">Profile</span>
+              <span className="font-numeric text-sm font-semibold text-text-primary">{profileCompletion}%</span>
+            </div>
+            <ProgressBar value={profileCompletion} />
+            <p className="caption-5">Founders read your thesis and ticket size before they send a request.</p>
+            <PanelLink href="/investor/profile">Complete your profile</PanelLink>
+          </div>
+        </Card>
+      </div>
+
+      <section className="flex flex-col gap-4" aria-labelledby="signals-heading">
+        <SectionHeader id="signals-heading" title="Market signals" description="What is moving on VittamHub this week." />
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+          <Card className="flex flex-col gap-4">
+            <PanelTitle icon={TrendingUp} title="Trending industries" />
+            {recommendations && recommendations.trendingIndustries.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {recommendations.trendingIndustries.slice(0, 6).map((entry) => (
+                  <li key={entry.industry} className="flex items-center justify-between gap-3">
+                    <span className="body-6 text-text-primary">{labelFor(INDUSTRY_LABEL, entry.industry)}</span>
+                    <span className="font-numeric caption-5">{entry.count}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="caption-5">Not enough activity yet to spot a trend.</p>
+            )}
+          </Card>
+          <StartupList
+            icon={ShieldCheck}
+            title="Recently verified"
+            empty="No newly verified startups yet."
+            startups={recommendations?.recentlyVerifiedStartups}
+          />
+          <StartupList
+            icon={UserCheck}
+            title="Recently active founders"
+            empty="No recent founder activity yet."
+            startups={recommendations?.recentlyActiveFounders}
+          />
         </div>
-      </Card>
+      </section>
     </div>
+  );
+}
+
+function StartupList({
+  icon,
+  title,
+  empty,
+  startups,
+}: {
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }>;
+  title: string;
+  empty: string;
+  startups: { id: string; slug: string; name: string; industry: string }[] | undefined;
+}) {
+  return (
+    <Card className="flex flex-col gap-4">
+      <PanelTitle icon={icon} title={title} />
+      {startups && startups.length > 0 ? (
+        <ul className="flex flex-col gap-3">
+          {startups.slice(0, 5).map((startup) => (
+            <li key={startup.id} className="flex flex-col gap-0.5">
+              <Link href={`/startups/${startup.slug}`} className="body-6 font-semibold text-text-primary hover:text-brand-700 hover:underline">
+                {startup.name}
+              </Link>
+              <span className="caption-5">{labelFor(INDUSTRY_LABEL, startup.industry)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="caption-5">{empty}</p>
+      )}
+    </Card>
   );
 }

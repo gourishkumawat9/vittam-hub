@@ -17,6 +17,11 @@ export const mentorBookingRequestSchema = z.object({
   preferredTimes: z.string().max(500).nullable(),
   status: z.nativeEnum(BookingStatus),
   respondedAt: z.string().datetime().nullable(),
+  scheduledAt: z.string().datetime().nullable(),
+  durationMinutes: z.number().int().nullable(),
+  meetingUrl: z.string().nullable(),
+  mentorNote: z.string().nullable(),
+  completedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
 });
 export type MentorBookingRequestRecord = z.infer<typeof mentorBookingRequestSchema>;
@@ -35,3 +40,33 @@ export const respondToMentorBookingInputSchema = z.object({
   action: mentorBookingResponseAction,
 });
 export type RespondToMentorBookingInput = z.infer<typeof respondToMentorBookingInputSchema>;
+
+/** Session lengths a mentor can pick, in minutes. */
+export const MENTOR_SESSION_DURATIONS = [30, 45, 60, 90] as const;
+
+const blankToUndefined = (value: unknown) => (typeof value === "string" && value.trim() === "" ? undefined : value);
+
+/**
+ * The mentor sets (or changes) when an accepted session happens. The link is
+ * optional, since some sessions are a phone call; when given it must be a
+ * plain https link, because it is shown to the founder as "Join call".
+ */
+export const scheduleMentorSessionInputSchema = z.object({
+  scheduledAt: z.string().datetime({ offset: true, message: "Pick a date and time" }),
+  durationMinutes: z
+    .number()
+    .int()
+    .refine((value) => (MENTOR_SESSION_DURATIONS as readonly number[]).includes(value), "Pick a session length"),
+  meetingUrl: z.preprocess(
+    blankToUndefined,
+    z
+      .string()
+      .trim()
+      .max(500)
+      .url("Paste the full meeting link, starting with https://")
+      .refine((value) => value.startsWith("https://"), "Paste the full meeting link, starting with https://")
+      .optional(),
+  ),
+  note: z.preprocess(blankToUndefined, z.string().trim().max(500, "Keep the note under 500 characters").optional()),
+});
+export type ScheduleMentorSessionInput = z.infer<typeof scheduleMentorSessionInputSchema>;

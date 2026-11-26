@@ -7,7 +7,10 @@ export const ROLE_HOME: Record<string, string> = {
   FOUNDER: "/founder",
   INVESTOR: "/investor",
   ADMIN: "/admin",
-  MENTOR: "/mentors/bookings",
+  // Mentors, incubators and universities share one Home page that adapts to the role.
+  MENTOR: "/home",
+  INCUBATOR: "/home",
+  UNIVERSITY: "/home",
 };
 
 export function roleHome(role: string): string {
@@ -38,6 +41,7 @@ export function editProfileLink(role: string): { href: string; label: string } |
  * signed-out visitor to /community or /mentors got an empty page of errors.
  */
 export const SIGNED_IN_AREAS = [
+  "/home",
   "/founder",
   "/investor",
   "/admin",

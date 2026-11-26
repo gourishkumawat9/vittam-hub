@@ -2,7 +2,7 @@
 
 import { Drawer, ProgressBar, Skeleton } from "@vittamhub/ui";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Cloud, CloudOff, ListTree, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Cloud, CloudOff, ListTree, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -14,6 +14,10 @@ import { cn } from "@/lib/utils";
 export interface WizardStepMeta {
   id: string;
   label: string;
+  /** A section that can be added before or after publishing, listed apart from the essentials. */
+  optional?: boolean;
+  /** For an optional section: it already holds something. */
+  done?: boolean;
 }
 
 interface WizardShellProps {
@@ -70,46 +74,80 @@ function StepNav({
   allOpen = false,
   className,
 }: Pick<WizardShellProps, "steps" | "currentStepIndex" | "onStepSelect"> & { onNavigate?: () => void; allOpen?: boolean; className?: string }) {
-  return (
-    <nav aria-label="Steps" className={cn("flex flex-col gap-1", className)}>
-      {steps.map((step, index) => {
-        const isActive = index === currentStepIndex;
-        const isComplete = !allOpen && index < currentStepIndex;
-        // While onboarding, a later step opens only by getting there. While editing, any step can be opened.
-        const isLocked = !onStepSelect || (!allOpen && index > currentStepIndex);
-        return (
-          <button
-            key={step.id}
-            type="button"
-            onClick={() => {
-              onStepSelect?.(index);
-              onNavigate?.();
-            }}
-            disabled={isLocked}
-            aria-current={isActive ? "step" : undefined}
+  const firstOptional = steps.findIndex((step) => step.optional);
+  const essentialCount = firstOptional === -1 ? steps.length : firstOptional;
+  const lastEssential = essentialCount - 1;
+
+  const renderStep = (step: WizardStepMeta, index: number) => {
+    const isActive = index === currentStepIndex;
+    // The last essential is review and publish: it is never "done" until the profile is live.
+    const isComplete = !allOpen && !step.optional && index < Math.min(currentStepIndex, lastEssential);
+    // While signing up, a later essential opens only by getting there, and the
+    // optional sections open once the essentials have been reached. While
+    // editing a live profile, everything is open.
+    const isLocked = !onStepSelect || (!allOpen && (step.optional ? currentStepIndex < lastEssential : index > currentStepIndex));
+    return (
+      <button
+        key={step.id}
+        type="button"
+        onClick={() => {
+          onStepSelect?.(index);
+          onNavigate?.();
+        }}
+        disabled={isLocked}
+        aria-current={isActive ? "step" : undefined}
+        className={cn(
+          "flex items-center gap-2.5 rounded-button px-3 py-2 text-left text-sm transition-colors duration-200 ease-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
+          isActive ? "bg-brand-50 font-semibold text-brand-800 dark:bg-white/10 dark:text-brand-200" : "text-text-secondary hover:bg-background-secondary",
+          isLocked && !isActive && "cursor-not-allowed opacity-50",
+        )}
+      >
+        {step.optional ? (
+          <span
             className={cn(
-              "flex items-center gap-2.5 rounded-button px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
-              isActive ? "bg-brand-100 font-semibold text-brand-700" : "text-text-secondary hover:bg-background-secondary",
-              isLocked && !isActive && "cursor-not-allowed opacity-50",
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
+              step.done ? "border-success-600 bg-success-600 text-white" : "border-border bg-surface text-text-secondary",
             )}
           >
-            <span
-              className={cn(
-                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                isComplete ? "bg-success-600 text-white" : isActive ? "bg-brand-primary text-white" : "bg-border text-text-secondary",
-              )}
-            >
-              {isComplete ? <Check className="h-3 w-3" /> : index + 1}
-            </span>
-            {step.label}
-          </button>
-        );
-      })}
+            {step.done ? <Check className="h-3 w-3" aria-label="Added" /> : <Plus className="h-3 w-3" aria-hidden="true" />}
+          </span>
+        ) : (
+          <span
+            className={cn(
+              "font-numeric flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+              isComplete ? "bg-success-600 text-white" : isActive ? "bg-brand-700 text-white" : "bg-border text-text-secondary",
+            )}
+          >
+            {isComplete ? <Check className="h-3 w-3" aria-label="Done" /> : index + 1}
+          </span>
+        )}
+        {step.label}
+      </button>
+    );
+  };
+
+  return (
+    <nav aria-label="Steps" className={cn("flex flex-col gap-6", className)}>
+      {firstOptional === -1 ? (
+        <div className="flex flex-col gap-1">{steps.map(renderStep)}</div>
+      ) : (
+        <>
+          <div className="flex flex-col gap-1">
+            <p className="px-3 pb-1 text-xs font-semibold text-text-secondary">Essentials</p>
+            {steps.slice(0, essentialCount).map((step, index) => renderStep(step, index))}
+          </div>
+          <div className="flex flex-col gap-1">
+            <p className="px-3 text-xs font-semibold text-text-secondary">Add any time</p>
+            <p className="px-3 pb-1 text-xs text-text-secondary">Optional. Before or after you publish.</p>
+            {steps.slice(essentialCount).map((step, offset) => renderStep(step, essentialCount + offset))}
+          </div>
+        </>
+      )}
     </nav>
   );
 }
 
-/** Shared chrome for every onboarding wizard (Startup's 10 steps, and any shorter role flow) — progress bar, step list, autosave status. */
+/** Shared chrome for every onboarding wizard (the startup sign-up and each shorter role flow): progress bar, step list, autosave status. */
 export function WizardShell({
   steps,
   currentStepIndex,
@@ -125,11 +163,17 @@ export function WizardShell({
   isDiscarding = false,
   children,
 }: WizardShellProps) {
-  const progress = ((currentStepIndex + 1) / steps.length) * 100;
   const [stepsOpen, setStepsOpen] = useState(false);
   const currentStep = steps[currentStepIndex];
-  const lastStepIndex = steps.length - 1;
+  // Progress counts only the essentials: the optional sections are extra, never a longer road to publishing.
+  const firstOptional = steps.findIndex((step) => step.optional);
+  const essentialCount = firstOptional === -1 ? steps.length : firstOptional;
+  const lastStepIndex = essentialCount - 1;
   const onLastStep = currentStepIndex === lastStepIndex;
+  const progress = ((Math.min(currentStepIndex, lastStepIndex) + 1) / essentialCount) * 100;
+  const progressLabel = currentStep?.optional
+    ? `Optional section: ${currentStep.label}`
+    : `Step ${currentStepIndex + 1} of ${essentialCount}: ${currentStep?.label}`;
 
   return (
     <div className="min-h-screen bg-background-secondary">
@@ -161,7 +205,7 @@ export function WizardShell({
           </div>
         </div>
         <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6">
-          <ProgressBar value={progress} label={`Step ${currentStepIndex + 1} of ${steps.length}: ${currentStep?.label}`} />
+          <ProgressBar value={progress} label={progressLabel} />
         </div>
       </header>
 
@@ -198,7 +242,7 @@ export function WizardShell({
                   <button
                     type="button"
                     onClick={() => onStepSelect(lastStepIndex)}
-                    className="rounded-button bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                    className="rounded-button bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-800"
                   >
                     {steps.length > 2 ? "Review and save" : "Continue to save"}
                   </button>
@@ -226,19 +270,19 @@ export function WizardShell({
           currentStepIndex={currentStepIndex}
           onStepSelect={onStepSelect}
           allOpen={isEditing}
-          className="hidden w-56 shrink-0 lg:flex"
+          className="sticky top-6 hidden w-56 shrink-0 self-start lg:flex"
         />
 
         <motion.main
           key={ready ? currentStepIndex : "loading"}
           initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.25 }}
-          className="min-w-0 flex-1 rounded-card border border-border bg-surface p-5 shadow-sm sm:p-8"
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="min-w-0 flex-1 rounded-card border border-border bg-surface p-5 sm:p-8"
         >
           {failed ? (
             <div className="flex flex-col items-start gap-3 py-6">
-              <h2 className="font-heading text-lg font-semibold text-text-primary">Your answers didn&apos;t load</h2>
+              <h2 className="heading-6">Your answers didn&apos;t load</h2>
               <p className="text-sm text-text-secondary">Nothing is lost. Check your connection and try again.</p>
               {onRetry && (
                 <button

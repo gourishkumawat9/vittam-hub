@@ -3,7 +3,7 @@ import { forwardRef } from "react";
 
 import { cn } from "../../lib/cn";
 
-const badgeVariants = cva("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium", {
+const badgeVariants = cva("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium", {
   variants: {
     variant: {
       neutral: "bg-neutral-100 text-neutral-700",

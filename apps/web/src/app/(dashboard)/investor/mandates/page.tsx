@@ -198,7 +198,7 @@ export default function MandatesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-text-primary">Investment mandates</h1>
+          <h1 className="heading-5">Investment mandates</h1>
           <p className="mt-1 text-sm text-text-secondary">Named, reusable theses, each produces its own match stream.</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>

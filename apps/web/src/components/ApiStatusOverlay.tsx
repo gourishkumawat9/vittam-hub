@@ -12,7 +12,7 @@ import { CinematicLoader } from "@/components/loader/CinematicLoader";
 import { cn } from "@/lib/utils";
 
 /** Pages that render fully without the API, so a slow API is no reason to cover them. */
-const STATIC_PATHS = new Set(["/", "/about", "/pricing", "/privacy", "/terms", "/unavailable"]);
+const STATIC_PATHS = new Set(["/", "/about", "/privacy", "/terms", "/unavailable"]);
 const isStaticPath = (pathname: string) => STATIC_PATHS.has(pathname) || pathname.startsWith("/for/");
 
 /**

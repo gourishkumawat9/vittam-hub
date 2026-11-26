@@ -1,11 +1,9 @@
-import { Award, Blocks, Compass, ShieldCheck } from "lucide-react";
+import { Award, Compass, Handshake, Rocket } from "lucide-react";
 import type { Metadata } from "next";
 
-import { EcosystemDiagram } from "@/components/marketing/EcosystemDiagram";
 import { JoinBand } from "@/components/marketing/JoinBand";
 import { PageHero } from "@/components/marketing/PageHero";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
-import { WhyVittamHub } from "@/components/marketing/WhyVittamHub";
 import { PRODUCT_SHOTS } from "@/data/product-shots";
 
 export const metadata: Metadata = {
@@ -15,21 +13,20 @@ export const metadata: Metadata = {
 
 const PRINCIPLES = [
   {
-    icon: ShieldCheck,
-    title: "Trust is earned, not typed",
-    description: "A profile's Trust Score rises only through verification and real evidence. Typing a claim never raises it on its own.",
+    icon: Rocket,
+    title: "Founders first",
+    description: "Built around what an early founder needs most: a clear profile, a mentor who has done it before, and a fair way to reach investors.",
   },
   {
-    icon: Blocks,
-    title: "Every entity gets verified",
+    icon: Handshake,
+    title: "Connect requests, not cold messages",
     description:
-      "Startups, investors, mentors, incubators and universities all go through the same verification model. Protecting founders from fake investors matters as much as verifying startups.",
+      "Founders never message an investor out of the blue. They send one request with what an investor needs to decide, and chat opens only when the investor accepts.",
   },
   {
     icon: Compass,
     title: "Automated, not gatekept",
-    description:
-      "There's no ops team sitting between you and a decision. Verification runs through automated checks and two-sided confirmation, not a manual review queue.",
+    description: "There's no ops team sitting between you and a decision. Your profile is listed as soon as you publish it, and checks run automatically.",
   },
   {
     icon: Award,
@@ -39,8 +36,8 @@ const PRINCIPLES = [
 ];
 
 /**
- * Mission, product principles (drawn from how the platform is actually
- * built, not marketing copy), the building blocks and the ecosystem map. No
+ * Mission and product principles, drawn from how the platform is actually
+ * built, not marketing copy. No
  * team or founder bios yet: CLAUDE.md §2 bans fabricated content and there's
  * no real team roster ready to publish.
  */
@@ -50,7 +47,7 @@ export default function AboutPage() {
       <PageHero
         eyebrow="About VittamHub"
         title="Every startup deserves a verified digital identity."
-        intro="VittamHub helps founders build trust, gain visibility, and connect with investors, mentors, incubators and universities through one integrated ecosystem. We believe investors should discover startups through transparency, not cold outreach."
+        intro="VittamHub helps founders build trust, gain visibility, and connect with investors and mentors, alongside a community of founders at their stage. We believe investors should discover startups through transparency, not cold outreach."
         image={PRODUCT_SHOTS.startupProfile}
       />
 
@@ -69,8 +66,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <EcosystemDiagram />
-      <WhyVittamHub />
       <JoinBand />
     </>
   );

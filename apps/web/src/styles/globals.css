@@ -22,13 +22,14 @@
     --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
   }
 
+  /* Dark mode uses flat neutral greys (#181818 canvas, #1F1F1F cards, #313131 lines), not navy. */
   :root[data-theme="dark"] {
-    --color-background: 2 6 23;
-    --color-background-secondary: 11 18 32;
-    --color-surface: 17 24 39;
-    --color-border: 31 41 55;
-    --color-text-primary: 241 245 249;
-    --color-text-secondary: 148 163 184;
+    --color-background: 24 24 24;
+    --color-background-secondary: 24 24 24;
+    --color-surface: 31 31 31;
+    --color-border: 49 49 49;
+    --color-text-primary: 243 244 246;
+    --color-text-secondary: 156 163 175;
     --color-brand-primary: 108 151 206;
     --color-brand-secondary: 126 167 216;
 
@@ -38,12 +39,12 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --color-background: 2 6 23;
-      --color-background-secondary: 11 18 32;
-      --color-surface: 17 24 39;
-      --color-border: 31 41 55;
-      --color-text-primary: 241 245 249;
-      --color-text-secondary: 148 163 184;
+      --color-background: 24 24 24;
+      --color-background-secondary: 24 24 24;
+      --color-surface: 31 31 31;
+      --color-border: 49 49 49;
+      --color-text-primary: 243 244 246;
+      --color-text-secondary: 156 163 175;
       --color-brand-primary: 108 151 206;
       --color-brand-secondary: 126 167 216;
     }
@@ -69,6 +70,21 @@
     @apply bg-background text-text-primary font-body antialiased;
   }
 
+  /* No orphaned words: headings balance their lines, running text avoids a lone last word. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
   ::selection {
     @apply bg-brand-primary/20;
   }
@@ -91,6 +107,33 @@
 }
 
 @layer components {
+  /*
+   * Named text styles (docs/02-design-system.md). Every size is a step on
+   * Tailwind's type scale, so a style never introduces an off-scale value.
+   * Heading = page and section headings, Title = card and list titles,
+   * Body = running text, Caption = metadata, badges and fine print.
+   */
+  .heading-1 { @apply font-heading text-6xl font-semibold tracking-tighter text-text-primary; }
+  .heading-2 { @apply font-heading text-5xl font-semibold tracking-tighter text-text-primary; }
+  .heading-3 { @apply font-heading text-4xl font-semibold tracking-tight text-text-primary; }
+  .heading-4 { @apply font-heading text-3xl font-semibold tracking-tight text-text-primary; }
+  .heading-5 { @apply font-heading text-2xl font-semibold tracking-tight text-text-primary; }
+  .heading-6 { @apply font-heading text-xl font-semibold text-text-primary; }
+  .title-1 { @apply font-heading text-xl font-medium text-text-primary; }
+  .title-2 { @apply font-heading text-lg font-medium text-text-primary; }
+  .title-3 { @apply font-heading text-base font-semibold text-text-primary; }
+  .title-4 { @apply font-heading text-sm font-semibold text-text-primary; }
+  .title-5 { @apply font-heading text-xs font-medium text-text-primary; }
+  .body-3 { @apply text-base font-normal; }
+  .body-4 { @apply text-sm font-semibold; }
+  .body-5 { @apply text-sm font-medium; }
+  .body-6 { @apply text-sm font-normal; }
+  .caption-1 { @apply text-sm font-medium text-text-secondary; }
+  .caption-2 { @apply text-sm font-normal text-text-secondary; }
+  .caption-3 { @apply text-xs font-semibold text-text-secondary; }
+  .caption-4 { @apply text-xs font-medium text-text-secondary; }
+  .caption-5 { @apply text-xs font-normal text-text-secondary; }
+
   /* Blurred sticky nav-on-scroll, applied via a `scrolled` data attribute toggled in NavBar */
   .nav-blur {
     @apply backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-200;
@@ -114,6 +157,11 @@
 }
 
 @layer utilities {
+  /* Figures line up in columns (stat tiles, money, counts). */
+  .font-numeric {
+    font-variant-numeric: tabular-nums;
+  }
+
   @keyframes marquee {
     from {
       transform: translateX(0);

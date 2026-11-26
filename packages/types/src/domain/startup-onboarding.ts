@@ -208,16 +208,15 @@ export const startupOnboardingDraftSchema = z.object({
 });
 export type StartupOnboardingDraft = z.infer<typeof startupOnboardingDraftSchema>;
 
-export const STARTUP_WIZARD_STEPS = [
-  "personal-details",
-  "startup-info",
-  "product",
-  "market",
-  "team",
-  "traction",
-  "funding",
-  "verification",
-  "preferences",
-  "review",
-] as const;
+/**
+ * The startup sign-up asks only for what a profile needs to go live (the
+ * essentials, ending at review), and keeps every other section optional, to
+ * add before or after publishing. Publishing already accepts any optional
+ * section left empty (see the lenient schemas above), so the order here is
+ * purely what the founder is asked first.
+ */
+export const STARTUP_ESSENTIAL_STEPS = ["personal-details", "startup-info", "preferences", "review"] as const;
+export const STARTUP_OPTIONAL_STEPS = ["product", "traction", "team", "funding", "market", "verification"] as const;
+
+export const STARTUP_WIZARD_STEPS = [...STARTUP_ESSENTIAL_STEPS, ...STARTUP_OPTIONAL_STEPS] as const;
 export type StartupWizardStep = (typeof STARTUP_WIZARD_STEPS)[number];

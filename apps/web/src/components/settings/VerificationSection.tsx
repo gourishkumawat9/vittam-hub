@@ -66,7 +66,7 @@ export function VerificationSection({ user }: { user: User }) {
   };
 
   return (
-    <Card className="flex flex-col gap-4">
+    <Card id="verification" className="flex scroll-mt-24 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-heading text-base font-semibold text-text-primary">Verified badge</h2>
         <Badge variant={status.variant}>{status.label}</Badge>

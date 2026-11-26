@@ -128,7 +128,7 @@ export default function SavedSearchesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Saved searches</h1>
+        <h1 className="heading-5">Saved searches</h1>
         <p className="mt-1 text-sm text-text-secondary">Every search automatically updates, see how many new startups match since you last checked.</p>
       </div>
 

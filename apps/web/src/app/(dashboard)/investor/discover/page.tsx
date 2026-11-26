@@ -33,7 +33,7 @@ export default function DiscoverStartupsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Discover Startups</h1>
+        <h1 className="heading-5">Discover startups</h1>
         {compareIds.length > 1 && (
           <Button size="sm" onClick={() => setCompareOpen(true)}>
             <Layers className="h-3.5 w-3.5" /> Compare ({compareIds.length})

@@ -68,6 +68,7 @@ export const warning = {
   100: "#FEF3C7",
   500: "#F59E0B", // Warning
   600: "#D97706",
+  700: "#B45309", // small warning text on white (5:1)
 } as const;
 
 export const danger = {
@@ -83,6 +84,22 @@ export const info = {
   100: "#DBEAFE",
   500: "#3B82F6", // Info
   600: "#2563EB",
+} as const;
+
+/**
+ * Trust levels from the verification framework, one colour each so a level
+ * reads at a glance. Used only on trust labels (TrustTierBadge), never as a
+ * second brand accent. Each level pairs a tint background with a text colour
+ * that passes 4.5:1 on it; the label always carries the level's name too, so
+ * colour is never the only signal.
+ *   V0 self-declared · V1 document-supported · V2 independently corroborated
+ *   · V3 matched against an authoritative source
+ */
+export const trustTier = {
+  v0: { solid: "#64748B", bg: "#F1F5F9", text: "#475569" },
+  v1: { solid: "#3B82F6", bg: "#DBEAFE", text: "#1D4ED8" },
+  v2: { solid: "#7C3AED", bg: "#EDE9FE", text: "#6D28D9" },
+  v3: { solid: "#10B981", bg: "#D1FAE5", text: "#047857" },
 } as const;
 
 /**
@@ -112,14 +129,15 @@ export const semanticColors = {
     infoBg: info[50],
     focusRing: brand[600],
   },
+  // Dark mode is flat neutral grey (#181818 canvas, #1F1F1F cards), never navy.
   dark: {
-    background: slate[950],
-    backgroundSecondary: "#0B1220",
-    surface: neutral[900],
-    border: neutral[800],
+    background: "#181818",
+    backgroundSecondary: "#181818",
+    surface: "#1F1F1F",
+    border: "#313131",
     borderStrong: neutral[700],
-    textPrimary: "#F1F5F9",
-    textSecondary: "#94A3B8",
+    textPrimary: neutral[100],
+    textSecondary: neutral[400],
     textOnBrand: "#FFFFFF",
     brandPrimary: brand[500],
     brandSecondary: brand[400],

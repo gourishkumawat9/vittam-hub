@@ -1,254 +1,222 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  useCurrentUser,
-  useMentorBookings,
-  useRespondToMentorBooking,
-  useReviewMentor,
-  useReviewMentorBooking,
-  type MentorBookingWithRelations,
-} from "@vittamhub/api-client";
-import {
-  createFounderReviewInputSchema,
-  createMentorReviewInputSchema,
-  type CreateFounderReviewInput,
-  type CreateMentorReviewInput,
-} from "@vittamhub/types";
-import { Badge, Button, Dialog, EmptyState, Textarea } from "@vittamhub/ui";
+import { useCurrentUser, useMentorBookings, useMyMentorProfile, type MentorBookingWithRelations } from "@vittamhub/api-client";
+import { Avatar, Badge, Button, Card, EmptyState, Tabs } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { CalendarClock, Star } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { CalendarClock, History, Inbox } from "lucide-react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { PageHeader } from "@/components/dashboard/PageHeader";
+import { MentorRequestCard } from "@/components/dashboard/mentor/MentorRequestCard";
+import { useSessionReview } from "@/components/dashboard/mentor/ReviewSessionDialog";
+import { SessionCard } from "@/components/dashboard/mentor/SessionCard";
+import { SESSION_TYPE_LABEL } from "@/components/dashboard/mentor/labels";
+import { activeSessions, sessionPhase } from "@/components/dashboard/mentor/sessions";
 
-const STATUS_BADGE_VARIANT: Record<string, "success" | "warning" | "danger"> = {
-  PENDING: "warning",
-  ACCEPTED: "success",
-  DECLINED: "danger",
-};
-
-function LeaveReviewDialog({ bookingId, open, onOpenChange }: { bookingId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
-  const submitReview = useReviewMentorBooking();
-  const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-  } = useForm<CreateFounderReviewInput>({ resolver: zodResolver(createFounderReviewInputSchema), defaultValues: { rating: 0 } });
-
-  const rating = watch("rating");
-
-  const onSubmit = handleSubmit(async (data) => {
-    setSubmitError(null);
-    try {
-      await submitReview.mutateAsync({ id: bookingId, input: data });
-      setSubmitted(true);
-      reset();
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Couldn't submit that review.");
-    }
-  });
-
+/** A request the founder sent that the mentor hasn't answered yet. */
+function SentRequestCard({ booking }: { booking: MentorBookingWithRelations }) {
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next);
-        if (!next) setSubmitted(false);
-      }}
-      title="Review the founder"
-      description="Feeds their Founder Reputation score, never shown publicly."
-      footer={
-        !submitted && (
-          <>
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={onSubmit} isLoading={submitReview.isPending} disabled={rating === 0}>
-              Submit review
-            </Button>
-          </>
-        )
-      }
-    >
-      {submitted ? (
-        <p className="text-sm text-text-secondary">Thanks. Your review has been submitted.</p>
-      ) : (
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button key={value} type="button" onClick={() => setValue("rating", value)} aria-label={`${value} stars`}>
-                <Star className={`h-6 w-6 ${value <= rating ? "fill-warning-500 text-warning-500" : "text-border"}`} />
-              </button>
-            ))}
-          </div>
-          <Textarea label="Comment (optional)" rows={3} {...register("comment")} />
-          {submitError && <p className="text-sm text-danger-600">{submitError}</p>}
-        </form>
-      )}
-    </Dialog>
-  );
-}
-
-/** The other direction — spec §5's actual mentor-trust mechanism: "after each real, accepted mentoring session, the founder rates the mentor." */
-function LeaveMentorReviewDialog({ bookingId, open, onOpenChange }: { bookingId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
-  const submitReview = useReviewMentor();
-  const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const {
-    handleSubmit,
-    watch,
-    setValue,
-    register,
-    reset,
-  } = useForm<CreateMentorReviewInput>({ resolver: zodResolver(createMentorReviewInputSchema), defaultValues: { rating: 0 } });
-
-  const rating = watch("rating");
-
-  const onSubmit = handleSubmit(async (data) => {
-    setSubmitError(null);
-    try {
-      await submitReview.mutateAsync({ id: bookingId, input: data });
-      setSubmitted(true);
-      reset();
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Couldn't submit that review.");
-    }
-  });
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next);
-        if (!next) setSubmitted(false);
-      }}
-      title="Review the mentor"
-      description="12 good ratings is how a mentor earns trust. Your review helps other founders."
-      footer={
-        !submitted && (
-          <>
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={onSubmit} isLoading={submitReview.isPending} disabled={rating === 0}>
-              Submit review
-            </Button>
-          </>
-        )
-      }
-    >
-      {submitted ? (
-        <p className="text-sm text-text-secondary">Thanks. Your review has been submitted.</p>
-      ) : (
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button key={value} type="button" onClick={() => setValue("rating", value)} aria-label={`${value} stars`}>
-                <Star className={`h-6 w-6 ${value <= rating ? "fill-warning-500 text-warning-500" : "text-border"}`} />
-              </button>
-            ))}
-          </div>
-          <Textarea label="Comment (optional)" rows={3} {...register("comment")} />
-          {submitError && <p className="text-sm text-danger-600">{submitError}</p>}
-        </form>
-      )}
-    </Dialog>
-  );
-}
-
-function BookingRow({ booking, isMentorView }: { booking: MentorBookingWithRelations; isMentorView: boolean }) {
-  const respond = useRespondToMentorBooking();
-  const [actioning, setActioning] = useState<"ACCEPT" | "DECLINE" | null>(null);
-  const [reviewOpen, setReviewOpen] = useState(false);
-
-  const act = async (action: "ACCEPT" | "DECLINE") => {
-    setActioning(action);
-    try {
-      await respond.mutateAsync({ id: booking.id, input: { action } });
-    } finally {
-      setActioning(null);
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-3 rounded-card border border-border p-4">
+    <Card className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-text-primary">
-            {isMentorView ? booking.founder.fullName : booking.mentor.fullName}
-          </p>
-          <p className="text-xs text-text-secondary">
-            {booking.startup?.name ? `${booking.startup.name} · ` : ""}
-            {formatRelativeTime(booking.createdAt)}
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={booking.mentor.fullName} src={booking.mentor.avatarUrl} size="md" />
+          <div className="min-w-0">
+            <p className="title-3 truncate">{booking.mentor.fullName}</p>
+            <p className="caption-5">{booking.sessionType ? (SESSION_TYPE_LABEL[booking.sessionType] ?? "Mentor") : "Mentor"}</p>
+          </div>
         </div>
-        <Badge variant={STATUS_BADGE_VARIANT[booking.status] ?? "warning"}>{booking.status}</Badge>
+        <Badge variant="neutral" className="shrink-0 whitespace-nowrap">
+          Waiting for reply
+        </Badge>
       </div>
-      <p className="text-sm text-text-secondary">{booking.message}</p>
-      {booking.preferredTimes && <p className="text-xs text-text-secondary">Preferred times: {booking.preferredTimes}</p>}
-      {isMentorView && booking.status === "PENDING" && (
-        <div className="flex justify-end gap-2 border-t border-border pt-3">
-          <Button size="sm" variant="secondary" isLoading={actioning === "DECLINE"} onClick={() => act("DECLINE")}>
-            Decline
-          </Button>
-          <Button size="sm" isLoading={actioning === "ACCEPT"} onClick={() => act("ACCEPT")}>
-            Accept
-          </Button>
-        </div>
-      )}
-      {isMentorView && booking.status === "ACCEPTED" && (
-        <div className="flex justify-end border-t border-border pt-3">
-          <Button size="sm" variant="ghost" onClick={() => setReviewOpen(true)}>
-            <Star className="h-3.5 w-3.5" /> Review founder
-          </Button>
-        </div>
-      )}
-      {!isMentorView && booking.status === "ACCEPTED" && (
-        <div className="flex justify-end border-t border-border pt-3">
-          <Button size="sm" variant="ghost" onClick={() => setReviewOpen(true)}>
-            <Star className="h-3.5 w-3.5" /> Review mentor
-          </Button>
-        </div>
-      )}
-      {isMentorView ? (
-        <LeaveReviewDialog bookingId={booking.id} open={reviewOpen} onOpenChange={setReviewOpen} />
-      ) : (
-        <LeaveMentorReviewDialog bookingId={booking.id} open={reviewOpen} onOpenChange={setReviewOpen} />
-      )}
-    </div>
+      <p className="body-6 line-clamp-3 text-text-primary">{booking.message}</p>
+      {booking.preferredTimes && <p className="caption-5">You suggested: {booking.preferredTimes}</p>}
+      <p className="mt-auto caption-5">Sent {formatRelativeTime(booking.createdAt)}. You&apos;ll get a notification when they reply.</p>
+    </Card>
   );
 }
 
-export default function MentorBookingsPage() {
+/** A declined request, kept as a short line so the list stays honest without taking space. */
+function DeclinedRow({ booking, viewer }: { booking: MentorBookingWithRelations; viewer: "mentor" | "founder" }) {
+  const other = viewer === "mentor" ? booking.founder : booking.mentor;
+  return (
+    <li className="flex items-center justify-between gap-3 py-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar name={other.fullName} src={other.avatarUrl} size="sm" />
+        <div className="min-w-0">
+          <p className="body-5 truncate text-text-primary">{other.fullName}</p>
+          <p className="caption-5 truncate">{booking.message}</p>
+        </div>
+      </div>
+      <span className="caption-5 shrink-0">Declined {formatRelativeTime(booking.respondedAt ?? booking.createdAt)}</span>
+    </li>
+  );
+}
+
+function CardGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">{children}</div>;
+}
+
+/**
+ * Every mentor session in one place, for both sides of it. A mentor sees
+ * requests to answer, sessions to set up or wrap up, and past sessions; a
+ * founder sees the requests they sent and the same sessions from their side.
+ */
+export default function MentorSessionsPage() {
   const { data: user } = useCurrentUser();
   const { data: bookings, isLoading } = useMentorBookings();
-  const isMentorView = user?.role === "MENTOR";
+  const viewer: "mentor" | "founder" = user?.role === "MENTOR" ? "mentor" : "founder";
+  const isMentor = viewer === "mentor";
+  const { data: mentorProfile } = useMyMentorProfile(isMentor);
+  const { openReview, reviewDialog } = useSessionReview(viewer);
+
+  const groups = useMemo(() => {
+    // A mentor only answers requests sent to them; a founder only tracks the ones they sent.
+    const mine = (bookings ?? []).filter((booking) => (isMentor ? booking.mentor.id === user?.id : booking.founder.id === user?.id));
+    const requests = mine.filter((b) => b.status === "PENDING").sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const active = activeSessions(mine);
+    const past = mine
+      .filter((b) => sessionPhase(b) === "done")
+      .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""));
+    const declined = mine.filter((b) => b.status === "DECLINED");
+    return { requests, active, past, declined };
+  }, [bookings, isMentor, user?.id]);
+
+  const [tab, setTab] = useState<string | null>(null);
+  // Open on whatever needs attention first.
+  const defaultTab = isMentor && groups.requests.length > 0 ? "requests" : groups.active.length > 0 ? "upcoming" : groups.requests.length > 0 ? "requests" : "past";
+  const needsTime = groups.active.filter((b) => sessionPhase(b) === "needs-time").length;
+  const toWrapUp = groups.active.filter((b) => sessionPhase(b) === "wrap-up").length;
+
+  const description = isMentor
+    ? groups.requests.length > 0
+      ? `${groups.requests.length} request${groups.requests.length === 1 ? "" : "s"} waiting for your reply.`
+      : needsTime > 0
+        ? `${needsTime} accepted session${needsTime === 1 ? " needs" : "s need"} a time.`
+        : "Requests from founders, the sessions you have set up, and the ones you have done."
+    : "The sessions you asked mentors for, and where each one stands.";
+
+  const label = (text: string, count: number) => (count > 0 ? `${text} (${count})` : text);
+
+  const items = [
+    {
+      value: "requests",
+      label: label(isMentor ? "Requests" : "Waiting for reply", groups.requests.length),
+      content:
+        groups.requests.length > 0 ? (
+          <CardGrid>
+            {groups.requests.map((booking) =>
+              isMentor ? <MentorRequestCard key={booking.id} booking={booking} /> : <SentRequestCard key={booking.id} booking={booking} />,
+            )}
+          </CardGrid>
+        ) : (
+          <EmptyState
+            icon={Inbox}
+            title={isMentor ? "No requests waiting" : "Nothing waiting for a reply"}
+            description={
+              isMentor
+                ? "New requests from founders show up here, with what they want to talk about and when they're free."
+                : "Requests you send to mentors wait here until they reply."
+            }
+            action={
+              !isMentor && (
+                <Button size="sm" asChild>
+                  <Link href="/mentors">Find a mentor</Link>
+                </Button>
+              )
+            }
+          />
+        ),
+    },
+    {
+      value: "upcoming",
+      label: label("Upcoming", groups.active.length),
+      content:
+        groups.active.length > 0 ? (
+          <div className="flex flex-col gap-4">
+            {toWrapUp > 0 && (
+              <p className="caption-2">
+                {toWrapUp === 1
+                  ? "One session's time has passed. Mark it done so it counts, then leave a short review."
+                  : `${toWrapUp} sessions' times have passed. Mark them done so they count, then leave a short review.`}
+              </p>
+            )}
+            <CardGrid>
+              {groups.active.map((booking) => (
+                <SessionCard key={booking.id} booking={booking} viewer={viewer} onReview={openReview} />
+              ))}
+            </CardGrid>
+          </div>
+        ) : (
+          <EmptyState
+            icon={CalendarClock}
+            title="No upcoming sessions"
+            description={
+              isMentor
+                ? "When you accept a request, the session appears here so you can set a time and share a meeting link."
+                : "When a mentor accepts, the session appears here with its time and a link to join."
+            }
+          />
+        ),
+    },
+    {
+      value: "past",
+      label: label("Past", groups.past.length),
+      content:
+        groups.past.length > 0 ? (
+          <CardGrid>
+            {groups.past.map((booking) => (
+              <SessionCard key={booking.id} booking={booking} viewer={viewer} onReview={openReview} />
+            ))}
+          </CardGrid>
+        ) : (
+          <EmptyState icon={History} title="No past sessions yet" description="Sessions marked done are kept here, with your review." />
+        ),
+    },
+    ...(groups.declined.length > 0
+      ? [
+          {
+            value: "declined",
+            label: label("Declined", groups.declined.length),
+            content: (
+              <Card>
+                <ul className="flex flex-col divide-y divide-border">
+                  {groups.declined.map((booking) => (
+                    <DeclinedRow key={booking.id} booking={booking} viewer={viewer} />
+                  ))}
+                </ul>
+              </Card>
+            ),
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-text-primary">Mentor session requests</h1>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title={isMentor ? "Sessions" : "Mentor sessions"}
+        description={description}
+        actions={
+          isMentor ? (
+            mentorProfile && (
+              <Button size="sm" variant="secondary" asChild>
+                <Link href={`/mentors/${mentorProfile.id}`}>View public profile</Link>
+              </Button>
+            )
+          ) : (
+            <Button size="sm" asChild>
+              <Link href="/mentors">Find a mentor</Link>
+            </Button>
+          )
+        }
+      />
 
-      {isLoading ? (
-        <ListRowsSkeleton />
-      ) : bookings && bookings.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {bookings.map((booking) => (
-            <BookingRow key={booking.id} booking={booking} isMentorView={isMentorView} />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon={CalendarClock}
-          title="No session requests yet"
-          description={isMentorView ? "Founder session requests will show up here." : "Requests you send to mentors will show up here."}
-        />
-      )}
+      {isLoading || !user ? <ListRowsSkeleton /> : <Tabs items={items} value={tab ?? defaultTab} onValueChange={setTab} />}
+
+      {reviewDialog}
     </div>
   );
 }

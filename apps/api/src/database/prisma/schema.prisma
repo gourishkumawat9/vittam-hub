@@ -1151,6 +1151,15 @@ model MentorBookingRequest {
   preferredTimes String?
   status         BookingStatus @default(PENDING)
   respondedAt    DateTime?
+  // Set by the mentor after accepting: when the session is, how long, and
+  // where (a Meet or Zoom link). Only the two people on the booking see them.
+  scheduledAt     DateTime?
+  durationMinutes Int?
+  meetingUrl      String?
+  mentorNote      String?
+  // Either side marks the session done once it has happened. Reviews and the
+  // mentor's "sessions completed" count only completed sessions.
+  completedAt    DateTime?
   createdAt      DateTime      @default(now())
 
   founder User     @relation("MentorBookingFounder", fields: [founderId], references: [id], onDelete: Cascade)
@@ -1164,11 +1173,10 @@ model MentorBookingRequest {
   @@map("mentor_booking_requests")
 }
 
-// A mentor's review of a founder after an accepted booking — feeds
-// FounderReputationService. Gated on the booking being ACCEPTED (not a
-// separate COMPLETED state — there's no real session-datetime field to gate
-// true completion on yet); the unique constraint on bookingRequestId is what
-// stops a mentor reviewing the same booking twice.
+// A mentor's review of a founder after a completed session — feeds
+// FounderReputationService. Gated on the booking having `completedAt`; the
+// unique constraint on bookingRequestId is what stops a mentor reviewing the
+// same booking twice.
 model FounderReview {
   id               String   @id @default(uuid()) @db.Uuid
   mentorId         String   @db.Uuid

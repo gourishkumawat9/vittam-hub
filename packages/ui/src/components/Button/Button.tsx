@@ -9,11 +9,12 @@ import { forwardRef } from "react";
 import { cn } from "../../lib/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-button font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-button font-semibold transition-colors duration-300 ease-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        primary: "bg-brand-primary text-white hover:bg-brand-700 shadow-sm",
+        // One step deeper than the brand blue so the white label passes 4.5:1 contrast (brand-600 is 3.6:1).
+        primary: "bg-brand-700 text-white hover:bg-brand-800",
         secondary: "bg-surface text-text-primary border border-border hover:bg-background-secondary",
         outline: "border border-brand-primary text-brand-primary hover:bg-brand-50",
         ghost: "text-text-primary hover:bg-background-secondary",
@@ -68,7 +69,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={isLoading}
         whileHover={{ scale: disabled || isLoading ? 1 : 1.02 }}
         whileTap={{ scale: disabled || isLoading ? 1 : 0.98 }}
-        transition={{ duration: 0.1 }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         {...props}
       >
         {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}

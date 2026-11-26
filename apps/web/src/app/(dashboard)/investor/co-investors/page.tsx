@@ -18,7 +18,7 @@ export default function CoInvestorGraphPage() {
     return (
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-text-primary">Co-investor graph</h1>
+          <h1 className="heading-5">Co-investor graph</h1>
         </div>
         <StatTilesSkeleton count={2} />
         <ListRowsSkeleton />
@@ -30,7 +30,7 @@ export default function CoInvestorGraphPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Co-investor graph</h1>
+        <h1 className="heading-5">Co-investor graph</h1>
         <p className="mt-1 text-sm text-text-secondary">
           Real shared investments and confirmed relationships. No AI, no inferred connections.
         </p>

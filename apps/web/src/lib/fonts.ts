@@ -14,36 +14,17 @@ import localFont from "next/font/local";
  * src/fonts/tools/make_fonts.py (see src/fonts/README.md).
  */
 
+/**
+ * The site's one typeface. Headings, body copy and figures all use Manrope;
+ * `--font-heading`, `--font-body` and `--font-numeric` all point at it so the
+ * token names in @vittamhub/tokens keep working. Figures get tabular digits
+ * from the `.font-numeric` rule in globals.css.
+ */
 export const manrope = localFont({
   src: "../fonts/Manrope-latin.woff2",
-  weight: "500 700",
+  weight: "400 700",
   variable: "--font-heading",
   display: "swap",
-});
-
-export const inter = localFont({
-  src: "../fonts/Inter-latin.woff2",
-  weight: "400 600",
-  variable: "--font-body",
-  display: "swap",
-});
-
-export const ibmPlexSans = localFont({
-  src: "../fonts/IBMPlexSans-latin.woff2",
-  weight: "500 700",
-  variable: "--font-numeric",
-  display: "swap",
-  // Only used for small figures below the fold; not worth a preload competing with the hero.
-  preload: false,
-});
-
-export const jetbrainsMono = localFont({
-  src: "../fonts/JetBrainsMono-latin.woff2",
-  weight: "400 500",
-  variable: "--font-mono",
-  display: "swap",
-  // Dashboard-only (code/IDs); not worth a preload on every page.
-  preload: false,
 });
 
 /**
@@ -69,4 +50,4 @@ export const jetbrainsMono = localFont({
  * ...and add `hendersonSans.variable` alongside `fontVariables` in layout.tsx.
  */
 
-export const fontVariables = [manrope.variable, inter.variable, ibmPlexSans.variable, jetbrainsMono.variable].join(" ");
+export const fontVariables = manrope.variable;

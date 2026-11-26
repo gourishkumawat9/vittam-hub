@@ -32,7 +32,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-text-primary">Settings</h1>
+        <h1 className="heading-5">Settings</h1>
         <p className="mt-1 text-sm text-text-secondary">Your account, your Verified badge, how you sign in, and where you&apos;re signed in.</p>
       </div>
 

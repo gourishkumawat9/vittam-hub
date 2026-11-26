@@ -13,10 +13,8 @@ LATIN = "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,
 EXTRA = "U+20B9,U+2190-2199"  # ₹ and arrows used in UI copy
 
 JOBS = [
-    ("manrope__Manrope[wght].ttf", {"wght": (500, 700)}, "Manrope-latin.woff2"),
-    ("inter__Inter[opsz,wght].ttf", {"opsz": 14, "wght": (400, 600)}, "Inter-latin.woff2"),
-    ("ibmplexsans__IBMPlexSans[wdth,wght].ttf", {"wdth": 100, "wght": (500, 700)}, "IBMPlexSans-latin.woff2"),
-    ("jetbrainsmono__JetBrainsMono[wght].ttf", {"wght": (400, 500)}, "JetBrainsMono-latin.woff2"),
+    # One typeface for the whole site (Manrope), regular to bold.
+    ("manrope__Manrope[wght].ttf", {"wght": (400, 700)}, "Manrope-latin.woff2"),
 ]
 
 def parse(ranges):

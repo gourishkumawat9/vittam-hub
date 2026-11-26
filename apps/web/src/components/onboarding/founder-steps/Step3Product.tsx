@@ -12,6 +12,7 @@ import { useAutosave } from "@/hooks/useAutosave";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
+import { StepHeader } from "../fields";
 
 interface StepProps {
   defaultValues?: Partial<ProductStepInput>;
@@ -36,7 +37,7 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
   });
 
   const values = watch();
-  useAutosave("product", 2, values);
+  useAutosave("product", 4, values);
 
   const onSubmit = handleSubmit((data) => {
     setSectionData("product", data);
@@ -59,13 +60,8 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-text-primary">Product details</h2>
-        <p className="mt-1 text-sm text-text-secondary">
-          Optional if you&apos;re still pre-product. Fill in what applies today.
-        </p>
-      </div>
+    <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <StepHeader optional title="Product" description="What you have built so far: links, screenshots and the stack. Fill in what applies today." />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Product name" {...register("productName")} />
@@ -137,7 +133,7 @@ export function Step3Product({ defaultValues, onNext, onBack }: StepProps) {
         )}
       />
 
-      <WizardNav onBack={onBack} onNext={onSubmit} />
+      <WizardNav onBack={onBack} onNext={onSubmit} backLabel="Back to review" nextLabel="Save and review" />
     </form>
   );
 }
