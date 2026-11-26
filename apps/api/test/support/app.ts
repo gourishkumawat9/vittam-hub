@@ -39,5 +39,11 @@ export async function buildTestApp(options: BuildTestAppOptions = {}): Promise<I
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();
+  // Listen once, here. Given a server that isn't listening, supertest starts
+  // it for one request and closes it when that request's response arrives,
+  // which drops any request sent alongside it on the same server ("connect
+  // ECONNRESET" in the tests that fire requests at the same instant).
+  // app.close() in each spec's afterAll stops it.
+  await app.listen(0, "127.0.0.1");
   return app;
 }
