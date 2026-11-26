@@ -55,14 +55,16 @@ export function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-80px" }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="flex flex-1 flex-col items-center gap-3 rounded-card border border-border bg-surface p-6 text-center shadow-sm"
+                className="flex flex-1 items-start gap-4 rounded-card border border-border bg-surface p-5 shadow-sm lg:flex-col lg:items-center lg:gap-3 lg:p-6 lg:text-center"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary text-white">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
                   <step.icon className="h-5 w-5" aria-hidden="true" />
                 </span>
-                <span className="font-numeric text-xs font-bold text-brand-primary">STEP {index + 1}</span>
-                <h3 className="font-heading text-base font-semibold text-text-primary">{step.title}</h3>
-                <p className="text-sm text-text-secondary">{step.description}</p>
+                <span className="flex flex-col gap-1 lg:items-center lg:gap-3">
+                  <span className="font-numeric text-xs font-bold text-brand-primary">STEP {index + 1}</span>
+                  <h3 className="font-heading text-base font-semibold text-text-primary">{step.title}</h3>
+                  <p className="text-sm text-text-secondary">{step.description}</p>
+                </span>
               </motion.div>
 
               {index < STEPS.length - 1 && (

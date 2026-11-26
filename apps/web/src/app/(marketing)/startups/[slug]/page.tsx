@@ -118,7 +118,7 @@ export default function StartupProfilePage() {
           <MapPin className="h-4 w-4" /> {startup.headquarters ?? startup.location}
         </span>
         <span className="flex items-center gap-1.5">
-          <Users className="h-4 w-4" /> {startup.teamSize} people
+          <Users className="h-4 w-4" /> {startup.teamSize} {startup.teamSize === 1 ? "person" : "people"}
         </span>
         {startup.website && (
           <a href={externalHref(startup.website)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-brand-primary hover:underline">

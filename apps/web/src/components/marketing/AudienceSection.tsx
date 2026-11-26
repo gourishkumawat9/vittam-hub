@@ -46,7 +46,7 @@ const AUDIENCES = [
  */
 export function AudienceSection() {
   return (
-    <section className="mx-auto max-w-content px-6 py-24">
+    <section className="mx-auto max-w-content px-6 pb-24 pt-8 lg:pt-12">
       <div className="grid gap-6 lg:grid-cols-2">
         {AUDIENCES.map((audience, index) => (
           <motion.div

@@ -15,12 +15,23 @@ const shot = (file: string, path: string, alt: string, height = 900): ProductSho
 });
 
 export const PRODUCT_SHOTS = {
-  founders: shot("founder-dashboard", "/founder", "The founder dashboard on a demo account: next actions, Trust Score and profile completion"),
+  founders: shot("founder-dashboard", "/founder", "The founder home on a demo account: next actions, where the startup stands, and connect requests sent"),
   investors: shot(
     "investor-discover",
     "/investor/discover",
     "Discover Startups on a demo investor account: industry filters and demo startup cards with a Connect button",
   ),
+  founderInvestors: shot(
+    "founder-investors",
+    "/founder/investors",
+    "Investors recommended to a demo founder by stage, industry and ticket size, each with a Send connect request button",
+  ),
+  mentorSessions: shot(
+    "mentor-sessions",
+    "/mentors/bookings",
+    "A demo mentor's sessions page: a founder's request with the topic and preferred times, and Accept or Decline",
+  ),
+  communityFeed: shot("community-feed", "/community", "The community feed on a demo account: a startup update and a poll from demo founders"),
   mentors: shot("mentor-profile", "/mentors/…", "A demo mentor's profile as founders see it, with expertise tags and a Request a session button", 630),
   incubators: shot("incubator-profile", "/incubators/…", "A demo incubator's profile with its pre-incubation programme", 630),
   universities: shot("university-profile", "/universities/…", "A demo university startup cell's profile with the programmes it offers", 630),
