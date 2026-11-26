@@ -97,22 +97,33 @@ export class VerificationEngineService {
   private async startupRequirements(ownerId: string): Promise<ProfileRequirements | null> {
     const startup = await this.prisma.startup.findUnique({ where: { ownerId } });
     if (!startup) return null;
-    const [incorporationDoc, pitchDeckDoc, completion] = await Promise.all([
+    const [incorporationDoc, identityDoc, pitchDeckDoc, completion] = await Promise.all([
       this.hasDocument(ownerId, "INCORPORATION_CERTIFICATE"),
+      this.hasDocument(ownerId, "GOVERNMENT_ID"),
       this.hasDocument(ownerId, "PITCH_DECK"),
       this.profileCompletion.calculate(startup.id),
     ]);
+    // A startup that isn't registered yet has no company papers to show, so the
+    // founder's own ID stands in for them (startupDocumentPlan asks for it first).
+    const registered = startup.registrationStatus === "REGISTERED";
     return {
       entityType: "Startup",
       entityId: startup.id,
       current: startup.verificationStatus,
       requirements: [
-        {
-          key: "registration",
-          label: "Company registered, or certificate of incorporation uploaded",
-          met: startup.registrationStatus === "REGISTERED" || incorporationDoc,
-          documentType: "INCORPORATION_CERTIFICATE",
-        },
+        registered || incorporationDoc
+          ? {
+              key: "registration",
+              label: "Company registered, or certificate of incorporation uploaded",
+              met: true,
+              documentType: "INCORPORATION_CERTIFICATE",
+            }
+          : {
+              key: "identity",
+              label: "Founder ID uploaded (the company isn't registered yet)",
+              met: identityDoc,
+              documentType: "GOVERNMENT_ID",
+            },
         { key: "pitchDeck", label: "Pitch deck uploaded", met: pitchDeckDoc, documentType: "PITCH_DECK" },
         { key: "profile", label: "Profile at least 80% complete", met: completion.percent >= 80 },
       ],

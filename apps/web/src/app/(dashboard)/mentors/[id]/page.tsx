@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useBookMentor, useMentor } from "@vittamhub/api-client";
 import { createMentorBookingInputSchema, SessionType, type CreateMentorBookingInput } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, Dialog, ErrorState, Select, Skeleton, Textarea, Input } from "@vittamhub/ui";
-import { Briefcase, CalendarClock, CheckCircle2, Clock, Languages, MonitorSmartphone, Rocket, Star, Wallet } from "lucide-react";
+import { Briefcase, Building2, CalendarClock, CheckCircle2, Clock, Languages, MonitorSmartphone, Rocket, Star, Wallet } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -264,6 +264,15 @@ export default function MentorDetailPage() {
                   <dd className="body-5 text-text-primary">{mentor.pricingModel ?? "Not listed, ask in your request"}</dd>
                 </div>
               </div>
+              {mentor.sponsoredSessions && (
+                <div className="flex items-start gap-3">
+                  <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+                  <div>
+                    <dt className="caption-4">Sponsored sessions</dt>
+                    <dd className="body-5 text-text-primary">A college, E-cell or incubator can book and pay</dd>
+                  </div>
+                </div>
+              )}
               {mentor.meetingMode && (
                 <div className="flex items-start gap-3">
                   <MonitorSmartphone className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />

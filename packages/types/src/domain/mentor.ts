@@ -12,7 +12,7 @@ export const mentorProfileSchema = z.object({
   yearsExperience: z.number().int().nonnegative().nullable(),
   availability: z.string().max(200).nullable(),
   sessionTypes: z.array(z.nativeEnum(SessionType)),
-  pricingModel: z.string().max(80).nullable(),
+  pricingModel: z.string().max(200).nullable(),
   languages: z.array(z.string()),
   pastStartups: z.array(z.string()),
   mentorType: z.nativeEnum(MentorType).nullable(),
@@ -22,6 +22,9 @@ export const mentorProfileSchema = z.object({
   sessionFeeAmount: z.number().int().nullable(),
   sessionLengthMinutes: z.number().int().nullable(),
   firstSessionFree: z.boolean(),
+  groupFeePerFounder: z.number().int().nullable(),
+  freeForIdeaStage: z.boolean(),
+  sponsoredSessions: z.boolean(),
   verificationStatus: z.nativeEnum(VerificationStatus),
   isPublic: z.boolean(),
   createdAt: z.string().datetime(),
@@ -55,7 +58,7 @@ export const createMentorInputSchema = z
     availability: z.string().min(1, "Say when founders can book you").max(200),
     sessionTypes: z.array(z.nativeEnum(SessionType)).min(1, "Pick at least one kind of session").max(10),
     // Older drafts carried free text here; it is now worked out from the fee fields on publish.
-    pricingModel: z.preprocess(emptyToNull, z.string().max(80).nullable()).optional(),
+    pricingModel: z.preprocess(emptyToNull, z.string().max(200).nullable()).optional(),
     languages: z.array(z.string().max(40)).max(30).default([]),
     pastStartups: z.array(z.string().max(120)).max(100).default([]),
     mentorType: z.nativeEnum(MentorType, { errorMap: () => ({ message: "Pick the kind of mentor you are" }) }),
@@ -72,6 +75,13 @@ export const createMentorInputSchema = z
         .nullable(),
     ),
     firstSessionFree: z.boolean().default(false),
+    // A group clinic is priced per founder (8 to 10 founders share the hour), so a
+    // mentor whose hour is costly can still reach founders who can't pay for it alone.
+    groupFeePerFounder: z.preprocess(emptyToNull, z.coerce.number().int("Whole rupees only").min(1, "Enter the fee per founder").max(500000).nullable()).optional(),
+    // Mentoring stays free for idea-stage founders where a mentor agrees (the mentor-first plan).
+    freeForIdeaStage: z.boolean().default(false),
+    // A college, E-cell or incubator can book the session and pay for it.
+    sponsoredSessions: z.boolean().default(false),
   })
   .superRefine((input, ctx) => {
     if (input.feeType !== MentorFeeType.PAID) return;

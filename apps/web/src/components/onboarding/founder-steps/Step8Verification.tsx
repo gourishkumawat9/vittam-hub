@@ -2,13 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadFile } from "@vittamhub/api-client";
-import { DocumentType, verificationStepSchema, type VerificationStepInput } from "@vittamhub/types";
+import { DocumentType, startupDocumentPlan, verificationStepSchema, type VerificationStepInput } from "@vittamhub/types";
 import { CheckCircle2, FileText, Loader2, Upload } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { useAutosave } from "@/hooks/useAutosave";
-import { useOnboardingStore } from "@/store/onboarding-store";
+import { usePersona } from "@/hooks/usePersona";
+import { draftSection, useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
 import { FieldSection, MoreDetails, StepHeader } from "../fields";
@@ -51,9 +52,13 @@ const DOCUMENT_BENEFITS: Record<string, string> = {
   [DocumentType.STUDENT_ID]: "For student founders: some campus and government programmes are only open to students. Kept private.",
 };
 
-/** Asked first: what investors open first, and what proves the company exists. The rest can wait. */
-const KEY_DOCUMENTS: DocumentType[] = [DocumentType.PITCH_DECK, DocumentType.INCORPORATION_CERTIFICATE, DocumentType.DPIIT_RECOGNITION];
-const OTHER_DOCUMENTS = (Object.keys(DOCUMENT_LABELS) as DocumentType[]).filter((type) => !KEY_DOCUMENTS.includes(type));
+/** What each kind of startup is asked first, in a line. */
+const TIER_HINT: Record<string, string> = {
+  NOT_REGISTERED: "No company papers needed yet. Your deck and your own ID are enough to start.",
+  REGISTERING: "Add the company papers once registration comes through.",
+  REGISTERED: "What investors open first, and what shows the company exists.",
+  GROWTH: "What investors check at your stage: the company, and the numbers behind it.",
+};
 
 interface StepProps {
   defaultValues?: Partial<VerificationStepInput>;
@@ -63,6 +68,12 @@ interface StepProps {
 
 export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) {
   const setSectionData = useOnboardingStore((s) => s.setSectionData);
+  const draft = useOnboardingStore((s) => s.draft);
+  const { persona } = usePersona();
+  // Which documents to ask for depends on the kind of startup: an idea with no
+  // company yet isn't asked for an incorporation certificate (startupDocumentPlan).
+  const startup = draftSection<{ registrationStatus?: string; revenueStatus?: string; fundingStatus?: string }>(draft, "startupInfo");
+  const plan = startupDocumentPlan({ ...startup, persona });
   const [uploadingType, setUploadingType] = useState<DocumentType | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -136,7 +147,10 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
     );
   };
 
-  const othersUploaded = OTHER_DOCUMENTS.filter((type) => documents.some((doc) => doc.type === type)).length;
+  // Anything uploaded earlier stays listed, even if the startup has since moved on to another kind.
+  const listed = new Set<DocumentType>([...plan.key, ...plan.more]);
+  const otherDocuments = [...plan.more, ...documents.map((doc) => doc.type).filter((type) => !listed.has(type) && DOCUMENT_LABELS[type])];
+  const othersUploaded = otherDocuments.filter((type) => documents.some((doc) => doc.type === type)).length;
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-8">
@@ -146,16 +160,20 @@ export function Step8Verification({ defaultValues, onNext, onBack }: StepProps) 
         description="Nothing here blocks publishing. Documents are stored privately and used for automated checks and your Verified badge, never shown on your public page."
       />
 
-      <FieldSection title="Start with these" description="What investors open first, and what shows the company exists.">
-        <ul className="flex flex-col divide-y divide-border rounded-card border border-border">{KEY_DOCUMENTS.map(renderRow)}</ul>
+      <FieldSection title={`Start with these · ${plan.title}`} description={TIER_HINT[plan.tier]}>
+        <ul className="flex flex-col divide-y divide-border rounded-card border border-border">{plan.key.map(renderRow)}</ul>
       </FieldSection>
 
       <MoreDetails
         title="More documents"
-        description={othersUploaded > 0 ? `${othersUploaded} added. Add the rest when you have them.` : "PAN, GST, trademark, patent, financials and identity. Add them when you have them."}
+        description={
+          othersUploaded > 0
+            ? `${othersUploaded} added. Add the rest when you have them.`
+            : `${otherDocuments.map((type) => DOCUMENT_LABELS[type]).join(", ")}. Add them when you have them.`
+        }
         defaultOpen={othersUploaded > 0}
       >
-        <ul className="-mx-4 -my-5 flex flex-col divide-y divide-border">{OTHER_DOCUMENTS.map(renderRow)}</ul>
+        <ul className="-mx-4 -my-5 flex flex-col divide-y divide-border">{otherDocuments.map(renderRow)}</ul>
       </MoreDetails>
 
       {uploadError && (
