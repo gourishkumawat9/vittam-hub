@@ -213,6 +213,9 @@ async function roleSection(prisma: PrismaService, userId: string, role: string):
           "sessionFeeAmount",
           "sessionLengthMinutes",
           "firstSessionFree",
+          "groupFeePerFounder",
+          "freeForIdeaStage",
+          "sponsoredSessions",
         ]),
       };
     }

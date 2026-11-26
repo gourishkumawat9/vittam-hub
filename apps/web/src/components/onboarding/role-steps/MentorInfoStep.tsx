@@ -79,6 +79,8 @@ export function MentorInfoStep({ defaultValues, onBack, isEditing = false }: Men
       pastStartups: [],
       stagesHelped: [],
       firstSessionFree: false,
+      freeForIdeaStage: false,
+      sponsoredSessions: false,
       ...defaultValues,
     },
   });
@@ -92,11 +94,15 @@ export function MentorInfoStep({ defaultValues, onBack, isEditing = false }: Men
   );
 
   const paid = values.feeType === "PAID";
+  // Group sessions and workshops can be priced per founder, so several founders share the cost of one hour.
+  const offersGroup = (values.sessionTypes ?? []).some((type) => type === "GROUP" || type === "WORKSHOP");
   const feePreview = mentorFeeLabel({
     feeType: values.feeType,
     sessionFeeAmount: values.sessionFeeAmount ? Number(values.sessionFeeAmount) : null,
     sessionLengthMinutes: values.sessionLengthMinutes ? Number(values.sessionLengthMinutes) : null,
     firstSessionFree: values.firstSessionFree,
+    groupFeePerFounder: offersGroup && values.groupFeePerFounder ? Number(values.groupFeePerFounder) : null,
+    freeForIdeaStage: values.freeForIdeaStage,
   });
   // Areas typed in that aren't one of the chips are kept, shown in the box below the chips.
   const customExpertise = (values.expertise ?? []).filter((area) => !(MENTOR_EXPERTISE_OPTIONS as readonly string[]).includes(area));
@@ -232,6 +238,40 @@ export function MentorInfoStep({ defaultValues, onBack, isEditing = false }: Men
           onChange={(minutes) => setValue("sessionLengthMinutes", Number(minutes), { shouldValidate: !!errors.sessionLengthMinutes })}
           error={errors.sessionLengthMinutes?.message}
         />
+        {paid && offersGroup && (
+          <Input
+            label="Group session fee per founder (₹)"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            placeholder="2000"
+            hint="Optional. For group sessions and workshops, where 8 to 10 founders share the hour."
+            error={errors.groupFeePerFounder?.message}
+            {...register("groupFeePerFounder")}
+          />
+        )}
+        {paid && (
+          <div className="flex flex-col gap-3">
+            <Controller
+              control={control}
+              name="freeForIdeaStage"
+              render={({ field }) => (
+                <Checkbox checked={field.value === true} onCheckedChange={field.onChange} label="Free for founders at the idea stage" />
+              )}
+            />
+            <Controller
+              control={control}
+              name="sponsoredSessions"
+              render={({ field }) => (
+                <Checkbox
+                  checked={field.value === true}
+                  onCheckedChange={field.onChange}
+                  label="A college, E-cell or incubator can book and pay for sessions"
+                />
+              )}
+            />
+          </div>
+        )}
         {feePreview && (
           <p className="caption-5">
             Founders will see: <span className="font-semibold text-text-primary">{feePreview}</span>

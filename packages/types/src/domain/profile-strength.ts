@@ -1,5 +1,6 @@
 import { MemberPersona, UserRole } from "./enums";
 import { isOrganisationPersona } from "./signup";
+import { startupDocumentPlan } from "./startup-documents";
 
 /**
  * Profile strength: how much of the profile a member has filled in, shown as
@@ -154,13 +155,30 @@ function founderQuestions(input: ProfileStrengthInput): Q[] {
     q("traction", "Add your traction numbers", "depth", "traction", has(traction.monthlyRevenueAmount) || has(traction.totalUsers) || has(traction.totalCustomers)),
     q("team", "Add your team", "depth", "team", has(team.members)),
     q("funding", "Add your funding plan", "depth", "funding", positive(funding.fundingGoalAmount) || positive(funding.currentRaiseAmount) || has(funding.fundingTypes)),
-    q("pitchDeck", "Upload your pitch deck", "depth", "verification", documents.has("PITCH_DECK")),
   ];
-  if (registered) {
-    questions.push(q("incorporation", "Upload your incorporation certificate", "depth", "verification", documents.has("INCORPORATION_CERTIFICATE")));
+  // The documents asked first for this kind of startup (startupDocumentPlan): an
+  // idea-stage founder isn't asked for an incorporation certificate they can't have.
+  const plan = startupDocumentPlan({
+    registrationStatus: s.registrationStatus as string | undefined,
+    revenueStatus: s.revenueStatus as string | undefined,
+    fundingStatus: s.fundingStatus as string | undefined,
+    persona: input.persona,
+  });
+  for (const type of plan.key) {
+    const ask = DOCUMENT_QUESTION[type];
+    if (ask) questions.push(q(ask.key, ask.label, "depth", "verification", documents.has(type)));
   }
   return questions;
 }
+
+const DOCUMENT_QUESTION: Record<string, { key: string; label: string }> = {
+  PITCH_DECK: { key: "pitchDeck", label: "Upload your pitch deck" },
+  GOVERNMENT_ID: { key: "founderId", label: "Upload a founder ID" },
+  STUDENT_ID: { key: "studentId", label: "Upload your student ID" },
+  INCORPORATION_CERTIFICATE: { key: "incorporation", label: "Upload your incorporation certificate" },
+  DPIIT_RECOGNITION: { key: "dpiit", label: "Upload your DPIIT recognition" },
+  FINANCIAL_STATEMENT: { key: "financials", label: "Upload your latest financial statements" },
+};
 
 function mentorQuestions(input: ProfileStrengthInput): Q[] {
   const m = section(input.draft, "mentorInfo");

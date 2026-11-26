@@ -1,4 +1,4 @@
-import { mentorFeeLabel, profileStrength, registerInputSchema } from "@vittamhub/types";
+import { mentorFeeLabel, profileStrength, registerInputSchema, startupDocumentPlan } from "@vittamhub/types";
 
 /**
  * The BHASKAR-style sign-up and the profile strength meter (November 2026):
@@ -119,5 +119,49 @@ describe("mentor fee label", () => {
       "₹2,000 per 60-min session · first session free",
     );
     expect(mentorFeeLabel({ feeType: null })).toBeNull();
+  });
+
+  it("adds the group price per founder and free sessions for idea-stage founders", () => {
+    expect(
+      mentorFeeLabel({ feeType: "PAID", sessionFeeAmount: 20000, sessionLengthMinutes: 60, groupFeePerFounder: 2000, freeForIdeaStage: true }),
+    ).toBe("₹20,000 per 60-min session · group sessions ₹2,000 per founder · free for idea-stage founders");
+  });
+});
+
+describe("documents by kind of startup", () => {
+  it("asks an unregistered founder for a deck and their own ID, not company papers", () => {
+    const plan = startupDocumentPlan({ registrationStatus: "NOT_REGISTERED" });
+    expect(plan.tier).toBe("NOT_REGISTERED");
+    expect(plan.key).toEqual(["PITCH_DECK", "GOVERNMENT_ID"]);
+    expect([...plan.key, ...plan.more]).not.toContain("INCORPORATION_CERTIFICATE");
+  });
+
+  it("adds a student ID up front for a student who hasn't registered", () => {
+    expect(startupDocumentPlan({ registrationStatus: "NOT_REGISTERED", persona: "STUDENT" }).key).toContain("STUDENT_ID");
+    expect(startupDocumentPlan({ registrationStatus: "REGISTERED", persona: "STUDENT" }).more).toContain("STUDENT_ID");
+  });
+
+  it("asks a registered company for its papers, and one with revenue or a round for its financials", () => {
+    expect(startupDocumentPlan({ registrationStatus: "IN_PROGRESS" }).tier).toBe("REGISTERING");
+    expect(startupDocumentPlan({ registrationStatus: "REGISTERED", revenueStatus: "NONE", fundingStatus: "BOOTSTRAPPED" }).key).toEqual([
+      "PITCH_DECK",
+      "INCORPORATION_CERTIFICATE",
+      "DPIIT_RECOGNITION",
+    ]);
+    const growth = startupDocumentPlan({ registrationStatus: "REGISTERED", revenueStatus: "FIRST_REVENUE", fundingStatus: "SERIES_A" });
+    expect(growth.tier).toBe("GROWTH");
+    expect(growth.key).toContain("FINANCIAL_STATEMENT");
+  });
+
+  it("counts the documents that fit the startup towards profile strength", () => {
+    const idea = profileStrength({
+      role: "FOUNDER",
+      persona: "EXPLORER",
+      email: "a@b.co",
+      draft: { startupInfo: { registrationStatus: "NOT_REGISTERED" } },
+      documentTypes: ["GOVERNMENT_ID"],
+    });
+    expect(idea.questions.find((question) => question.key === "founderId")?.done).toBe(true);
+    expect(idea.questions.some((question) => question.key === "incorporation")).toBe(false);
   });
 });

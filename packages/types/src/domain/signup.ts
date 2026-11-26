@@ -95,10 +95,16 @@ export function mentorFeeLabel(fee: {
   sessionFeeAmount?: number | null;
   sessionLengthMinutes?: number | null;
   firstSessionFree?: boolean | null;
+  groupFeePerFounder?: number | null;
+  freeForIdeaStage?: boolean | null;
 }): string | null {
   if (fee.feeType === MentorFeeType.FREE) return "Free";
   if (fee.feeType !== MentorFeeType.PAID || !fee.sessionFeeAmount) return null;
-  const amount = `₹${fee.sessionFeeAmount.toLocaleString("en-IN")}`;
+  const rupees = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
   const per = fee.sessionLengthMinutes ? `per ${fee.sessionLengthMinutes}-min session` : "per session";
-  return `${amount} ${per}${fee.firstSessionFree ? " · first session free" : ""}`;
+  const parts = [`${rupees(fee.sessionFeeAmount)} ${per}`];
+  if (fee.groupFeePerFounder) parts.push(`group sessions ${rupees(fee.groupFeePerFounder)} per founder`);
+  if (fee.firstSessionFree) parts.push("first session free");
+  if (fee.freeForIdeaStage) parts.push("free for idea-stage founders");
+  return parts.join(" · ");
 }

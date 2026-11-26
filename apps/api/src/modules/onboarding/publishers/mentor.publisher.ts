@@ -26,6 +26,9 @@ export class MentorPublisher {
       // A free mentor has no fee; one left over from switching to free must not linger.
       sessionFeeAmount: paid ? parsed.data.sessionFeeAmount : null,
       firstSessionFree: paid ? parsed.data.firstSessionFree : false,
+      groupFeePerFounder: paid ? (parsed.data.groupFeePerFounder ?? null) : null,
+      freeForIdeaStage: paid ? parsed.data.freeForIdeaStage : false,
+      sponsoredSessions: paid ? parsed.data.sponsoredSessions : false,
     };
     // The directory and profile show this text, worked out from the choices so every fee reads the same way.
     const pricingModel = mentorFeeLabel(input);

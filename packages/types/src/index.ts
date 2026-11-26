@@ -46,3 +46,4 @@ export * from "./domain/saved-search";
 export * from "./domain/mentor-review";
 export * from "./domain/signup";
 export * from "./domain/profile-strength";
+export * from "./domain/startup-documents";

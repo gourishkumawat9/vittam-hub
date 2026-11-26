@@ -1154,6 +1154,9 @@ model MentorProfile {
   sessionFeeAmount   Int? // rupees per session, when feeType is PAID
   sessionLengthMinutes Int?
   firstSessionFree   Boolean       @default(false)
+  groupFeePerFounder Int? // rupees per founder for a group session or clinic, when feeType is PAID
+  freeForIdeaStage   Boolean       @default(false)
+  sponsoredSessions  Boolean       @default(false) // a college, E-cell or incubator can book and pay
   languages          String[]
   pastStartups       String[] // free-text company names — often off-platform, so not an FK relation
   verificationStatus VerificationStatus @default(UNVERIFIED)
