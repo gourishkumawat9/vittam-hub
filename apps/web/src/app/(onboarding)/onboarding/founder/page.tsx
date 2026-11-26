@@ -80,7 +80,7 @@ export default function FounderOnboardingPage() {
   const optionalNav = { onNext: toReview, onBack: toReview };
 
   return (
-    <WizardShell steps={steps} exitHref="/founder" {...shell}>
+    <WizardShell steps={steps} exitHref="/founder" finishLaterHref="/founder" {...shell}>
       {currentStepId === "personal-details" && (
         <Step1PersonalDetails defaultValues={draftSection<PersonalDetailsInput>(draft, "personalDetails")} onNext={goNext} />
       )}

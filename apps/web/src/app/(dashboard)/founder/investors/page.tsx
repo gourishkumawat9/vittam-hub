@@ -1,9 +1,10 @@
 "use client";
 
-import { useFounderRecommendations, useInvestors, type InvestorWithOwner } from "@vittamhub/api-client";
+import { useFounderRecommendations, useInvestors, useMyStartup, type InvestorWithOwner } from "@vittamhub/api-client";
 import type { InvestorSearchFilters } from "@vittamhub/types";
-import { EmptyState } from "@vittamhub/ui";
+import { Button, Dialog, EmptyState } from "@vittamhub/ui";
 import { Handshake } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
@@ -12,6 +13,7 @@ import { PageHeader, SectionHeader } from "@/components/dashboard/PageHeader";
 import { ConnectRequestsList } from "@/components/dashboard/founder/ConnectRequestsList";
 import { InvestorCard } from "@/components/dashboard/founder/InvestorCard";
 import { InvestorFiltersBar } from "@/components/dashboard/founder/InvestorFiltersBar";
+import { isNotFoundError } from "@/lib/utils";
 
 /**
  * Finding investors, moved off the founder home so that page can stay a
@@ -23,6 +25,13 @@ export default function FounderInvestorsPage() {
   const { data: results, isLoading } = useInvestors(filters);
   const { data: recommendations } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
+  // A founder can browse straight after signing up, but a connect request
+  // carries the startup's name, stage and industry, so it needs a published
+  // profile (the API refuses one without it too).
+  const { isError: startupFailed, error: startupError } = useMyStartup();
+  const noStartupYet = startupFailed && isNotFoundError(startupError);
+  const [profileNeededOpen, setProfileNeededOpen] = useState(false);
+  const connect = (investor: InvestorWithOwner) => (noStartupYet ? setProfileNeededOpen(true) : setConnectingTo(investor));
   const investors = results?.items ?? [];
   const recommended = recommendations?.recommendedInvestors ?? [];
   const recommendedIds = new Set(recommended.map((match) => match.investorId));
@@ -33,7 +42,11 @@ export default function FounderInvestorsPage() {
     <div className="flex flex-col gap-10">
       <PageHeader
         title="Investors"
-        description="Send a connect request with your summary and deck. Chat, documents and meetings open once an investor accepts."
+        description={
+          noStartupYet
+            ? "Browse freely. Publish your startup profile to send a connect request."
+            : "Send a connect request with your summary and deck. Chat, documents and meetings open once an investor accepts."
+        }
       />
 
       {recommended.length > 0 && (
@@ -45,7 +58,7 @@ export default function FounderInvestorsPage() {
           />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {recommended.map((match) => (
-              <InvestorCard key={match.investorId} investor={match.investor} onConnect={setConnectingTo} />
+              <InvestorCard key={match.investorId} investor={match.investor} onConnect={connect} />
             ))}
           </div>
         </section>
@@ -59,7 +72,7 @@ export default function FounderInvestorsPage() {
         ) : others.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {others.map((investor) => (
-              <InvestorCard key={investor.id} investor={investor} onConnect={setConnectingTo} />
+              <InvestorCard key={investor.id} investor={investor} onConnect={connect} />
             ))}
           </div>
         ) : (
@@ -75,6 +88,27 @@ export default function FounderInvestorsPage() {
         <SectionHeader id="requests-heading" title="Your connect requests" />
         <ConnectRequestsList emptyHint="Requests you send show up here with their status." />
       </section>
+
+      <Dialog
+        open={profileNeededOpen}
+        onOpenChange={setProfileNeededOpen}
+        title="Publish your startup profile first"
+        description="An investor sees your startup's name, stage and industry with every connect request, so there has to be a profile for them to look at."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setProfileNeededOpen(false)}>
+              Not now
+            </Button>
+            <Button asChild>
+              <Link href="/onboarding/founder">Set up my profile</Link>
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-text-secondary">
+          Only &quot;About you&quot; and &quot;Your startup&quot; are needed to publish. Everything you have already entered is saved.
+        </p>
+      </Dialog>
 
       {connectingTo && (
         <SendConnectRequestDialog investor={connectingTo} open={!!connectingTo} onOpenChange={(open) => !open && setConnectingTo(null)} />
