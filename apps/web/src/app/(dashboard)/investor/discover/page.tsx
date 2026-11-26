@@ -2,11 +2,12 @@
 
 import { useStartupSearch, type StartupSearchResultItem } from "@vittamhub/api-client";
 import type { StartupSearchFilters } from "@vittamhub/types";
-import { Button, EmptyState } from "@vittamhub/ui";
+import { Badge, Button, EmptyState } from "@vittamhub/ui";
 import { Compass, Layers } from "lucide-react";
 import { useState } from "react";
 
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
+import { PageHeader } from "@/components/dashboard/PageHeader";
 import { CompareStartupsDialog } from "@/components/dashboard/investor/CompareStartupsDialog";
 import { DiscoverStartupCard } from "@/components/dashboard/investor/DiscoverStartupCard";
 import { QuickViewDialog } from "@/components/dashboard/investor/QuickViewDialog";
@@ -32,21 +33,25 @@ export default function DiscoverStartupsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="heading-5">Discover startups</h1>
-        {compareIds.length > 1 && (
-          <Button size="sm" onClick={() => setCompareOpen(true)}>
-            <Layers className="h-3.5 w-3.5" /> Compare ({compareIds.length})
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Discover startups"
+        description="Startups that fit your thesis come first, and verified profiles lead. Tick Compare on up to three to see them side by side."
+        meta={!isLoading && <Badge variant="neutral">{(data?.totalItems ?? items.length) === 1 ? "1 startup" : `${data?.totalItems ?? items.length} startups`}</Badge>}
+        actions={
+          compareIds.length > 1 && (
+            <Button size="sm" onClick={() => setCompareOpen(true)}>
+              <Layers className="h-3.5 w-3.5" aria-hidden="true" /> Compare ({compareIds.length})
+            </Button>
+          )
+        }
+      />
 
       <StartupDiscoveryFilters filters={filters} onChange={(next) => setFilters({ ...next, page: 1 })} />
 
       {isLoading ? (
         <CardGridSkeleton />
       ) : items.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((startup) => (
             <DiscoverStartupCard
               key={startup.id}

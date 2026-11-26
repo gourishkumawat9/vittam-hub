@@ -34,6 +34,7 @@ export type CreateUniversityInput = z.infer<typeof createUniversityInputSchema>;
 
 /** University directory filters — same shape family as investorSearchFiltersSchema. */
 export const universitySearchFiltersSchema = z.object({
+  query: z.string().max(200).optional(),
   departments: z.array(z.string().max(100)).max(50).optional(),
   programsOffered: z.array(z.string().max(100)).max(50).optional(),
   page: z.coerce.number().int().min(1).default(1),

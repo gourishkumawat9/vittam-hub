@@ -5,6 +5,7 @@ import {
   useFounderRecommendations,
   useMyGrowthBenchmark,
   useMyStartup,
+  useMyStartupAnalytics,
   useMyStartupHealth,
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
@@ -17,6 +18,8 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 import { PageHeader, SectionHeader } from "@/components/dashboard/PageHeader";
+import { StatStrip } from "@/components/dashboard/StatStrip";
+import { StatTilesSkeleton } from "@/components/dashboard/StatTilesSkeleton";
 import { AddMilestoneDialog } from "@/components/dashboard/founder/AddMilestoneDialog";
 import { ConnectRequestsList } from "@/components/dashboard/founder/ConnectRequestsList";
 import { FounderActivityCard } from "@/components/dashboard/founder/FounderActivityCard";
@@ -43,6 +46,7 @@ export default function FounderDashboardPage() {
   const { data: health } = useMyStartupHealth();
   const { data: benchmark } = useMyGrowthBenchmark();
   const { data: quota } = useConnectionQuota();
+  const { data: analytics } = useMyStartupAnalytics();
   const { data: recommendations, isLoading: recommendationsLoading } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
   // One "Add milestone" dialog, opened from Next actions, Profile completion and the header.
@@ -95,8 +99,7 @@ export default function FounderDashboardPage() {
     );
   }
 
-  const quotaLabel =
-    quota && (quota.limit === null ? "Unlimited connect requests" : `${quota.remaining} of ${quota.limit} connect requests left this month`);
+  const quotaHint = quota && (quota.limit === null ? "Unlimited this month" : `${quota.remaining} of ${quota.limit} left this month`);
 
   return (
     <div className="flex flex-col gap-10">
@@ -112,7 +115,6 @@ export default function FounderDashboardPage() {
               <Badge variant={VERIFICATION_VARIANT[startup.verificationStatus] ?? "neutral"}>Not verified yet</Badge>
             )}
             {startup.isFundraising && <Badge variant="success">Fundraising</Badge>}
-            {quotaLabel && <Badge variant={quota?.remaining === 0 ? "danger" : "neutral"}>{quotaLabel}</Badge>}
           </>
         }
         actions={
@@ -141,6 +143,35 @@ export default function FounderDashboardPage() {
         </Card>
       )}
 
+      {/* The numbers a founder checks first, each a way into its page. */}
+      {analytics ? (
+        <StatStrip
+          stats={[
+            {
+              label: "Investor views",
+              value: analytics.totalInvestorViews,
+              hint: analytics.totalInvestorViews === 0 ? "Shown when an investor opens your profile" : "Since your profile went live",
+              href: "/founder/analytics",
+            },
+            {
+              label: "Connect requests sent",
+              value: analytics.connectionRequestsReceived,
+              hint: quotaHint ?? undefined,
+              href: "/founder/investors",
+            },
+            { label: "Followers", value: analytics.followerCount, hint: "People following your updates" },
+            {
+              label: "Profile complete",
+              value: `${analytics.profileCompletionPercent}%`,
+              hint: analytics.profileCompletionPercent < 100 ? "More detail, more investor interest" : "Everything investors look for",
+              href: "/onboarding/founder",
+            },
+          ]}
+        />
+      ) : (
+        <StatTilesSkeleton />
+      )}
+
       {/* 1. What moves the startup forward, beside where it stands today. */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -159,21 +190,28 @@ export default function FounderDashboardPage() {
           linkLabel="Find investors"
         />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="flex flex-col gap-3 lg:col-span-2">
-            <h3 className="title-4">Your connect requests</h3>
-            <ConnectRequestsList limit={5} emptyHint="Send your first request from the investors page. Each one carries your summary and deck." />
+          <div className="flex flex-col gap-8 lg:col-span-2">
+            <div className="flex flex-col gap-3">
+              <h3 className="title-4">Your connect requests</h3>
+              <ConnectRequestsList limit={5} emptyHint="Send your first request from the investors page. Each one carries your summary and deck." />
+            </div>
+            {recommendationsLoading ? (
+              <CardGridSkeleton count={2} />
+            ) : recommendations && recommendations.recommendedInvestors.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <h3 className="title-4">Investors who fit your startup</h3>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {recommendations.recommendedInvestors.slice(0, 2).map((match) => (
+                    <InvestorCard key={match.investorId} investor={match.investor} onConnect={setConnectingTo} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
-          <RecentProfileViewsCard />
+          <div className="lg:self-start">
+            <RecentProfileViewsCard />
+          </div>
         </div>
-        {recommendationsLoading ? (
-          <CardGridSkeleton count={3} />
-        ) : recommendations && recommendations.recommendedInvestors.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {recommendations.recommendedInvestors.slice(0, 3).map((match) => (
-              <InvestorCard key={match.investorId} investor={match.investor} onConnect={setConnectingTo} />
-            ))}
-          </div>
-        ) : null}
       </section>
 
       {/* 3. The startup's own record, then the profile and its settings. */}

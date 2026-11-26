@@ -21,6 +21,14 @@ export class UniversitiesService {
       verificationStatus: LISTED_VERIFICATION,
       ...(filters.departments?.length ? { departments: { hasSome: filters.departments } } : {}),
       ...(filters.programsOffered?.length ? { programsOffered: { hasSome: filters.programsOffered } } : {}),
+      ...(filters.query
+        ? {
+            OR: [
+              { institutionName: { contains: filters.query, mode: "insensitive" } },
+              { incubationCellName: { contains: filters.query, mode: "insensitive" } },
+            ],
+          }
+        : {}),
     };
 
     const { skip, take } = paginationToOffset(filters.page, filters.pageSize);
@@ -36,6 +44,14 @@ export class UniversitiesService {
     ]);
 
     return buildPaginatedResult(items, totalItems, filters.page, filters.pageSize);
+  }
+
+  /** The caller's own profile, published or not; null until onboarding creates it. */
+  getMine(ownerId: string) {
+    return this.prisma.universityProfile.findUnique({
+      where: { ownerId },
+      include: { owner: { select: { fullName: true, avatarUrl: true } } },
+    });
   }
 
   async getById(id: string) {

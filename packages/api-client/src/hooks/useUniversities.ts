@@ -18,3 +18,8 @@ export function useUniversities(filters: UniversitySearchFilters) {
 export function useUniversity(id: string) {
   return useQuery({ queryKey: universityKeys.detail(id), queryFn: () => universitiesApi.getById(id), enabled: !!id });
 }
+
+/** The signed-in university's own profile, for its home. */
+export function useMyUniversityProfile(enabled = true) {
+  return useQuery({ queryKey: ["universities", "me"], queryFn: universitiesApi.mine, enabled });
+}

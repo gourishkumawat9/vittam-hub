@@ -36,7 +36,7 @@ export function QuickViewDialog({ startup, onOpenChange }: QuickViewDialogProps)
           <Badge variant="brand">{titleCase(startup.industry)}</Badge>
           <Badge variant="neutral">{startup.headquarters ?? startup.location}</Badge>
           <Badge variant="neutral">Founded {startup.foundedYear}</Badge>
-          <Badge variant="neutral">{startup.teamSize} people</Badge>
+          <Badge variant="neutral">{startup.teamSize} {startup.teamSize === 1 ? "person" : "people"}</Badge>
         </div>
 
         <div className="grid grid-cols-2 gap-3 rounded-card bg-background-secondary p-3 text-xs">
