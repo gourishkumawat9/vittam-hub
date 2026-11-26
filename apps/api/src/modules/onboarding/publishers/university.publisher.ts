@@ -20,15 +20,17 @@ export class UniversityPublisher {
     if (!parsed.success) {
       throw new BadRequestException(issueMessages(parsed.error));
     }
-    const input = parsed.data;
+    const { designation, ...input } = parsed.data;
 
     const university = await this.prisma.$transaction(async (tx) => {
       await applyPersonalDetails(tx, userId, draft.personalDetails);
+      await tx.userProfile.update({ where: { userId }, data: { designation } });
 
       const university = await tx.universityProfile.upsert({
         where: { ownerId: userId },
         create: { ownerId: userId, ...input },
-        update: input,
+        // Optional fields left out are stored as empty, so clearing one sticks.
+        update: { ...input, logoUrl: input.logoUrl ?? null, state: input.state ?? null, aisheCode: input.aisheCode ?? null },
       });
 
       await tx.userProfile.update({

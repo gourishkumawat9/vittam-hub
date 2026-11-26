@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { UserRole } from "@vittamhub/types";
+import { DEFAULT_PERSONA_FOR_ROLE, IncubatorKind, InvestorType, MemberPersona, UserRole } from "@vittamhub/types";
 
 import type { PrismaService } from "../../database/prisma/prisma.service";
 
@@ -48,6 +48,10 @@ async function personalDetails(prisma: PrismaService, userId: string): Promise<D
     country: profile?.country,
     bio: profile?.bio,
     yearsOfExperience: profile?.yearsOfExperience,
+    studentInstitution: profile?.studentInstitution,
+    studentCourse: profile?.studentCourse,
+    graduationYear: profile?.graduationYear,
+    bhaskarId: profile?.bhaskarId,
   });
 }
 
@@ -75,6 +79,8 @@ async function startupSections(prisma: PrismaService, userId: string): Promise<D
       foundedYear: startup.foundedYear,
       registrationStatus: startup.registrationStatus,
       companyType: startup.companyType,
+      registrationNumber: startup.registrationNumber,
+      dpiitNumber: startup.dpiitNumber,
       headquarters: startup.headquarters ?? startup.location,
       businessModelSummary: startup.businessModelSummary,
       mission: startup.mission,
@@ -153,6 +159,12 @@ async function startupSections(prisma: PrismaService, userId: string): Promise<D
   };
 }
 
+/** Your role at the organisation, kept on your own profile. */
+async function designationOf(prisma: PrismaService, userId: string): Promise<Draft> {
+  const profile = await prisma.userProfile.findUnique({ where: { userId }, select: { designation: true } });
+  return plain({ designation: profile?.designation });
+}
+
 async function roleSection(prisma: PrismaService, userId: string, role: string): Promise<Draft> {
   switch (role) {
     case UserRole.FOUNDER:
@@ -176,6 +188,8 @@ async function roleSection(prisma: PrismaService, userId: string, role: string):
           "portfolioCompanies",
           "investmentThesis",
           "openForPitches",
+          "sebiCategory",
+          "sebiRegistrationNumber",
         ]),
       };
     }
@@ -190,9 +204,15 @@ async function roleSection(prisma: PrismaService, userId: string, role: string):
           "yearsExperience",
           "availability",
           "sessionTypes",
-          "pricingModel",
           "languages",
           "pastStartups",
+          "mentorType",
+          "stagesHelped",
+          "meetingMode",
+          "feeType",
+          "sessionFeeAmount",
+          "sessionLengthMinutes",
+          "firstSessionFree",
         ]),
       };
     }
@@ -204,7 +224,24 @@ async function roleSection(prisma: PrismaService, userId: string, role: string):
       if (!incubator) return {};
       return {
         incubatorInfo: {
-          ...pick(incubator, ["organizationName", "description", "website", "industries", "portfolioCompanies", "affiliatedMentorCount", "kind"]),
+          ...pick(incubator, [
+            "organizationName",
+            "description",
+            "website",
+            "logoUrl",
+            "industries",
+            "portfolioCompanies",
+            "affiliatedMentorCount",
+            "kind",
+            "hostType",
+            "city",
+            "state",
+            "yearEstablished",
+            "currentIncubatees",
+            "graduatedIncubatees",
+            "governmentPrograms",
+          ]),
+          ...(await designationOf(prisma, userId)),
           programs: incubator.programs.map((program) => ({
             ...pick(program, ["name", "description", "durationWeeks", "applicationUrl", "eligibilityCriteria"]),
             ...(program.applicationCycleStart ? { applicationCycleStart: program.applicationCycleStart.toISOString().slice(0, 10) } : {}),
@@ -217,7 +254,21 @@ async function roleSection(prisma: PrismaService, userId: string, role: string):
       const university = await prisma.universityProfile.findUnique({ where: { ownerId: userId } });
       if (!university) return {};
       return {
-        universityInfo: pick(university, ["institutionName", "affiliationType", "website", "incubationCellName", "departments", "programsOffered"]),
+        universityInfo: {
+          ...pick(university, [
+            "institutionName",
+            "affiliationType",
+            "website",
+            "logoUrl",
+            "city",
+            "state",
+            "aisheCode",
+            "incubationCellName",
+            "departments",
+            "programsOffered",
+          ]),
+          ...(await designationOf(prisma, userId)),
+        },
       };
     }
     default:
@@ -236,4 +287,36 @@ async function roleSection(prisma: PrismaService, userId: string, role: string):
 export async function draftFromPublishedProfile(prisma: PrismaService, userId: string, role: string): Promise<Draft> {
   const [personal, sections] = await Promise.all([personalDetails(prisma, userId), roleSection(prisma, userId, role)]);
   return { personalDetails: personal, ...sections };
+}
+
+/**
+ * The draft a brand-new account's wizard opens on: what the sign-up form
+ * already asked (name, mobile, nationality) and what the persona settles
+ * (an investment firm is not an angel; an accelerator is not an incubator),
+ * so no one types the same thing twice. Null when there is nothing to fill.
+ */
+export async function draftFromSignUp(prisma: PrismaService, userId: string, role: string): Promise<Draft | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { fullName: true, avatarUrl: true, profile: { select: { mobileNumber: true, nationality: true, persona: true } } },
+  });
+  if (!user) return null;
+  const persona = user.profile?.persona ?? DEFAULT_PERSONA_FOR_ROLE[role as UserRole] ?? null;
+
+  const draft: Draft = {
+    personalDetails: plain({
+      fullName: user.fullName,
+      avatarUrl: user.avatarUrl,
+      mobileNumber: user.profile?.mobileNumber,
+      nationality: user.profile?.nationality,
+    }),
+  };
+  if (role === UserRole.INVESTOR) {
+    // A firm picks VC, family office, corporate VC or angel network on the next step; an individual is an angel.
+    draft.investorInfo = persona === MemberPersona.INVESTMENT_FIRM ? {} : { investorType: InvestorType.ANGEL };
+  }
+  if (role === UserRole.INCUBATOR) {
+    draft.incubatorInfo = { kind: persona === MemberPersona.ACCELERATOR ? IncubatorKind.ACCELERATOR : IncubatorKind.INCUBATOR };
+  }
+  return draft;
 }

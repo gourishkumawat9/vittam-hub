@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useBookMentor, useMentor } from "@vittamhub/api-client";
 import { createMentorBookingInputSchema, SessionType, type CreateMentorBookingInput } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, Dialog, ErrorState, Select, Skeleton, Textarea, Input } from "@vittamhub/ui";
-import { Briefcase, CalendarClock, CheckCircle2, Clock, Languages, Rocket, Star, Wallet } from "lucide-react";
+import { Briefcase, CalendarClock, CheckCircle2, Clock, Languages, MonitorSmartphone, Rocket, Star, Wallet } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -14,6 +14,8 @@ import { FollowButton } from "@/components/dashboard/FollowButton";
 import { PanelTitle } from "@/components/dashboard/PageHeader";
 import { StatStrip } from "@/components/dashboard/StatStrip";
 import { SESSION_TYPE_LABEL } from "@/components/dashboard/mentor/labels";
+import { MEETING_MODE_LABEL, MENTOR_TYPE_LABEL } from "@/lib/signup-options";
+import { STAGE_LABEL } from "@/lib/startup-options";
 
 const SESSION_TYPE_OPTIONS = Object.values(SessionType).map((type) => ({
   label: type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -144,6 +146,7 @@ export default function MentorDetailPage() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="heading-5">{mentor.owner.fullName}</h1>
               <VerifiedBadge status={mentor.verificationStatus} />
+              {mentor.mentorType && <Badge variant="neutral">{MENTOR_TYPE_LABEL[mentor.mentorType] ?? mentor.mentorType}</Badge>}
             </div>
             {mentor.headline && <p className="body-6 text-text-secondary">{mentor.headline}</p>}
             <p className="flex items-center gap-1.5 caption-2">
@@ -201,6 +204,18 @@ export default function MentorDetailPage() {
                 </div>
               </div>
             )}
+            {mentor.stagesHelped && mentor.stagesHelped.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="caption-4">Stages they help at</p>
+                <div className="flex flex-wrap gap-2">
+                  {mentor.stagesHelped.map((stage) => (
+                    <Badge key={stage} variant="neutral">
+                      {STAGE_LABEL[stage] ?? stage}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </Card>
 
           {mentor.sessionTypes.length > 0 && (
@@ -245,10 +260,19 @@ export default function MentorDetailPage() {
               <div className="flex items-start gap-3">
                 <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
                 <div>
-                  <dt className="caption-4">Pricing</dt>
+                  <dt className="caption-4">Fee</dt>
                   <dd className="body-5 text-text-primary">{mentor.pricingModel ?? "Not listed, ask in your request"}</dd>
                 </div>
               </div>
+              {mentor.meetingMode && (
+                <div className="flex items-start gap-3">
+                  <MonitorSmartphone className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+                  <div>
+                    <dt className="caption-4">Meets</dt>
+                    <dd className="body-5 text-text-primary">{MEETING_MODE_LABEL[mentor.meetingMode] ?? mentor.meetingMode}</dd>
+                  </div>
+                </div>
+              )}
               {mentor.languages.length > 0 && (
                 <div className="flex items-start gap-3">
                   <Languages className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />

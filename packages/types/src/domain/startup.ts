@@ -31,7 +31,10 @@ export const startupSchema = z.object({
   revenueStatus: z.nativeEnum(RevenueStatus).nullable().optional(),
   fundingStatus: z.nativeEnum(FundingStatus).nullable().optional(),
   monthsInCurrentStage: z.number().int().nonnegative().nullable().optional(),
-  foundedYear: z.number().int().min(1990).max(new Date().getFullYear()),
+  // Optional since November 2026: someone exploring an idea may not have started yet.
+  foundedYear: z.number().int().min(1990).max(new Date().getFullYear()).nullable(),
+  registrationNumber: z.string().max(40).nullable().optional(),
+  dpiitNumber: z.string().max(40).nullable().optional(),
   teamSize: z.number().int().min(1),
   location: z.string().max(120),
   currency: z.nativeEnum(Currency).default(Currency.INR),

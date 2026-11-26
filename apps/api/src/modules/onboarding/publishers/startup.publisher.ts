@@ -117,9 +117,13 @@ export class StartupPublisher {
         fundingStatus: startupInfo.fundingStatus,
         industry: startupInfo.industry,
         subIndustry: startupInfo.subIndustry,
-        foundedYear: startupInfo.foundedYear,
+        // Optional fields left out are stored as empty, so clearing one sticks.
+        foundedYear: startupInfo.foundedYear ?? null,
         registrationStatus: startupInfo.registrationStatus,
         companyType: startupInfo.companyType,
+        // Self-declared until a registry check is plugged in (CLAUDE.md §8).
+        registrationNumber: startupInfo.registrationNumber ?? null,
+        dpiitNumber: startupInfo.dpiitNumber ?? null,
         headquarters: startupInfo.headquarters,
         businessModelSummary: startupInfo.businessModelSummary,
         mission: startupInfo.mission,

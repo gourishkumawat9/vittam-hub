@@ -6,8 +6,10 @@ import { ArrowRight, BarChart3, Building2, CalendarDays, GraduationCap, Lightbul
 import Link from "next/link";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { INSTITUTION_TYPE_LABEL } from "@/lib/signup-options";
 
 import { PageHeader, PanelLink, PanelTitle } from "../PageHeader";
+import { ProfileStrengthCard } from "../ProfileStrengthCard";
 import { type Stat, StatStrip } from "../StatStrip";
 import { VerificationChecklist } from "../VerificationChecklist";
 import { OpenCallsCard } from "../incubator/OpenCallsCard";
@@ -85,7 +87,7 @@ export function UniversityHome() {
         meta={
           university && (
             <>
-              {university.affiliationType && <Badge variant="neutral">{university.affiliationType}</Badge>}
+              {university.affiliationType && <Badge variant="neutral">{INSTITUTION_TYPE_LABEL[university.affiliationType] ?? university.affiliationType}</Badge>}
               <VerifiedBadge status={university.verificationStatus} />
             </>
           )
@@ -217,6 +219,7 @@ export function UniversityHome() {
         </div>
 
         <div className="flex flex-col gap-6">
+          <ProfileStrengthCard />
           {university && <UniversityProfilePreview university={university} />}
           <OpenCallsCard emptyHint="No incubator is taking applications right now. Open calls show here as soon as one opens." />
           <VerificationChecklist />

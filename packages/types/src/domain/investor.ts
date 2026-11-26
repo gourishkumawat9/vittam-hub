@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { Currency, InvestorType, StartupStage, VerificationStatus } from "./enums";
+import { SEBI_CATEGORIES } from "./signup";
 import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 export const investorSchema = z.object({
@@ -22,6 +23,8 @@ export const investorSchema = z.object({
   investmentThesis: z.string().max(3000).nullable(),
   openForPitches: z.boolean(),
   location: z.string().max(120),
+  sebiCategory: z.enum(SEBI_CATEGORIES).nullable().optional(),
+  sebiRegistrationNumber: z.string().max(40).nullable().optional(),
   verificationStatus: z.nativeEnum(VerificationStatus),
   isPublic: z.boolean().default(true),
   createdAt: z.string().datetime(),
@@ -57,12 +60,27 @@ export const investorSearchFiltersSchema = z.object({
 });
 export type InvestorSearchFilters = z.infer<typeof investorSearchFiltersSchema>;
 
+/**
+ * An investor's profile. Sign-up asks for the type, what you invest in (sectors
+ * and stages), cheque size and where you're based; firm name and your role
+ * there are asked of firms (the web form requires them for an organisation).
+ * The bio became optional in November 2026 (BHASKAR doesn't ask for one up
+ * front); it is stored as "" when left out. SEBI details are self-declared.
+ */
 export const createInvestorInputSchema = z.object({
   firmName: z.string().max(120).optional(),
   designation: z.string().max(120).optional(),
-  investorType: z.nativeEnum(InvestorType),
+  investorType: z.nativeEnum(InvestorType, { errorMap: () => ({ message: "Pick the kind of investor you are" }) }),
   website: urlOrEmpty,
-  bio: z.string().min(1, "Tell startups about yourself").max(3000),
+  bio: z.string().max(3000).default(""),
+  sebiCategory: z.preprocess((value) => (value === "" ? undefined : value), z.enum(SEBI_CATEGORIES).optional()),
+  sebiRegistrationNumber: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[A-Za-z0-9/.-]*$/, "Letters, numbers, / . and - only")
+    .optional()
+    .transform((value) => (value ? value.toUpperCase() : undefined)),
   preferredIndustries: z.array(z.string().max(80)).min(1, "Select at least one industry").max(40),
   preferredStages: z.array(z.nativeEnum(StartupStage)).min(1, "Select at least one stage").max(20),
   checkSizeMinAmount: z.coerce.number().nonnegative(),

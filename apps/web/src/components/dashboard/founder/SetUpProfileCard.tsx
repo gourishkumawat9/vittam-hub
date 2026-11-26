@@ -1,11 +1,12 @@
 "use client";
 
-import { useOnboardingState } from "@vittamhub/api-client";
-import { personalDetailsInputSchema, startupInfoStepSchema } from "@vittamhub/types";
-import { Button, Card, ProgressBar, Skeleton } from "@vittamhub/ui";
+import { useOnboardingState, useProfileStrength } from "@vittamhub/api-client";
+import { personalDetailsInputSchema, SIGNUP_SHARE_PERCENT, startupInfoStepSchema } from "@vittamhub/types";
+import { Button, Card, Skeleton } from "@vittamhub/ui";
 import { CheckCircle2, Circle, Rocket } from "lucide-react";
 import Link from "next/link";
 
+import { StrengthBar } from "@/components/onboarding/ProfileStrengthMeter";
 import { cn } from "@/lib/utils";
 
 /** What a published startup profile opens up. Each line is something the dashboard or the API really gates on it. */
@@ -22,9 +23,12 @@ const UNLOCKS = [
  * where the profile gets started and picked up again. It reads the wizard's
  * autosaved draft to show how far they are. Only "About you" and "Your
  * startup" are needed to publish; every other section can be added afterwards.
+ * Beside the steps sits the profile strength: sign-up alone is worth 20%, and
+ * every answer after that moves it on (profileStrength in packages/types).
  */
 export function SetUpProfileCard() {
   const { data: onboarding, isLoading } = useOnboardingState();
+  const { data: strength } = useProfileStrength();
   const draft = onboarding?.draft ?? {};
 
   const steps = [
@@ -90,7 +94,15 @@ export function SetUpProfileCard() {
       </div>
 
       <div className="flex w-full flex-col gap-4 rounded-card border border-border bg-surface p-4 lg:w-80 lg:shrink-0">
-        <ProgressBar value={(doneCount / steps.length) * 100} label={`${doneCount} of ${steps.length} steps done`} />
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Profile strength</p>
+          {strength ? <StrengthBar percent={strength.percent} /> : <Skeleton className="h-14 w-full" />}
+          <p className="text-xs text-text-secondary">
+            {strength && strength.percent > SIGNUP_SHARE_PERCENT
+              ? `${strength.answered} of ${strength.total} questions answered. ${doneCount} of ${steps.length} steps to publish done.`
+              : `Signing up got you to ${SIGNUP_SHARE_PERCENT}%. Each answer in your profile adds to it.`}
+          </p>
+        </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Publishing unlocks</p>
           <ul className="mt-2 flex flex-col gap-1.5">

@@ -10,6 +10,11 @@ export function useOnboardingState() {
   return useQuery({ queryKey: onboardingStateKey, queryFn: onboardingApi.getState, staleTime: 0 });
 }
 
+/** The dashboard's "profile strength" card. Publishing marks it stale with everything else. */
+export function useProfileStrength() {
+  return useQuery({ queryKey: ["onboarding", "strength"], queryFn: onboardingApi.getStrength });
+}
+
 /**
  * Autosave. Doesn't refetch the state afterwards: the wizard holds the
  * freshest copy itself, and a fetch after every keystroke's save was a

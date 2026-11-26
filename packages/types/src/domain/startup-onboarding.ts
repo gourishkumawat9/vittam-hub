@@ -35,9 +35,28 @@ export const startupInfoStepSchema = z.object({
   fundingStatus: z.nativeEnum(FundingStatus, { errorMap: () => ({ message: "Funding status is required" }) }),
   industry: z.nativeEnum(Industry, { errorMap: () => ({ message: "Industry is required" }) }),
   subIndustry: optionalString(80),
-  foundedYear: z.coerce.number().int().min(1990).max(new Date().getFullYear()),
+  // "Year you started": optional, since someone exploring an idea may not have one yet.
+  foundedYear: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.coerce.number().int().min(1990, "Enter a year from 1990").max(new Date().getFullYear(), "That year hasn't happened yet").optional(),
+  ),
   registrationStatus: z.nativeEnum(RegistrationStatus),
-  companyType: z.nativeEnum(CompanyType).optional(),
+  companyType: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.nativeEnum(CompanyType).optional()),
+  // Self-declared until checked against MCA / DPIIT (CLAUDE.md §8): CIN, LLPIN or firm number, and the DPIIT certificate number.
+  registrationNumber: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[A-Za-z0-9/-]*$/, "Letters, numbers, - and / only")
+    .optional()
+    .transform((value) => (value ? value.toUpperCase() : undefined)),
+  dpiitNumber: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[A-Za-z0-9/-]*$/, "Letters, numbers, - and / only")
+    .optional()
+    .transform((value) => (value ? value.toUpperCase() : undefined)),
   headquarters: z.string().min(1, "Headquarters is required").max(120),
   businessModelSummary: optionalString(200),
   mission: optionalString(1000),

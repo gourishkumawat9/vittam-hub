@@ -6,6 +6,7 @@ import { Inbox } from "lucide-react";
 import Link from "next/link";
 
 import { PageHeader, SectionHeader } from "../PageHeader";
+import { ProfileStrengthCard } from "../ProfileStrengthCard";
 import { StatStrip } from "../StatStrip";
 import { VerificationChecklist } from "../VerificationChecklist";
 import { MentorProfilePreview } from "../mentor/MentorProfilePreview";
@@ -177,6 +178,7 @@ export function MentorHome({ firstName }: { firstName: string }) {
           <CommunityPreview emptyHint="Mentors who share a short tip or an open office hour get found faster." />
         </div>
         <div className="flex flex-col gap-6">
+          <ProfileStrengthCard />
           {mentorLoading ? <Skeleton className="h-72 w-full" /> : mentor ? <MentorProfilePreview mentor={mentor} /> : null}
           <VerificationChecklist />
         </div>

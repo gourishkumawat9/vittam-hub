@@ -1,11 +1,18 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { ONBOARDING_DRAFT_SECTIONS, ONBOARDING_SECTION_MAX_BYTES, UserRole, type SaveOnboardingDraftInput } from "@vittamhub/types";
+import {
+  DEFAULT_PERSONA_FOR_ROLE,
+  ONBOARDING_DRAFT_SECTIONS,
+  ONBOARDING_SECTION_MAX_BYTES,
+  profileStrength,
+  UserRole,
+  type SaveOnboardingDraftInput,
+} from "@vittamhub/types";
 
 import { discardProfileEditDraft } from "../../common/onboarding/discard-edit-draft";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
-import { draftFromPublishedProfile } from "./profile-draft";
+import { draftFromPublishedProfile, draftFromSignUp } from "./profile-draft";
 import { IncubatorPublisher } from "./publishers/incubator.publisher";
 import { InvestorPublisher } from "./publishers/investor.publisher";
 import { JobSeekerPublisher } from "./publishers/job-seeker.publisher";
@@ -36,10 +43,11 @@ export class OnboardingService {
     const profile = await this.prisma.userProfile.findUniqueOrThrow({ where: { userId } });
     const published = profile.onboardingStatus === "COMPLETED";
     const stored = this.storedDraft(profile.onboardingDraft);
+    const persona = profile.persona ?? DEFAULT_PERSONA_FOR_ROLE[role as UserRole] ?? null;
     // `pendingEdits`: the profile is live and the wizard holds changes to it
     // that were started but never saved. The wizard says so, and offers to
     // save or discard them.
-    if (stored) return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: stored, pendingEdits: published };
+    if (stored) return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: stored, pendingEdits: published, persona };
 
     if (published) {
       return {
@@ -47,9 +55,41 @@ export class OnboardingService {
         step: 0,
         draft: await draftFromPublishedProfile(this.prisma, userId, role),
         pendingEdits: false,
+        persona,
       };
     }
-    return { status: profile.onboardingStatus, step: profile.onboardingStep, draft: null, pendingEdits: false };
+    // Not started yet: open on what sign-up already asked, so nothing is typed twice.
+    return {
+      status: profile.onboardingStatus,
+      step: profile.onboardingStep,
+      draft: await draftFromSignUp(this.prisma, userId, role),
+      pendingEdits: false,
+      persona,
+    };
+  }
+
+  /**
+   * Profile strength for the dashboards. A live profile is measured as it is
+   * published (unsaved edits don't count yet); before that, the sign-up
+   * answers plus whatever the wizard has saved so far.
+   */
+  async getStrength(userId: string, role: string) {
+    const [user, profile, documents] = await Promise.all([
+      this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } }),
+      this.prisma.userProfile.findUniqueOrThrow({ where: { userId } }),
+      this.prisma.document.findMany({ where: { userId }, select: { type: true } }),
+    ]);
+    const draft =
+      profile.onboardingStatus === "COMPLETED"
+        ? await draftFromPublishedProfile(this.prisma, userId, role)
+        : { ...((await draftFromSignUp(this.prisma, userId, role)) ?? {}), ...(this.storedDraft(profile.onboardingDraft) ?? {}) };
+    return profileStrength({
+      role,
+      persona: profile.persona ?? DEFAULT_PERSONA_FOR_ROLE[role as UserRole] ?? null,
+      email: user.email,
+      draft,
+      documentTypes: documents.map((document) => document.type),
+    });
   }
 
   /** "Discard changes" while editing a live profile: the wizard goes back to what is published. */
