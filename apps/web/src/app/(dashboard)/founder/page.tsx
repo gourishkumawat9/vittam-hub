@@ -8,8 +8,8 @@ import {
   useMyStartupHealth,
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
-import { Badge, Button, Card, EmptyState, Skeleton } from "@vittamhub/ui";
-import { Eye, Plus, Sparkles } from "lucide-react";
+import { Badge, Button, Card, ErrorState, Skeleton } from "@vittamhub/ui";
+import { Eye, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -26,9 +26,11 @@ import { InvestorCard } from "@/components/dashboard/founder/InvestorCard";
 import { NextActionsCard } from "@/components/dashboard/founder/NextActionsCard";
 import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentProfileViewsCard";
 import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
+import { SetUpProfileCard } from "@/components/dashboard/founder/SetUpProfileCard";
 import { StandingPanel } from "@/components/dashboard/founder/StandingPanel";
 import { VisibilitySettingsCard } from "@/components/dashboard/founder/VisibilitySettingsCard";
 import { STAGE_LABEL, VERIFICATION_VARIANT } from "@/components/dashboard/founder/startup-labels";
+import { isNotFoundError } from "@/lib/utils";
 
 /**
  * The founder's home. Reads top to bottom as: what to do next and where you
@@ -37,7 +39,7 @@ import { STAGE_LABEL, VERIFICATION_VARIANT } from "@/components/dashboard/founde
  * own page (/founder/investors) so this one stays a summary.
  */
 export default function FounderDashboardPage() {
-  const { data: startup, isLoading: startupLoading, isError: startupError } = useMyStartup();
+  const { data: startup, isLoading: startupLoading, isError: startupFailed, error: startupError, refetch: refetchStartup } = useMyStartup();
   const { data: health } = useMyStartupHealth();
   const { data: benchmark } = useMyGrowthBenchmark();
   const { data: quota } = useConnectionQuota();
@@ -59,20 +61,36 @@ export default function FounderDashboardPage() {
     );
   }
 
-  if (startupError || !startup) {
+  // A real failure loading the profile is not the same as having none yet.
+  if (startupFailed && !isNotFoundError(startupError)) {
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader title="Founder home" description="Publish your startup profile to open your dashboard." />
-        <EmptyState
-          icon={Sparkles}
-          title="Your startup profile isn't published yet"
-          description="It takes about ten minutes. You can skip any step and come back to it."
-          action={
-            <Button asChild>
-              <Link href="/onboarding/founder">Continue your profile</Link>
+        <PageHeader title="Founder home" />
+        <ErrorState
+          title="Your startup profile didn't load"
+          description="Check your connection and try again."
+          onRetry={() => void refetchStartup()}
+          className="py-10"
+        />
+      </div>
+    );
+  }
+
+  // A founder lands here straight after signing up, before any startup
+  // profile exists: the API answers 404 until it is published.
+  if (!startup) {
+    return (
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          title="Founder home"
+          description="Your account is ready. Set up your startup profile whenever you like."
+          actions={
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/founder/investors">Browse investors</Link>
             </Button>
           }
         />
+        <SetUpProfileCard />
       </div>
     );
   }

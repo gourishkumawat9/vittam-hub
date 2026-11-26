@@ -71,6 +71,10 @@ Nothing below is built yet; this is the sequence, triggered by actual bottleneck
 - **Edge rendering**: the health-check route (`app/api/health/route.ts`) already runs on the edge runtime as the reference pattern; extend to any route that's read-only and doesn't need Node-specific APIs (Prisma currently requires the Node runtime, so full pages hitting the DB directly stay on Node — only truly edge-safe routes should opt in).
 - **Caching**: React Query's `staleTime` (client), Next.js's fetch cache + ISR (server), and Redis (API-level caching for expensive aggregations, once any exist) form three independent cache layers — each should be tuned separately as real usage patterns emerge, not guessed at upfront.
 
+## Visit counts (Vercel Web Analytics)
+
+The website mounts `@vercel/analytics` (`components/VercelAnalytics.tsx`, in the root layout). It records nothing until **Web Analytics is switched on in the Vercel project** (Project → Analytics → Enable) and the site is redeployed. The script and its reports are served from the site's own origin at `/_vercel/insights`, so the CSP needs nothing extra in production; off Vercel (e.g. `next start` locally) that path doesn't exist and the script simply fails to load. Before a page view is sent, `lib/analytics-url.ts` removes everything after `?` or `#` except `utm_*` tags, because the password-reset link and the two-factor sign-in carry codes there. The privacy page describes what is recorded, so update it if this changes.
+
 ## Observability (not yet wired, the plan)
 
 - **Sentry** for error tracking (frontend + API), using the integration points already left as `TODO`s in `error.tsx` and `HttpExceptionFilter`

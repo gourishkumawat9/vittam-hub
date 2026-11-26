@@ -52,7 +52,23 @@ const SECTIONS: LegalSection[] = [
           <li>one that renews that sign-in without asking for your password again,</li>
           <li>one that protects your account from requests made by other websites.</li>
         </ul>
-        <p>Your light or dark theme choice is saved in your browser. There are no advertising or tracking cookies and no analytics scripts.</p>
+        <p>Your light or dark theme choice is saved in your browser. There are no advertising or tracking cookies.</p>
+      </>
+    ),
+  },
+  {
+    title: "Visit counts",
+    body: (
+      <>
+        <p>
+          We count visits with Vercel Web Analytics, which sets no cookies. For each page you open it records the page&apos;s address, the
+          site that linked you here, your country, and your browser, operating system and kind of device. It isn&apos;t linked to your
+          VittamHub account.
+        </p>
+        <p>
+          Before a visit is sent, everything after a &ldquo;?&rdquo; or &ldquo;#&rdquo; in the address is removed, apart from campaign tags
+          (&ldquo;utm_&rdquo;), so links that carry a password-reset or sign-in code never reach it.
+        </p>
       </>
     ),
   },

@@ -15,6 +15,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@tanstack/react-query": "^5.59.13",
+    "@vercel/analytics": "^2.0.1",
     "@vittamhub/api-client": "workspace:*",
     "@vittamhub/tokens": "workspace:*",
     "@vittamhub/types": "workspace:*",
