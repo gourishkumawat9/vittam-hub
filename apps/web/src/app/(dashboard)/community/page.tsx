@@ -18,11 +18,13 @@ import {
 import { createPostInputSchema, PostType, type CommunityFeedFilters, type CreatePostInput, type UserRole } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, Dialog, EmptyState, Input, Select, TagsInput, Textarea } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Bookmark, CalendarDays, Check, ExternalLink, Heart, MapPin, MessageSquare, Trash2, Users } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { BarChart3, Bookmark, CalendarDays, Check, ExternalLink, Heart, MapPin, MessageSquare, Rocket, Sparkles, Trash2, Users } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { PageHeader, PanelTitle } from "@/components/dashboard/PageHeader";
 import { formatDateTime, localInputToIso, nowForLocalInput } from "@/lib/datetime";
 import { externalHref } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
@@ -60,7 +62,18 @@ const chipClass = (active: boolean) =>
     active ? "border-brand-primary bg-brand-100 text-brand-700" : "border-border text-text-secondary hover:bg-background-secondary",
   );
 
-function CreatePostDialog({ open, onOpenChange, role }: { open: boolean; onOpenChange: (open: boolean) => void; role?: UserRole }) {
+function CreatePostDialog({
+  open,
+  onOpenChange,
+  role,
+  initialType = "FOUNDER_POST",
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  role?: UserRole;
+  /** The kind of post picked in the composer ("Poll", "Event"…), so the form opens on it. */
+  initialType?: PostType;
+}) {
   const createPost = useCreatePost();
   // Only founders have a startup to post an update for; asking for one on
   // behalf of an investor or mentor was a refused request on every visit.
@@ -79,6 +92,11 @@ function CreatePostDialog({ open, onOpenChange, role }: { open: boolean; onOpenC
   });
 
   const type = watch("type");
+
+  // Each time it opens, start on the kind of post the composer asked for.
+  useEffect(() => {
+    if (open) reset({ type: initialType, mediaUrls: [] });
+  }, [open, initialType, reset]);
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -409,13 +427,102 @@ function PostCard({ post, currentUserId, canModerate }: { post: PostWithRelation
   );
 }
 
+/** Where a new post starts: a prompt to write, and quick picks for the other kinds. */
+function Composer({ name, avatarUrl, role, onCompose }: { name: string; avatarUrl: string | null; role?: UserRole; onCompose: (type: PostType) => void }) {
+  const quick: { type: PostType; label: string; icon: typeof Rocket }[] = [
+    ...(role === "FOUNDER" ? [{ type: "STARTUP_UPDATE" as PostType, label: "Startup update", icon: Rocket }] : []),
+    { type: "POLL", label: "Poll", icon: BarChart3 },
+    { type: "EVENT", label: "Event", icon: CalendarDays },
+  ];
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <Avatar name={name} src={avatarUrl} size="md" />
+        <button
+          type="button"
+          onClick={() => onCompose("FOUNDER_POST")}
+          className="flex-1 rounded-full border border-border bg-background-secondary px-4 py-2.5 text-left text-sm text-text-secondary transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+        >
+          Share progress or ask the community a question…
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1 border-t border-border pt-3">
+        {quick.map((item) => (
+          <button
+            key={item.type}
+            type="button"
+            onClick={() => onCompose(item.type)}
+            className="flex items-center gap-2 rounded-button px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-background-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          >
+            <item.icon className="h-4 w-4 text-brand-primary" aria-hidden="true" />
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/** The next few events people have posted, soonest first. */
+function UpcomingEventsCard() {
+  const { data } = useCommunityFeed({ type: ["EVENT"], page: 1, pageSize: 20 });
+  const now = Date.now();
+  const events = (data?.items ?? [])
+    .filter((post) => post.eventStartsAt && new Date(post.eventStartsAt).getTime() > now)
+    .sort((a, b) => a.eventStartsAt!.localeCompare(b.eventStartsAt!))
+    .slice(0, 3);
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <PanelTitle icon={CalendarDays} title="Upcoming events" />
+      {events.length > 0 ? (
+        <ul className="flex flex-col gap-3">
+          {events.map((event) => {
+            const when = new Date(event.eventStartsAt!);
+            return (
+              <li key={event.id} className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-button bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200">
+                  <span className="text-[10px] font-semibold uppercase leading-none">{when.toLocaleDateString(undefined, { month: "short" })}</span>
+                  <span className="font-numeric text-base font-bold leading-tight">{when.getDate()}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="body-5 line-clamp-2 text-text-primary">{event.body}</p>
+                  <p className="caption-5">
+                    {when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                    {event.eventLocation ? ` · ${event.eventLocation}` : ""}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="caption-5">Nothing coming up. Hosting an AMA, a demo day or a meetup? Post it as an event.</p>
+      )}
+    </Card>
+  );
+}
+
+const GUIDELINES = [
+  "Share real progress, with numbers when you can",
+  "Ask specific questions; you'll get better answers",
+  "To reach an investor, send a connect request, not a post",
+  "Be generous: answer someone a stage behind you",
+];
+
+/**
+ * The community feed, laid out like a social product: a composer and the
+ * feed in the middle, and on wide screens a side column with upcoming events
+ * and how the community works.
+ */
 export default function CommunityPage() {
   const { data: user } = useCurrentUser();
   const [filters, setFilters] = useState<CommunityFeedFilters>({ page: 1, pageSize: 20 });
   const { data, isLoading, isError, refetch } = useCommunityFeed(filters);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [composeType, setComposeType] = useState<PostType | null>(null);
   const items = data?.items ?? [];
   const isFiltered = (filters.type?.length ?? 0) > 0 || !!filters.bookmarkedOnly;
+  const compose = (type: PostType) => setComposeType(type);
 
   const toggleType = (type: PostType) => {
     const current = filters.type ?? [];
@@ -428,93 +535,134 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="heading-5">Community</h1>
-          <p className="text-sm text-text-secondary">Updates, polls and events from people on VittamHub.</p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)}>Create post</Button>
-      </div>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <PageHeader
+        title="Community"
+        description="Updates, questions, polls and events from founders, mentors and investors on VittamHub."
+        actions={<Button onClick={() => compose("FOUNDER_POST")}>Create post</Button>}
+      />
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter posts">
-        {TYPE_FILTER_CHIPS.map((type) => {
-          const active = (filters.type ?? []).includes(type);
-          return (
-            <button key={type} type="button" aria-pressed={active} onClick={() => toggleType(type)} className={chipClass(active)}>
-              {FILTER_LABEL[type]}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-5 lg:col-span-8">
+          {user && <Composer name={user.fullName} avatarUrl={user.avatarUrl} role={user.role} onCompose={compose} />}
+
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter posts">
+            <button
+              type="button"
+              aria-pressed={!isFiltered}
+              onClick={() => setFilters({ page: 1, pageSize: 20 })}
+              className={chipClass(!isFiltered)}
+            >
+              All
             </button>
-          );
-        })}
-        <button
-          type="button"
-          aria-pressed={!!filters.bookmarkedOnly}
-          onClick={() => setFilters({ ...filters, bookmarkedOnly: !filters.bookmarkedOnly, page: 1 })}
-          className={chipClass(!!filters.bookmarkedOnly)}
-        >
-          Bookmarked
-        </button>
+            {TYPE_FILTER_CHIPS.map((type) => {
+              const active = (filters.type ?? []).includes(type);
+              return (
+                <button key={type} type="button" aria-pressed={active} onClick={() => toggleType(type)} className={chipClass(active)}>
+                  {FILTER_LABEL[type]}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              aria-pressed={!!filters.bookmarkedOnly}
+              onClick={() => setFilters({ ...filters, bookmarkedOnly: !filters.bookmarkedOnly, page: 1 })}
+              className={chipClass(!!filters.bookmarkedOnly)}
+            >
+              Bookmarked
+            </button>
+          </div>
+
+          {isLoading ? (
+            <ListRowsSkeleton count={5} />
+          ) : isError ? (
+            <EmptyState
+              icon={Users}
+              title="The feed didn't load"
+              description="Check your connection and try again."
+              action={
+                <Button variant="secondary" size="sm" onClick={() => refetch()}>
+                  Try again
+                </Button>
+              }
+            />
+          ) : items.length > 0 ? (
+            <>
+              <div className="flex flex-col gap-4">
+                {items.map((post) => (
+                  <PostCard key={post.id} post={post} currentUserId={user?.id} canModerate={user?.role === "ADMIN"} />
+                ))}
+              </div>
+              {data && data.totalPages > 1 && (
+                <nav className="flex items-center justify-between gap-3" aria-label="Feed pages">
+                  <Button variant="secondary" size="sm" disabled={data.page <= 1} onClick={() => goToPage(data.page - 1)}>
+                    Newer
+                  </Button>
+                  <span className="text-xs text-text-secondary">
+                    Page {data.page} of {data.totalPages}
+                  </span>
+                  <Button variant="secondary" size="sm" disabled={data.page >= data.totalPages} onClick={() => goToPage(data.page + 1)}>
+                    Older
+                  </Button>
+                </nav>
+              )}
+            </>
+          ) : isFiltered ? (
+            <EmptyState
+              icon={Users}
+              title="Nothing matches these filters"
+              description="Clear the filters to see everything."
+              action={
+                <Button variant="secondary" size="sm" onClick={() => setFilters({ page: 1, pageSize: 20 })}>
+                  Clear filters
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="No posts yet"
+              description="Be the first to share an update with the community."
+              action={
+                <Button size="sm" onClick={() => compose("FOUNDER_POST")}>
+                  Create post
+                </Button>
+              }
+            />
+          )}
+        </div>
+
+        <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-4" aria-label="Around the community">
+          <UpcomingEventsCard />
+          <Card className="flex flex-col gap-3">
+            <PanelTitle icon={Sparkles} title="How this community works" />
+            <ul className="flex flex-col gap-2">
+              {GUIDELINES.map((line) => (
+                <li key={line} className="flex items-start gap-2 caption-2 text-text-primary">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success-600" aria-hidden="true" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </Card>
+          {user?.role === "FOUNDER" && (
+            <Card className="flex flex-col gap-3 bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-950 dark:to-background-secondary">
+              <p className="title-3">Want a second opinion?</p>
+              <p className="caption-2">Mentors take one question at a time. Send a request and they set the time.</p>
+              <Button size="sm" variant="secondary" className="w-fit" asChild>
+                <Link href="/mentors">Find a mentor</Link>
+              </Button>
+            </Card>
+          )}
+        </aside>
       </div>
 
-      {isLoading ? (
-        <ListRowsSkeleton count={5} />
-      ) : isError ? (
-        <EmptyState
-          icon={Users}
-          title="The feed didn't load"
-          description="Check your connection and try again."
-          action={
-            <Button variant="secondary" size="sm" onClick={() => refetch()}>
-              Try again
-            </Button>
-          }
-        />
-      ) : items.length > 0 ? (
-        <>
-          <div className="flex flex-col gap-4">
-            {items.map((post) => (
-              <PostCard key={post.id} post={post} currentUserId={user?.id} canModerate={user?.role === "ADMIN"} />
-            ))}
-          </div>
-          {data && data.totalPages > 1 && (
-            <nav className="flex items-center justify-between gap-3" aria-label="Feed pages">
-              <Button variant="secondary" size="sm" disabled={data.page <= 1} onClick={() => goToPage(data.page - 1)}>
-                Newer
-              </Button>
-              <span className="text-xs text-text-secondary">
-                Page {data.page} of {data.totalPages}
-              </span>
-              <Button variant="secondary" size="sm" disabled={data.page >= data.totalPages} onClick={() => goToPage(data.page + 1)}>
-                Older
-              </Button>
-            </nav>
-          )}
-        </>
-      ) : isFiltered ? (
-        <EmptyState
-          icon={Users}
-          title="Nothing matches these filters"
-          description="Clear the filters to see everything."
-          action={
-            <Button variant="secondary" size="sm" onClick={() => setFilters({ page: 1, pageSize: 20 })}>
-              Clear filters
-            </Button>
-          }
-        />
-      ) : (
-        <EmptyState
-          icon={Users}
-          title="No posts yet"
-          description="Be the first to share an update with the community."
-          action={
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              Create post
-            </Button>
-          }
-        />
-      )}
-
-      <CreatePostDialog open={createOpen} onOpenChange={setCreateOpen} role={user?.role} />
+      <CreatePostDialog
+        open={composeType !== null}
+        onOpenChange={(open) => !open && setComposeType(null)}
+        role={user?.role}
+        initialType={composeType ?? "FOUNDER_POST"}
+      />
     </div>
   );
 }
