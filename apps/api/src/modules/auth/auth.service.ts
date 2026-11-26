@@ -4,7 +4,7 @@ import { ConflictException, Injectable, Logger, UnauthorizedException } from "@n
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { Prisma, type User } from "@prisma/client";
-import { OtpPurpose, UserRole, type LoginInput, type RegisterInput } from "@vittamhub/types";
+import { DEFAULT_PERSONA_FOR_ROLE, OtpPurpose, UserRole, type LoginInput, type RegisterInput } from "@vittamhub/types";
 import * as argon2 from "argon2";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -70,7 +70,15 @@ export class AuthService {
           passwordHash,
           fullName: input.fullName,
           role: input.role,
-          profile: { create: {} },
+          // The sign-up form asks for these the way BHASKAR does, so the
+          // first onboarding step opens with them already filled in.
+          profile: {
+            create: {
+              persona: input.persona ?? DEFAULT_PERSONA_FOR_ROLE[input.role] ?? null,
+              mobileNumber: input.mobileNumber ?? null,
+              nationality: input.nationality ?? null,
+            },
+          },
         },
       });
     } catch (error) {

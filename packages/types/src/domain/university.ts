@@ -13,6 +13,9 @@ export const universityProfileSchema = z.object({
   incubationCellName: z.string().max(160).nullable(),
   departments: z.array(z.string()),
   programsOffered: z.array(z.string()),
+  city: z.string().max(80).nullable().optional(),
+  state: z.string().max(80).nullable().optional(),
+  aisheCode: z.string().max(20).nullable().optional(),
   verificationStatus: z.nativeEnum(VerificationStatus),
   isPublic: z.boolean(),
   createdAt: z.string().datetime(),
@@ -22,10 +25,33 @@ export type UniversityProfileRecord = z.infer<typeof universityProfileSchema>;
 
 const urlOrEmpty = optionalHttpUrlSchema;
 
+/**
+ * A university's or institution's profile. `affiliationType` holds the
+ * institution type (INSTITUTION_TYPES in ./signup.ts); older profiles may hold
+ * free text there, which still validates. The AISHE code is self-declared.
+ */
 export const createUniversityInputSchema = z.object({
   institutionName: z.string().min(1, "Institution name is required").max(160),
-  affiliationType: z.string().min(1, "Select an affiliation type").max(40),
+  // Your role there. Stored on your own profile (UserProfile.designation), not the organisation's.
+  designation: z.string().trim().min(1, "Add your role there").max(120),
+  affiliationType: z.string().min(1, "Pick the type of institution").max(40),
   website: urlOrEmpty,
+  logoUrl: urlOrEmpty,
+  city: z.string().trim().min(1, "City is required").max(80),
+  state: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  // AISHE codes look like "U-0123", "C-12345" or "S-1234".
+  aisheCode: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^[A-Za-z0-9-]*$/, "Letters, numbers and - only")
+    .optional()
+    .transform((value) => (value ? value.toUpperCase() : undefined)),
   incubationCellName: z.string().max(160).optional(),
   departments: z.array(z.string().max(100)).max(100).default([]),
   programsOffered: z.array(z.string().max(100)).max(100).default([]),

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { INSTITUTION_TYPE_LABEL } from "@/lib/signup-options";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 
 export default function UniversitiesDirectoryPage() {
@@ -43,7 +44,7 @@ export default function UniversitiesDirectoryPage() {
                     <h3 className="font-heading text-sm font-semibold text-text-primary">{university.institutionName}</h3>
                     <VerifiedBadge status={university.verificationStatus} />
                   </div>
-                  <p className="text-xs text-text-secondary">{university.incubationCellName ?? university.affiliationType ?? "University"}</p>
+                  <p className="text-xs text-text-secondary">{university.incubationCellName ?? (university.affiliationType && (INSTITUTION_TYPE_LABEL[university.affiliationType] ?? university.affiliationType)) ?? "University"}</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {university.departments.slice(0, 4).map((department) => (

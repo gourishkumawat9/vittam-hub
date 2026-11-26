@@ -8,6 +8,7 @@ import { Controller, useForm } from "react-hook-form";
 
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { useAutosave } from "@/hooks/useAutosave";
+import { usePersona } from "@/hooks/usePersona";
 import { useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
@@ -30,10 +31,11 @@ interface PersonalDetailsStepProps {
 }
 
 /**
- * The first step of every role's sign-up: who you are. Asks only for a name,
- * a mobile number and a city (plus a photo, LinkedIn and a line about you,
- * which make the profile worth opening); the rest is folded under
- * "More about you" and can wait.
+ * The first step of every role's sign-up: who you are. Name, mobile and
+ * nationality come from the sign-up form already; this asks for a city (and,
+ * for a student, their college), plus a photo, LinkedIn and a line about you,
+ * which make the profile worth opening. The rest, including a BHASKAR ID for
+ * anyone who has one, is folded under "More about you" and can wait.
  */
 export function PersonalDetailsStep({
   defaultValues,
@@ -43,6 +45,7 @@ export function PersonalDetailsStep({
   bioPlaceholder = "What you do today, and what you did before.",
 }: PersonalDetailsStepProps) {
   const { data: user } = useCurrentUser();
+  const { isStudent, isOrganisation } = usePersona();
   const setSectionData = useOnboardingStore((s) => s.setSectionData);
 
   const {
@@ -50,6 +53,7 @@ export function PersonalDetailsStep({
     handleSubmit,
     control,
     watch,
+    setError,
     formState: { errors },
   } = useForm<PersonalDetailsInput>({
     resolver: zodResolver(personalDetailsInputSchema),
@@ -60,6 +64,11 @@ export function PersonalDetailsStep({
   useAutosave("personalDetails", 0, values);
 
   const onSubmit = handleSubmit((data) => {
+    // The shared schema doesn't know the persona; a student's college is checked here (and again on publish).
+    if (isStudent && !data.studentInstitution) {
+      setError("studentInstitution", { message: "Add the college or university you study at" }, { shouldFocus: true });
+      return;
+    }
     setSectionData("personalDetails", data);
     onNext();
   });
@@ -67,12 +76,11 @@ export function PersonalDetailsStep({
   const moreFilled = hasAny([
     values.dateOfBirth,
     values.gender,
-    values.nationality,
     values.githubUrl,
     values.portfolioUrl,
     values.yearsOfExperience,
-    values.state,
     values.country,
+    values.bhaskarId,
   ]);
 
   return (
@@ -87,7 +95,17 @@ export function PersonalDetailsStep({
         <Controller
           control={control}
           name="avatarUrl"
-          render={({ field }) => <AvatarUpload value={field.value} onChange={field.onChange} />}
+          render={({ field }) => (
+            <AvatarUpload
+              value={field.value}
+              onChange={field.onChange}
+              hint={
+                isOrganisation
+                  ? "Your own photo, shown beside your name on the organisation's page. You'll crop it before it's saved."
+                  : "A clear, front-facing photo builds trust. You'll crop it before it's saved."
+              }
+            />
+          )}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -102,8 +120,34 @@ export function PersonalDetailsStep({
             error={errors.mobileNumber?.message}
             {...register("mobileNumber")}
           />
-          <Input label="City" autoComplete="address-level2" placeholder="Jaipur" error={errors.city?.message} {...register("city")} />
+          <Input label="City" required autoComplete="address-level2" placeholder="Jaipur" error={errors.city?.message} {...register("city")} />
+          <Input label="State" autoComplete="address-level1" placeholder="Rajasthan" error={errors.state?.message} {...register("state")} />
         </div>
+
+        {isStudent && (
+          <div className="grid gap-4 rounded-card border border-border bg-background-secondary/50 p-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Input
+                label="College or university"
+                required
+                autoComplete="organization"
+                placeholder="IIT Bombay"
+                hint="Opens campus programmes and E-cells meant for students"
+                error={errors.studentInstitution?.message}
+                {...register("studentInstitution")}
+              />
+            </div>
+            <Input label="Course" placeholder="B.Tech, Computer Science" error={errors.studentCourse?.message} {...register("studentCourse")} />
+            <Input
+              label="Graduation year"
+              type="number"
+              inputMode="numeric"
+              placeholder={String(new Date().getFullYear() + 2)}
+              error={errors.graduationYear?.message}
+              {...register("graduationYear")}
+            />
+          </div>
+        )}
 
         <Input
           label="LinkedIn"
@@ -147,8 +191,15 @@ export function PersonalDetailsStep({
             )}
           />
           <Input label="Nationality" error={errors.nationality?.message} {...register("nationality")} />
-          <Input label="State" autoComplete="address-level1" error={errors.state?.message} {...register("state")} />
           <Input label="Country" autoComplete="country-name" error={errors.country?.message} {...register("country")} />
+          <Input
+            label="BHASKAR ID"
+            placeholder="BHA000000123"
+            autoCapitalize="characters"
+            hint="If you're registered on Startup India's BHASKAR. Shown as self-declared."
+            error={errors.bhaskarId?.message}
+            {...register("bhaskarId")}
+          />
         </div>
       </MoreDetails>
 

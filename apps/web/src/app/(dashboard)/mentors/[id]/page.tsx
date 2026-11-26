@@ -11,6 +11,8 @@ import { Controller, useForm } from "react-hook-form";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { FollowButton } from "@/components/dashboard/FollowButton";
+import { MEETING_MODE_LABEL, MENTOR_TYPE_LABEL } from "@/lib/signup-options";
+import { STAGE_LABEL } from "@/lib/startup-options";
 
 const SESSION_TYPE_OPTIONS = Object.values(SessionType).map((type) => ({
   label: type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -150,7 +152,12 @@ export default function MentorDetailPage() {
           <p>Industries: {mentor.industries.join(", ") || "—"}</p>
           <p>Experience: {mentor.yearsExperience != null ? `${mentor.yearsExperience} years` : "—"}</p>
           <p>Availability: {mentor.availability ?? "—"}</p>
-          <p>Pricing: {mentor.pricingModel ?? "—"}</p>
+          <p>Fee: {mentor.pricingModel ?? "—"}</p>
+          {mentor.mentorType && <p>Mentor type: {MENTOR_TYPE_LABEL[mentor.mentorType] ?? mentor.mentorType}</p>}
+          {mentor.meetingMode && <p>Meets: {MEETING_MODE_LABEL[mentor.meetingMode] ?? mentor.meetingMode}</p>}
+          {mentor.stagesHelped && mentor.stagesHelped.length > 0 && (
+            <p className="sm:col-span-2">Helps at: {mentor.stagesHelped.map((stage) => STAGE_LABEL[stage] ?? stage).join(", ")}</p>
+          )}
         </div>
       </Card>
 

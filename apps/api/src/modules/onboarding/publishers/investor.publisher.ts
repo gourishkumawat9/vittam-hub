@@ -28,7 +28,8 @@ export class InvestorPublisher {
       const investor = await tx.investor.upsert({
         where: { ownerId: userId },
         create: { ownerId: userId, ...input },
-        update: input,
+        // Optional fields left out are stored as empty, so clearing one sticks.
+        update: { ...input, sebiCategory: input.sebiCategory ?? null, sebiRegistrationNumber: input.sebiRegistrationNumber ?? null },
       });
 
       await tx.userProfile.update({

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { UserRole, VerificationStatus } from "./enums";
+import { MemberPersona, UserRole, VerificationStatus } from "./enums";
+import { PERSONA_ROLE } from "./signup";
 import { httpUrlSchema } from "./url";
 
 export const userSchema = z.object({
@@ -50,17 +51,50 @@ export const passwordSchema = z
   .regex(/[A-Z]/, "Include an uppercase letter")
   .regex(/[0-9]/, "Include a number");
 
-export const registerInputSchema = z.object({
-  email: accountEmailSchema,
-  password: passwordSchema,
-  fullName: z.string().trim().min(1, "Enter your name").max(120),
-  role: z.enum(REGISTERABLE_ROLES),
-  // Required only when CAPTCHA_SECRET_KEY is configured server-side (see
-  // apps/api/src/config/env.validation.ts) — optional here so the schema
-  // doesn't hard-block auth in environments that haven't set up Turnstile yet.
-  captchaToken: z.string().max(4096).optional(),
-  acceptedTerms: z.literal(true, { errorMap: () => ({ message: "You must accept the Terms of Service" }) }),
-});
+/**
+ * A mobile number as people type it: spaces, dashes, dots and brackets are
+ * dropped, and what is left must be an optional "+" and 6 to 15 digits.
+ * "+91 98765-43210" is stored as "+919876543210".
+ */
+export const mobileNumberSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/[\s\-().]/g, ""))
+  .pipe(z.string().regex(/^\+?\d{6,15}$/, "Enter a valid mobile number"));
+
+const optionalTrimmed = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((value) => (value ? value : undefined));
+
+/**
+ * Sign-up, BHASKAR-style: who you are (persona), your name, email, mobile,
+ * nationality and a password. `persona`, `mobileNumber` and `nationality` are
+ * optional here so an older client can still create an account; the web form
+ * requires the first two (see apps/web register page).
+ */
+export const registerInputSchema = z
+  .object({
+    email: accountEmailSchema,
+    password: passwordSchema,
+    fullName: z.string().trim().min(1, "Enter your name").max(120),
+    role: z.enum(REGISTERABLE_ROLES),
+    persona: z.nativeEnum(MemberPersona).optional(),
+    mobileNumber: mobileNumberSchema.optional(),
+    nationality: optionalTrimmed(80),
+    // Required only when CAPTCHA_SECRET_KEY is configured server-side (see
+    // apps/api/src/config/env.validation.ts) — optional here so the schema
+    // doesn't hard-block auth in environments that haven't set up Turnstile yet.
+    captchaToken: z.string().max(4096).optional(),
+    acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Confirm you're 18 or older and accept the Terms" }) }),
+  })
+  .refine((input) => !input.persona || PERSONA_ROLE[input.persona] === input.role, {
+    message: "That account type doesn't match the role",
+    path: ["persona"],
+  });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
 export const loginInputSchema = z.object({

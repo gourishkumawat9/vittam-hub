@@ -146,6 +146,11 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         sessionTypes: ["ONE_ON_ONE" as const],
         pricingModel: "Free",
         languages: ["English", "Hindi"],
+        mentorType: "FOUNDER_OPERATOR" as const,
+        stagesHelped: ["IDEA", "VALIDATION", "MVP"] as Prisma.MentorProfileCreateInput["stagesHelped"],
+        meetingMode: "ONLINE" as const,
+        feeType: "FREE" as const,
+        sessionLengthMinutes: 45,
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
       };
@@ -161,6 +166,9 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         organizationName: "Demo Incubator",
         description: "Demo incubator profile for trying VittamHub.",
         industries: ["EDTECH", "FINTECH"],
+        hostType: "ACADEMIC" as const,
+        city: "Jaipur",
+        state: "Rajasthan",
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
       };
@@ -187,7 +195,9 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     profile: (tx, ownerId) => {
       const data = {
         institutionName: "Demo University",
-        affiliationType: "Private",
+        affiliationType: "STATE_PRIVATE_UNIVERSITY",
+        city: "Jaipur",
+        state: "Rajasthan",
         incubationCellName: "Demo University Startup Cell",
         departments: ["Management", "Engineering"],
         programsOffered: ["Student startup programme"],

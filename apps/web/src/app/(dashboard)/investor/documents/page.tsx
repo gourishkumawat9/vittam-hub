@@ -24,6 +24,12 @@ const DOCUMENT_LABELS: Record<string, string> = {
   PATENT: "Patent",
   GOVERNMENT_ID: "Government ID",
   DIGITAL_SIGNATURE: "Digital Signature",
+  UDYAM_REGISTRATION: "Udyam (MSME) Registration",
+  STUDENT_ID: "Student ID",
+  SEBI_REGISTRATION: "SEBI Registration",
+  ACCREDITED_INVESTOR_CERTIFICATE: "Accredited Investor Certificate",
+  SCHEME_SANCTION_LETTER: "Scheme Sanction Letter",
+  AUTHORIZATION_LETTER: "Authorisation Letter",
   OTHER: "Other",
 };
 
@@ -34,6 +40,10 @@ const VAULT_TYPES: DocumentType[] = [
   DocumentType.CAP_TABLE,
   DocumentType.DUE_DILIGENCE_REPORT,
   DocumentType.MEETING_NOTES,
+  // Your own credentials, collected for future automated checks (CLAUDE.md §7); private.
+  DocumentType.SEBI_REGISTRATION,
+  DocumentType.ACCREDITED_INVESTOR_CERTIFICATE,
+  DocumentType.AUTHORIZATION_LETTER,
   DocumentType.OTHER,
 ];
 const TYPE_OPTIONS = VAULT_TYPES.map((value) => ({ label: DOCUMENT_LABELS[value] ?? value, value }));

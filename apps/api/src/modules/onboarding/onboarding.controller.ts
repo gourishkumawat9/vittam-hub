@@ -19,6 +19,12 @@ export class OnboardingController {
     return this.onboardingService.getState(user.sub, user.role);
   }
 
+  @Get("strength")
+  @ApiOperation({ summary: "How complete the caller's profile is, and the questions still to answer" })
+  getStrength(@CurrentUser() user: AuthenticatedUser) {
+    return this.onboardingService.getStrength(user.sub, user.role);
+  }
+
   @Patch("draft")
   @UsePipes(new ZodValidationPipe(saveOnboardingDraftInputSchema))
   @ApiOperation({ summary: "Autosave one wizard section into the onboarding draft" })
