@@ -202,8 +202,8 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         institutionName: "Demo University",
         affiliationType: "Private",
         incubationCellName: "Demo University Startup Cell",
-        departments: ["Management", "Engineering"],
-        programsOffered: ["Student startup programme"],
+        departments: ["Management", "Engineering", "Design"],
+        programsOffered: ["Student startup programme", "Demo ideation sprint", "Demo final-year project to startup track"],
         verificationStatus: "VERIFIED" as const,
       };
       return tx.universityProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
