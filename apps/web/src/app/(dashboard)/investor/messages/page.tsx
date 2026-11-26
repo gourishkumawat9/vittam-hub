@@ -3,10 +3,11 @@
 import { useConnections } from "@vittamhub/api-client";
 import { Avatar, EmptyState } from "@vittamhub/ui";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { MessageCircle } from "lucide-react";
+import { ChevronRight, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
+import { PageHeader } from "@/components/dashboard/PageHeader";
 
 export default function MessagesPage() {
   const { data: connectionsResult, isLoading } = useConnections({ status: ["ACCEPTED"], page: 1, pageSize: 50 });
@@ -14,23 +15,26 @@ export default function MessagesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="heading-5">Messages</h1>
+      <PageHeader title="Messages" description="Conversations with founders whose connect requests you accepted. Documents and meeting times are in each one." />
 
       {isLoading ? (
         <ListRowsSkeleton />
       ) : accepted.length > 0 ? (
-        <div className="flex flex-col divide-y divide-border rounded-card border border-border">
+        <div className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
           {accepted.map((connection) => (
             <Link
               key={connection.id}
               href={`/connections/${connection.id}`}
               className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-background-secondary"
             >
-              <Avatar name={connection.requester.fullName} src={connection.requester.avatarUrl} size="sm" />
+              <Avatar name={connection.requester.fullName} src={connection.requester.avatarUrl} size="md" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-text-primary">{connection.startup?.name ?? connection.requester.fullName}</p>
-                <p className="truncate text-xs text-text-secondary">Connected {formatRelativeTime(connection.respondedAt ?? connection.createdAt)}</p>
+                <p className="truncate body-5 text-text-primary">{connection.startup?.name ?? connection.requester.fullName}</p>
+                <p className="truncate caption-5">
+                  {connection.startup ? `${connection.requester.fullName} · ` : ""}Connected {formatRelativeTime(connection.respondedAt ?? connection.createdAt)}
+                </p>
               </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
             </Link>
           ))}
         </div>

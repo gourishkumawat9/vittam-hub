@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
+import { PageHeader } from "@/components/dashboard/PageHeader";
 
 function PortfolioCard({ investment }: { investment: InvestmentWithStartup }) {
   const recordExit = useRecordExit();
@@ -113,7 +114,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="heading-5">Portfolio</h1>
+      <PageHeader title="Portfolio" description="Companies you've invested in, with what you put in and how each one is doing. Deals moved to Closed in your pipeline land here." />
 
       {dashboard && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
