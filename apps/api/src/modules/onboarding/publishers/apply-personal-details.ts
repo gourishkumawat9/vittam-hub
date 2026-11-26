@@ -20,16 +20,23 @@ export async function applyPersonalDetails(tx: Tx, userId: string, rawPersonalDe
   }
   const details = parsed.data;
 
+  // A student is asked which college they study at (BHASKAR asks the same).
+  // The persona is known only here, so this is where it is checked.
+  const previous = await tx.userProfile.findUnique({ where: { userId }, select: { mobileNumber: true, persona: true } });
+  if (previous?.persona === "STUDENT" && !details.studentInstitution) {
+    throw new BadRequestException({ message: "Personal details: Add the college or university you study at" });
+  }
+
   // A phone number is verified by a code sent to it. Swapping in a different
   // number must not carry the old number's "verified" along with it.
-  const previous = await tx.userProfile.findUnique({ where: { userId }, select: { mobileNumber: true } });
   const phoneChanged = (previous?.mobileNumber ?? null) !== (details.mobileNumber ?? null);
 
   await tx.user.update({
     where: { id: userId },
     data: {
       fullName: details.fullName,
-      avatarUrl: details.avatarUrl,
+      // Removing the photo sends it empty, which is stored as no photo.
+      avatarUrl: details.avatarUrl ?? null,
       ...(phoneChanged ? { phoneVerifiedAt: null } : {}),
     },
   });
@@ -47,7 +54,11 @@ export async function applyPersonalDetails(tx: Tx, userId: string, rawPersonalDe
     state: details.state ?? null,
     country: details.country ?? null,
     bio: details.bio,
-    yearsOfExperience: details.yearsOfExperience,
+    yearsOfExperience: details.yearsOfExperience ?? null,
+    studentInstitution: details.studentInstitution ?? null,
+    studentCourse: details.studentCourse ?? null,
+    graduationYear: details.graduationYear ?? null,
+    bhaskarId: details.bhaskarId ?? null,
   };
 
   await tx.userProfile.update({ where: { userId }, data: profileData });

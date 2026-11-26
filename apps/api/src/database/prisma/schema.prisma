@@ -69,6 +69,28 @@ enum DocumentType {
   DUE_DILIGENCE_REPORT
   MEETING_NOTES
   OTHER
+  UDYAM_REGISTRATION
+  STUDENT_ID
+  SEBI_REGISTRATION
+  ACCREDITED_INVESTOR_CERTIFICATE
+  SCHEME_SANCTION_LETTER
+  AUTHORIZATION_LETTER
+}
+
+// Who someone said they are at sign-up, BHASKAR-style ("as an individual" or
+// "for an organisation"). Several map onto one role: Exploring an idea and
+// Student sign up as founders, an investment firm as an investor, an
+// accelerator as an incubator. See packages/types MEMBER_PERSONAS.
+enum MemberPersona {
+  STARTUP_FOUNDER
+  EXPLORER
+  STUDENT
+  MENTOR
+  INDIVIDUAL_INVESTOR
+  INVESTMENT_FIRM
+  INCUBATOR
+  ACCELERATOR
+  INSTITUTION
 }
 
 // ─── Enums: startup domain ──────────────────────────────────────────────
@@ -99,6 +121,9 @@ enum CompanyType {
   PUBLIC_LIMITED
   NOT_REGISTERED
   OTHER
+  ONE_PERSON_COMPANY
+  SECTION_8_COMPANY
+  COOPERATIVE_SOCIETY
 }
 
 enum CustomerModel {
@@ -195,6 +220,7 @@ enum InvestorType {
   FAMILY_OFFICE
   CORPORATE_VC
   ACCELERATOR
+  ANGEL_NETWORK
 }
 
 enum SessionType {
@@ -207,6 +233,35 @@ enum SessionType {
 enum IncubatorKind {
   INCUBATOR
   ACCELERATOR
+}
+
+// Who runs an incubator or accelerator.
+enum IncubatorHostType {
+  ACADEMIC
+  GOVERNMENT
+  CORPORATE
+  PRIVATE
+  NON_PROFIT
+}
+
+// The kind of experience a mentor brings (BHASKAR splits Mentor from Enabler; here it's one field).
+enum MentorType {
+  FOUNDER_OPERATOR
+  INDUSTRY_EXPERT
+  INVESTOR
+  ACADEMIC
+  PROFESSIONAL_ADVISER
+}
+
+enum MentorFeeType {
+  FREE
+  PAID
+}
+
+enum MeetingMode {
+  ONLINE
+  IN_PERSON
+  BOTH
 }
 
 enum ServiceCategory {
@@ -560,6 +615,12 @@ model UserProfile {
   country        String?
   bio            String?
   yearsOfExperience Int? // backs the "founder experience" discovery filter — see StartupsService.search
+  persona        MemberPersona? // the sign-up choice, BHASKAR-style; null for accounts made before it existed
+  designation    String? // the person's role at their organisation (incubator, university)
+  studentInstitution String? // students: the college or university they study at
+  studentCourse  String?
+  graduationYear Int?
+  bhaskarId      String? // self-declared BHASKAR ID; not checked against BHASKAR (no public API)
 
   // Onboarding wizard state — see docs/11-onboarding-architecture.md.
   // `onboardingDraft` accumulates every step's answers as JSON so autosave
@@ -743,9 +804,11 @@ model Startup {
   revenueStatus         RevenueStatus?
   fundingStatus         FundingStatus?
   monthsInCurrentStage  Int?
-  foundedYear            Int
+  foundedYear            Int? // "Year you started": optional, an idea-stage founder may not have one
   registrationStatus    RegistrationStatus  @default(NOT_REGISTERED)
   companyType           CompanyType?
+  registrationNumber    String? // CIN, LLPIN or firm registration number — self-declared until matched against MCA
+  dpiitNumber           String? // DPIIT recognition number — self-declared until matched
   headquarters          String? // city/country the company is legally headquartered in
   businessModelSummary  String? // free-text model description (e.g. "subscription", "marketplace take-rate")
   mission               String?
@@ -1026,6 +1089,8 @@ model Investor {
   investmentThesis    String?
   openForPitches      Boolean        @default(true)
   location            String
+  sebiCategory        String? // self-declared: AIF_CAT_I | AIF_CAT_II | AIF_CAT_III | ANGEL_FUND | NOT_REGISTERED
+  sebiRegistrationNumber String? // self-declared until matched against SEBI's register
   verificationStatus  VerificationStatus @default(UNVERIFIED)
   verifiedAt          DateTime? // set by VerificationEngineService — see modules/verification
   isPublic            Boolean        @default(true)
@@ -1081,7 +1146,14 @@ model MentorProfile {
   yearsExperience    Int?
   availability       String?
   sessionTypes       SessionType[]
-  pricingModel       String? // e.g. "Free", "$150/hr", "Equity-based"
+  pricingModel       String? // display text, derived from feeType/sessionFeeAmount/sessionLengthMinutes (older profiles: free text)
+  mentorType         MentorType?
+  stagesHelped       StartupStage[] @default([])
+  meetingMode        MeetingMode?
+  feeType            MentorFeeType?
+  sessionFeeAmount   Int? // rupees per session, when feeType is PAID
+  sessionLengthMinutes Int?
+  firstSessionFree   Boolean       @default(false)
   languages          String[]
   pastStartups       String[] // free-text company names — often off-platform, so not an FK relation
   verificationStatus VerificationStatus @default(UNVERIFIED)
@@ -1107,6 +1179,13 @@ model IncubatorProfile {
   portfolioCompanies    String[]
   affiliatedMentorCount Int?
   kind                  IncubatorKind @default(INCUBATOR) // lets Accelerators surface as a filter on this same directory, no separate entity
+  hostType              IncubatorHostType?
+  city                  String?
+  state                 String?
+  yearEstablished       Int?
+  currentIncubatees     Int? // self-declared, as on BHASKAR's incubator dashboard
+  graduatedIncubatees   Int?
+  governmentPrograms    String[] @default([]) // self-declared, e.g. AIM_AIC — see packages/types GOVERNMENT_INCUBATOR_PROGRAMS
   verificationStatus    VerificationStatus @default(UNVERIFIED)
   verifiedAt            DateTime? // set by VerificationEngineService — see modules/verification
   isPublic              Boolean  @default(true)
@@ -1222,7 +1301,10 @@ model UniversityProfile {
   id                  String   @id @default(uuid()) @db.Uuid
   ownerId             String   @unique @db.Uuid
   institutionName     String
-  affiliationType     String? // "Public" | "Private" | free text
+  affiliationType     String? // institution type — see packages/types InstitutionType (older profiles: free text)
+  city                String?
+  state               String?
+  aisheCode           String? // self-declared until matched against AISHE
   website             String?
   logoUrl             String?
   incubationCellName  String?

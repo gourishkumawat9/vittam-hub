@@ -10,6 +10,7 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { FollowButton } from "@/components/dashboard/FollowButton";
 import { PanelTitle } from "@/components/dashboard/PageHeader";
 import { externalHref } from "@/lib/safe-url";
+import { INSTITUTION_TYPE_LABEL } from "@/lib/signup-options";
 
 const NEXT_STEPS = [
   { href: "/mentors", label: "Find a mentor", hint: "Request a session with your question" },
@@ -62,7 +63,7 @@ export default function UniversityDetailPage() {
             </div>
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 caption-2">
               <span>{cell}</span>
-              {university.affiliationType && <Badge variant="neutral">{university.affiliationType}</Badge>}
+              {university.affiliationType && <Badge variant="neutral">{INSTITUTION_TYPE_LABEL[university.affiliationType] ?? university.affiliationType}</Badge>}
               {website && (
                 <a href={website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-primary hover:underline">
                   <Globe className="h-3.5 w-3.5" aria-hidden="true" />

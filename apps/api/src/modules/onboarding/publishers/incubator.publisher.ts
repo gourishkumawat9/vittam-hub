@@ -20,15 +20,24 @@ export class IncubatorPublisher {
     if (!parsed.success) {
       throw new BadRequestException(issueMessages(parsed.error));
     }
-    const { programs, ...input } = parsed.data;
+    const { programs, designation, ...input } = parsed.data;
 
     const incubator = await this.prisma.$transaction(async (tx) => {
       await applyPersonalDetails(tx, userId, draft.personalDetails);
+      await tx.userProfile.update({ where: { userId }, data: { designation } });
 
       const incubator = await tx.incubatorProfile.upsert({
         where: { ownerId: userId },
+        // Optional fields left out are stored as empty, so clearing one sticks.
         create: { ownerId: userId, ...input },
-        update: input,
+        update: {
+          ...input,
+          logoUrl: input.logoUrl ?? null,
+          state: input.state ?? null,
+          yearEstablished: input.yearEstablished ?? null,
+          currentIncubatees: input.currentIncubatees ?? null,
+          graduatedIncubatees: input.graduatedIncubatees ?? null,
+        },
       });
 
       await tx.incubatorProgram.deleteMany({ where: { incubatorId: incubator.id } });

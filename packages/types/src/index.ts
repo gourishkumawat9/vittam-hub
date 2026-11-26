@@ -44,3 +44,5 @@ export * from "./domain/document-access";
 export * from "./domain/investment-mandate";
 export * from "./domain/saved-search";
 export * from "./domain/mentor-review";
+export * from "./domain/signup";
+export * from "./domain/profile-strength";

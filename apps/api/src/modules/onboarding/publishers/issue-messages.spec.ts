@@ -11,6 +11,10 @@ describe("issueMessages", () => {
       yearsExperience: 6,
       sessionTypes: ["ONE_ON_ONE"],
       languages: ["English"],
+      mentorType: "INDUSTRY_EXPERT",
+      stagesHelped: ["IDEA"],
+      meetingMode: "BOTH",
+      feeType: "FREE",
     });
 
     expect(parsed.success).toBe(false);
@@ -18,7 +22,19 @@ describe("issueMessages", () => {
   });
 
   it("keeps a message the form wrote itself", () => {
-    const parsed = createMentorInputSchema.safeParse({ headline: "", expertise: [], industries: ["SAAS"], yearsExperience: 1, availability: "x", sessionTypes: ["ONE_ON_ONE"], pricingModel: "Free", languages: ["English"] });
+    const parsed = createMentorInputSchema.safeParse({
+      headline: "",
+      expertise: [],
+      industries: ["SAAS"],
+      yearsExperience: 1,
+      availability: "x",
+      sessionTypes: ["ONE_ON_ONE"],
+      languages: ["English"],
+      mentorType: "ACADEMIC",
+      stagesHelped: ["IDEA"],
+      meetingMode: "ONLINE",
+      feeType: "FREE",
+    });
 
     expect(parsed.success).toBe(false);
     if (!parsed.success) expect(issueMessages(parsed.error)).toBe("Add a short headline, Add at least one area you can help with");

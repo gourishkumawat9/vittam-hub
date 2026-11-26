@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { OnboardingStatus } from "./enums";
+import { MemberPersona, OnboardingStatus } from "./enums";
 
 /**
  * Generic autosave payload — one endpoint (`PATCH /v1/onboarding/draft`) for
@@ -52,5 +52,7 @@ export const onboardingStateSchema = z.object({
   draft: z.record(z.unknown()).nullable(),
   /** The profile is live and the wizard holds changes to it that haven't been saved yet. */
   pendingEdits: z.boolean().default(false),
+  /** Who the person said they are at sign-up, so the wizard can word itself for them (a student, someone exploring an idea, a firm). */
+  persona: z.nativeEnum(MemberPersona).nullable().optional(),
 });
 export type OnboardingState = z.infer<typeof onboardingStateSchema>;

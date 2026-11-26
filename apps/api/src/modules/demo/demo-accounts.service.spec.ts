@@ -16,7 +16,7 @@ function setup(password?: string) {
         Promise.resolve({ id: `user:${args.where.email}` }),
       ),
     },
-    userProfile: { upsert: upsert() },
+    userProfile: { upsert: upsert(), update: upsert() },
     startup: { upsert: upsert() },
     investor: { upsert: upsert() },
     mentorProfile: { upsert: upsert() },

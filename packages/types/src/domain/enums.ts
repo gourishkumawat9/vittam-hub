@@ -52,6 +52,12 @@ export const DocumentType = {
   DUE_DILIGENCE_REPORT: "DUE_DILIGENCE_REPORT",
   MEETING_NOTES: "MEETING_NOTES",
   OTHER: "OTHER",
+  UDYAM_REGISTRATION: "UDYAM_REGISTRATION",
+  STUDENT_ID: "STUDENT_ID",
+  SEBI_REGISTRATION: "SEBI_REGISTRATION",
+  ACCREDITED_INVESTOR_CERTIFICATE: "ACCREDITED_INVESTOR_CERTIFICATE",
+  SCHEME_SANCTION_LETTER: "SCHEME_SANCTION_LETTER",
+  AUTHORIZATION_LETTER: "AUTHORIZATION_LETTER",
 } as const;
 export type DocumentType = (typeof DocumentType)[keyof typeof DocumentType];
 
@@ -83,6 +89,9 @@ export const CompanyType = {
   PUBLIC_LIMITED: "PUBLIC_LIMITED",
   NOT_REGISTERED: "NOT_REGISTERED",
   OTHER: "OTHER",
+  ONE_PERSON_COMPANY: "ONE_PERSON_COMPANY",
+  SECTION_8_COMPANY: "SECTION_8_COMPANY",
+  COOPERATIVE_SOCIETY: "COOPERATIVE_SOCIETY",
 } as const;
 export type CompanyType = (typeof CompanyType)[keyof typeof CompanyType];
 
@@ -190,6 +199,7 @@ export const InvestorType = {
   FAMILY_OFFICE: "FAMILY_OFFICE",
   CORPORATE_VC: "CORPORATE_VC",
   ACCELERATOR: "ACCELERATOR",
+  ANGEL_NETWORK: "ANGEL_NETWORK",
 } as const;
 export type InvestorType = (typeof InvestorType)[keyof typeof InvestorType];
 
@@ -206,6 +216,56 @@ export const IncubatorKind = {
   ACCELERATOR: "ACCELERATOR",
 } as const;
 export type IncubatorKind = (typeof IncubatorKind)[keyof typeof IncubatorKind];
+
+/** Who runs an incubator or accelerator. */
+export const IncubatorHostType = {
+  ACADEMIC: "ACADEMIC",
+  GOVERNMENT: "GOVERNMENT",
+  CORPORATE: "CORPORATE",
+  PRIVATE: "PRIVATE",
+  NON_PROFIT: "NON_PROFIT",
+} as const;
+export type IncubatorHostType = (typeof IncubatorHostType)[keyof typeof IncubatorHostType];
+
+/**
+ * Who someone said they are at sign-up, BHASKAR-style. Several personas share
+ * one role — see MEMBER_PERSONAS in ./signup.ts for the mapping.
+ */
+export const MemberPersona = {
+  STARTUP_FOUNDER: "STARTUP_FOUNDER",
+  EXPLORER: "EXPLORER",
+  STUDENT: "STUDENT",
+  MENTOR: "MENTOR",
+  INDIVIDUAL_INVESTOR: "INDIVIDUAL_INVESTOR",
+  INVESTMENT_FIRM: "INVESTMENT_FIRM",
+  INCUBATOR: "INCUBATOR",
+  ACCELERATOR: "ACCELERATOR",
+  INSTITUTION: "INSTITUTION",
+} as const;
+export type MemberPersona = (typeof MemberPersona)[keyof typeof MemberPersona];
+
+/** The kind of experience a mentor brings. */
+export const MentorType = {
+  FOUNDER_OPERATOR: "FOUNDER_OPERATOR",
+  INDUSTRY_EXPERT: "INDUSTRY_EXPERT",
+  INVESTOR: "INVESTOR",
+  ACADEMIC: "ACADEMIC",
+  PROFESSIONAL_ADVISER: "PROFESSIONAL_ADVISER",
+} as const;
+export type MentorType = (typeof MentorType)[keyof typeof MentorType];
+
+export const MentorFeeType = {
+  FREE: "FREE",
+  PAID: "PAID",
+} as const;
+export type MentorFeeType = (typeof MentorFeeType)[keyof typeof MentorFeeType];
+
+export const MeetingMode = {
+  ONLINE: "ONLINE",
+  IN_PERSON: "IN_PERSON",
+  BOTH: "BOTH",
+} as const;
+export type MeetingMode = (typeof MeetingMode)[keyof typeof MeetingMode];
 
 export const ServiceCategory = {
   LEGAL: "LEGAL",

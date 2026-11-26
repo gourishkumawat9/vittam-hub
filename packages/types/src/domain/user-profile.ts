@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { optionalDateOfBirthSchema } from "./dates";
-import { Gender, OnboardingStatus } from "./enums";
+import { Gender, MemberPersona, OnboardingStatus } from "./enums";
 import { httpUrlSchema, optionalHttpUrlSchema } from "./url";
 
 /**
@@ -25,6 +25,12 @@ export const userProfileSchema = z.object({
   country: z.string().max(80).nullable(),
   bio: z.string().max(1000).nullable(),
   yearsOfExperience: z.number().int().nonnegative().nullable(),
+  persona: z.nativeEnum(MemberPersona).nullable(),
+  designation: z.string().max(120).nullable(),
+  studentInstitution: z.string().max(160).nullable(),
+  studentCourse: z.string().max(120).nullable(),
+  graduationYear: z.number().int().nullable(),
+  bhaskarId: z.string().max(40).nullable(),
   onboardingStatus: z.nativeEnum(OnboardingStatus),
   onboardingStep: z.number().int().min(0),
 });
@@ -39,10 +45,24 @@ const optionalText = (max: number) =>
     .optional()
     .transform((value) => (value === "" ? undefined : value));
 
+const optionalYear = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce
+    .number()
+    .int()
+    .min(1950, "Enter a year from 1950")
+    .max(new Date().getFullYear() + 8, "That year is too far ahead")
+    .optional(),
+);
+
 /**
  * Only a name, a mobile number and a city are asked for at sign-up (the
  * owner's call, November 2026: ask for the important things first, the way
  * BHASKAR does). Everything else is optional and can be added later.
+ *
+ * Students also name their college (checked by the founder publisher, which
+ * knows the persona). `designation` is the person's role at the organisation
+ * they sign up for; the organisation steps ask for it.
  */
 export const personalDetailsInputSchema = z.object({
   fullName: z.string().min(1, "Full name is required").max(120),
@@ -58,6 +78,20 @@ export const personalDetailsInputSchema = z.object({
   state: optionalText(80),
   country: optionalText(80),
   bio: z.string().max(1000).optional(),
-  yearsOfExperience: z.coerce.number().int().nonnegative().optional(),
+  yearsOfExperience: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.coerce.number().int().nonnegative().max(80).optional(),
+  ),
+  studentInstitution: optionalText(160),
+  studentCourse: optionalText(120),
+  graduationYear: optionalYear,
+  // BHASKAR IDs look like "BHA" + digits today; kept loose so a format change there doesn't lock people out.
+  bhaskarId: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[A-Za-z0-9-]*$/, "Letters and numbers only")
+    .optional()
+    .transform((value) => (value ? value.toUpperCase() : undefined)),
 });
 export type PersonalDetailsInput = z.infer<typeof personalDetailsInputSchema>;

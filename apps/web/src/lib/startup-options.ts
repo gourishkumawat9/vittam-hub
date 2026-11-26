@@ -62,6 +62,9 @@ export const COMPANY_TYPE_LABEL: Record<string, string> = {
   PARTNERSHIP: "Partnership",
   SOLE_PROPRIETORSHIP: "Sole proprietorship",
   PUBLIC_LIMITED: "Public limited",
+  ONE_PERSON_COMPANY: "One person company",
+  SECTION_8_COMPANY: "Section 8 company",
+  COOPERATIVE_SOCIETY: "Cooperative society",
   NOT_REGISTERED: "Not registered",
   OTHER: "Other",
 };
@@ -106,7 +109,7 @@ export const LOOKING_FOR_LABEL: Record<string, string> = {
   OFFICE_SPACE: "Office space",
   COFOUNDER: "A cofounder",
   EMPLOYEES: "Employees",
-  GRANTS: "Grants",
+  GRANTS: "Grants and programmes",
   GOVERNMENT_SCHEMES: "Government schemes",
   CORPORATE_PARTNERSHIPS: "Corporate partnerships",
 };

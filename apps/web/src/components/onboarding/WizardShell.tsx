@@ -11,6 +11,8 @@ import { Logo } from "@/components/Logo";
 import type { AutosaveStatus } from "@/hooks/useAutosave";
 import { cn } from "@/lib/utils";
 
+import { ProfileStrengthPanel, ProfileStrengthPill } from "./ProfileStrengthMeter";
+
 export interface WizardStepMeta {
   id: string;
   label: string;
@@ -182,12 +184,25 @@ export function WizardShell({
     ? `Optional section: ${currentStep.label}`
     : `Step ${currentStepIndex + 1} of ${essentialCount}: ${currentStep?.label}`;
 
+  // The strength panel's questions open their step when the step list would let you open it now.
+  const canOpenStep = (stepId: string) => {
+    const index = steps.findIndex((step) => step.id === stepId);
+    if (index === -1 || !onStepSelect || index === currentStepIndex) return false;
+    if (isEditing) return true;
+    return steps[index]?.optional ? currentStepIndex >= lastStepIndex : index <= currentStepIndex;
+  };
+  const openStep = (stepId: string) => {
+    const index = steps.findIndex((step) => step.id === stepId);
+    if (index !== -1) onStepSelect?.(index);
+  };
+
   return (
     <div className="min-h-screen bg-background-secondary">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-3">
+            {ready && !failed && <ProfileStrengthPill />}
             <AutosaveIndicator status={autosaveStatus} isEditing={isEditing} />
             {isEditing && exitHref && (
               <Link
@@ -279,16 +294,23 @@ export function WizardShell({
           allOpen={isEditing}
           className="p-4"
         />
+        {ready && !failed && (
+          <ProfileStrengthPanel
+            className="mx-4 mb-4"
+            canOpen={canOpenStep}
+            onOpenStep={(stepId) => {
+              openStep(stepId);
+              setStepsOpen(false);
+            }}
+          />
+        )}
       </Drawer>
 
       <div className="mx-auto flex max-w-5xl gap-8 px-4 py-6 sm:px-6 sm:py-10">
-        <StepNav
-          steps={steps}
-          currentStepIndex={currentStepIndex}
-          onStepSelect={onStepSelect}
-          allOpen={isEditing}
-          className="sticky top-6 hidden w-56 shrink-0 self-start lg:flex"
-        />
+        <div className="sticky top-6 hidden w-56 shrink-0 flex-col gap-6 self-start lg:flex">
+          <StepNav steps={steps} currentStepIndex={currentStepIndex} onStepSelect={onStepSelect} allOpen={isEditing} />
+          {ready && !failed && <ProfileStrengthPanel canOpen={canOpenStep} onOpenStep={openStep} />}
+        </div>
 
         <motion.main
           key={ready ? currentStepIndex : "loading"}

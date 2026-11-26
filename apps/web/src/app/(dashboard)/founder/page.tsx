@@ -7,6 +7,7 @@ import {
   useMyStartup,
   useMyStartupAnalytics,
   useMyStartupHealth,
+  useProfileStrength,
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
 import { Badge, Button, Card, ErrorState, Skeleton } from "@vittamhub/ui";
@@ -18,6 +19,7 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 import { PageHeader, SectionHeader } from "@/components/dashboard/PageHeader";
+import { ProfileStrengthCard } from "@/components/dashboard/ProfileStrengthCard";
 import { StatStrip } from "@/components/dashboard/StatStrip";
 import { StatTilesSkeleton } from "@/components/dashboard/StatTilesSkeleton";
 import { AddMilestoneDialog } from "@/components/dashboard/founder/AddMilestoneDialog";
@@ -26,7 +28,6 @@ import { FounderActivityCard } from "@/components/dashboard/founder/FounderActiv
 import { GrowthBenchmarkCard } from "@/components/dashboard/founder/GrowthBenchmarkCard";
 import { InvestorCard } from "@/components/dashboard/founder/InvestorCard";
 import { NextActionsCard } from "@/components/dashboard/founder/NextActionsCard";
-import { ProfileCompletionCard } from "@/components/dashboard/founder/ProfileCompletionCard";
 import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentProfileViewsCard";
 import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
 import { SetUpProfileCard } from "@/components/dashboard/founder/SetUpProfileCard";
@@ -47,6 +48,8 @@ export default function FounderDashboardPage() {
   const { data: benchmark } = useMyGrowthBenchmark();
   const { data: quota } = useConnectionQuota();
   const { data: analytics } = useMyStartupAnalytics();
+  // The same percentage as the Profile strength card below, so the page shows one number for it.
+  const { data: strength } = useProfileStrength();
   const { data: recommendations, isLoading: recommendationsLoading } = useFounderRecommendations();
   const [connectingTo, setConnectingTo] = useState<InvestorWithOwner | null>(null);
   // One "Add milestone" dialog, opened from Next actions, Profile completion and the header.
@@ -161,10 +164,10 @@ export default function FounderDashboardPage() {
             },
             { label: "Followers", value: analytics.followerCount, hint: "People following your updates" },
             {
-              label: "Profile complete",
-              value: `${analytics.profileCompletionPercent}%`,
-              hint: analytics.profileCompletionPercent < 100 ? "More detail, more investor interest" : "Everything investors look for",
-              href: "/onboarding/founder",
+              label: "Profile strength",
+              value: strength ? `${strength.percent}%` : "…",
+              hint: strength && strength.percent < 100 ? "More detail, more investor interest" : "Everything investors look for",
+              href: "#profile-strength",
             },
           ]}
         />
@@ -228,7 +231,7 @@ export default function FounderDashboardPage() {
       <section className="flex flex-col gap-4" aria-labelledby="profile-heading">
         <SectionHeader id="profile-heading" title="Profile" description="What is still missing, and who can see what." />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {health && <ProfileCompletionCard completion={health.profileCompletion} onAddMilestone={openMilestone} />}
+          <ProfileStrengthCard />
           <VisibilitySettingsCard startup={startup} />
           {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
         </div>

@@ -64,10 +64,10 @@ const ACTIONS: Record<string, ActionCopy> = {
     href: "/onboarding/founder?step=product",
   },
   profileCompletion: {
-    title: "Bring your profile to 80% complete",
-    hint: "The Profile Completion card below lists what is still missing.",
-    cta: "See what's missing",
-    href: "#profile-completion",
+    title: "Answer more of your profile questions",
+    hint: "The Profile strength card below lists the next ones to answer.",
+    cta: "See what's next",
+    href: "#profile-strength",
   },
   phoneProvided: {
     title: "Add a phone number",

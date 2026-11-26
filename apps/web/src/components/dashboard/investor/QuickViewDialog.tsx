@@ -35,7 +35,7 @@ export function QuickViewDialog({ startup, onOpenChange }: QuickViewDialogProps)
         <div className="flex flex-wrap gap-1.5">
           <Badge variant="brand">{titleCase(startup.industry)}</Badge>
           <Badge variant="neutral">{startup.headquarters ?? startup.location}</Badge>
-          <Badge variant="neutral">Founded {startup.foundedYear}</Badge>
+          {startup.foundedYear != null && <Badge variant="neutral">Founded {startup.foundedYear}</Badge>}
           <Badge variant="neutral">{startup.teamSize} {startup.teamSize === 1 ? "person" : "people"}</Badge>
         </div>
 

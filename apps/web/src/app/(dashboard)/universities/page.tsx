@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 import { PageHeader } from "@/components/dashboard/PageHeader";
+import { INSTITUTION_TYPE_LABEL } from "@/lib/signup-options";
 
 /**
  * Campus startup cells: each card says which cell it is, the departments
@@ -73,7 +74,9 @@ export default function UniversitiesDirectoryPage() {
                       <VerifiedBadge status={university.verificationStatus} />
                     </div>
                     <p className="caption-5 line-clamp-2">
-                      {[university.incubationCellName, university.affiliationType].filter(Boolean).join(" · ") || "University"}
+                      {[university.incubationCellName, university.affiliationType && (INSTITUTION_TYPE_LABEL[university.affiliationType] ?? university.affiliationType)]
+                        .filter(Boolean)
+                        .join(" · ") || "University"}
                     </p>
                   </div>
                 </div>

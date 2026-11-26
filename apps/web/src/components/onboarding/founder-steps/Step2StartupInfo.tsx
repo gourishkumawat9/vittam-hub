@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { uploadFile } from "@vittamhub/api-client";
 import {
   startupInfoStepSchema,
   type CompanyType,
@@ -14,11 +13,11 @@ import {
   type StartupStage,
 } from "@vittamhub/types";
 import { Input, Select, Textarea } from "@vittamhub/ui";
-import { ImageIcon, Loader2 } from "lucide-react";
-import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { useAutosave } from "@/hooks/useAutosave";
+import { usePersona } from "@/hooks/usePersona";
 import {
   COMPANY_TYPE_LABEL,
   FUNDING_STATUS_LABEL,
@@ -29,7 +28,7 @@ import {
   REVENUE_STATUS_LABEL,
   STAGE_LABEL,
 } from "@/lib/startup-options";
-import { useOnboardingStore } from "@/store/onboarding-store";
+import { draftSection, useOnboardingStore } from "@/store/onboarding-store";
 
 import { WizardNav } from "../WizardNav";
 import { ChoiceChips, FieldSection, hasAny, MoreDetails, StepHeader } from "../fields";
@@ -40,6 +39,14 @@ const REVENUE_OPTIONS = optionsFrom<RevenueStatus>(REVENUE_STATUS_LABEL);
 const FUNDING_OPTIONS = optionsFrom<FundingStatus>(FUNDING_STATUS_LABEL);
 const REGISTRATION_OPTIONS = optionsFrom<RegistrationStatus>(REGISTRATION_LABEL);
 const COMPANY_TYPE_OPTIONS = optionsFrom<CompanyType>(COMPANY_TYPE_LABEL).filter((option) => option.value !== "NOT_REGISTERED");
+/** The labels BHASKAR and the MCA use for each company type's registration number. */
+const REGISTRATION_NUMBER_LABEL: Partial<Record<CompanyType, string>> = {
+  PRIVATE_LIMITED: "CIN",
+  PUBLIC_LIMITED: "CIN",
+  ONE_PERSON_COMPANY: "CIN",
+  SECTION_8_COMPANY: "CIN",
+  LLP: "LLPIN",
+};
 const INDUSTRY_OPTIONS = optionsFrom<Industry>(INDUSTRY_LABEL);
 
 interface StepProps {
@@ -50,6 +57,13 @@ interface StepProps {
 
 export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
   const setSectionData = useOnboardingStore((s) => s.setSectionData);
+  const draft = useOnboardingStore((s) => s.draft);
+  const { persona, isIdeaStage } = usePersona();
+  // Asked once already: the city from "About you" is where the startup is based, until said otherwise.
+  const city = draftSection<{ city?: string }>(draft, "personalDetails")?.city;
+  // Someone exploring an idea starts at the idea stage, unregistered; they can change any of it.
+  const ideaDefaults: Partial<StartupInfoStepInput> =
+    persona === "EXPLORER" ? { stage: "IDEA", productStatus: "CONCEPT", revenueStatus: "NONE", fundingStatus: "BOOTSTRAPPED", registrationStatus: "NOT_REGISTERED" } : {};
 
   const {
     register,
@@ -60,7 +74,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
     formState: { errors },
   } = useForm<StartupInfoStepInput>({
     resolver: zodResolver(startupInfoStepSchema),
-    defaultValues,
+    defaultValues: { ...ideaDefaults, headquarters: city, ...defaultValues },
   });
 
   const values = watch();
@@ -71,27 +85,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
     onNext();
   });
 
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [logoError, setLogoError] = useState<string | null>(null);
-  const logoUrl = values.logoUrl;
-
-  // A failed upload used to do nothing visible, and nothing showed that one had worked either.
-  const handleLogoUpload = async (file: File | undefined) => {
-    if (!file) return;
-    setLogoError(null);
-    setLogoUploading(true);
-    try {
-      const url = await uploadFile(file, "logos");
-      setValue("logoUrl", url, { shouldDirty: true });
-    } catch (cause) {
-      setLogoError(cause instanceof Error && cause.message ? cause.message : "That logo couldn't be uploaded. Please try again.");
-    } finally {
-      setLogoUploading(false);
-    }
-  };
-
   const moreFilled = hasAny([
-    values.subIndustry,
     values.businessModelSummary,
     values.problemStatement,
     values.solution,
@@ -101,72 +95,40 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
   ]);
   const taglineLength = (values.tagline ?? "").length;
   const registered = values.registrationStatus === "REGISTERED" || values.registrationStatus === "IN_PROGRESS";
+  const numberLabel = (values.companyType && REGISTRATION_NUMBER_LABEL[values.companyType]) ?? "Registration number";
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-10">
       <StepHeader
-        title="Your startup"
+        title={isIdeaStage ? "Your idea" : "Your startup"}
         minutes={2}
-        description="What investors and mentors see first. Keep it short: product, traction and team can be added after you publish."
+        description={
+          isIdeaStage
+            ? "No company needed. Give the idea a working name and say what it does; you can change any of it as it grows."
+            : "What investors and mentors see first. Keep it short: product, traction and team can be added after you publish."
+        }
       />
 
       <FieldSection title="The basics">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-text-primary">Logo</span>
-            <label className="group relative flex h-[88px] w-[88px] cursor-pointer items-center justify-center overflow-hidden rounded-card border border-dashed border-border bg-background-secondary transition-colors hover:border-brand-300 focus-within:ring-2 focus-within:ring-brand-primary">
-              {logoUploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-text-secondary" aria-hidden />
-              ) : logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded remote URL
-                <img src={logoUrl} alt="Your logo" className="h-full w-full object-cover" />
-              ) : (
-                <span className="flex flex-col items-center gap-1 text-text-secondary">
-                  <ImageIcon className="h-5 w-5" aria-hidden />
-                  <span className="text-[11px] font-medium">Upload</span>
-                </span>
-              )}
-              <span className="sr-only">{logoUrl ? "Change logo" : "Upload logo"}</span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="sr-only"
-                disabled={logoUploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = "";
-                  void handleLogoUpload(file);
-                }}
-              />
-            </label>
-            {logoUrl && !logoUploading && (
-              <button
-                type="button"
-                onClick={() => setValue("logoUrl", "", { shouldDirty: true })}
-                className="self-start text-xs text-text-secondary hover:text-text-primary"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
-            <Input label="Startup name" required placeholder="Acme Health" error={errors.name?.message} {...register("name")} />
-            <Input
-              label="One line pitch"
-              required
-              maxLength={160}
-              placeholder="Daily study plans for college students that adapt when they fall behind"
-              hint={`${taglineLength} of 160 characters`}
-              error={errors.tagline?.message}
-              {...register("tagline")}
-            />
-          </div>
+        <div className="flex flex-col gap-4">
+          <Input
+            label={isIdeaStage ? "Working name" : "Startup name"}
+            required
+            placeholder="Acme Health"
+            hint={isIdeaStage ? "A working name is fine" : undefined}
+            error={errors.name?.message}
+            {...register("name")}
+          />
+          <Input
+            label="One line pitch"
+            required
+            maxLength={160}
+            placeholder="Daily study plans for college students that adapt when they fall behind"
+            hint={`${taglineLength} of 160 characters`}
+            error={errors.tagline?.message}
+            {...register("tagline")}
+          />
         </div>
-        {logoError && (
-          <p className="text-xs text-danger-600" role="alert">
-            {logoError}
-          </p>
-        )}
 
         <Textarea
           label="What you do"
@@ -193,18 +155,32 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
               />
             )}
           />
+          <Input label="Sub industry" placeholder="Exam preparation" error={errors.subIndustry?.message} {...register("subIndustry")} />
           <Input label="Based in" required placeholder="Jaipur, India" error={errors.headquarters?.message} {...register("headquarters")} />
           <Input
-            label="Year founded"
-            required
+            label="Year you started"
             type="number"
             inputMode="numeric"
             placeholder={String(new Date().getFullYear())}
+            hint="When you started working on it, registered or not"
             error={errors.foundedYear?.message}
             {...register("foundedYear")}
           />
-          <Input label="Website" placeholder="https://…" error={errors.website?.message} {...register("website")} />
+          <Input label="Website" placeholder="https://…" autoComplete="url" error={errors.website?.message} {...register("website")} />
         </div>
+
+        <Controller
+          control={control}
+          name="logoUrl"
+          render={({ field }) => (
+            <AvatarUpload
+              kind="logo"
+              value={field.value}
+              onChange={(url) => setValue("logoUrl", url, { shouldDirty: true })}
+              hint="Optional. A square logo works best; you'll crop it before it's saved."
+            />
+          )}
+        />
       </FieldSection>
 
       <FieldSection
@@ -262,14 +238,34 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
           )}
         />
         {registered && (
-          <div className="max-w-sm">
+          <div className="flex flex-col gap-4 rounded-card border border-border bg-background-secondary/50 p-4">
             <Controller
               control={control}
               name="companyType"
               render={({ field }) => (
-                <Select label="Company type" placeholder="Choose one" options={COMPANY_TYPE_OPTIONS} value={field.value} onChange={field.onChange} />
+                <ChoiceChips label="Company type" options={COMPANY_TYPE_OPTIONS} value={field.value} onChange={field.onChange} error={errors.companyType?.message} />
               )}
             />
+            {values.registrationStatus === "REGISTERED" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label={numberLabel}
+                  placeholder={numberLabel === "LLPIN" ? "AAM-6731" : "U72900KA2018PTC110746"}
+                  autoCapitalize="characters"
+                  hint="Optional. Lets us check it automatically when that's switched on"
+                  error={errors.registrationNumber?.message}
+                  {...register("registrationNumber")}
+                />
+                <Input
+                  label="DPIIT recognition number"
+                  placeholder="DIPP12345"
+                  autoCapitalize="characters"
+                  hint="Optional. Only if you're recognised by DPIIT"
+                  error={errors.dpiitNumber?.message}
+                  {...register("dpiitNumber")}
+                />
+              </div>
+            )}
           </div>
         )}
       </FieldSection>
@@ -279,10 +275,7 @@ export function Step2StartupInfo({ defaultValues, onNext, onBack }: StepProps) {
         description="Optional. Problem, solution and what makes you different, for investors who want more."
         defaultOpen={moreFilled}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Sub industry" placeholder="Exam preparation" {...register("subIndustry")} />
-          <Input label="Business model" placeholder="Subscription, or marketplace commission" {...register("businessModelSummary")} />
-        </div>
+        <Input label="Business model" placeholder="Subscription, or marketplace commission" {...register("businessModelSummary")} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Textarea label="The problem" rows={3} {...register("problemStatement")} />
           <Textarea label="Your solution" rows={3} {...register("solution")} />

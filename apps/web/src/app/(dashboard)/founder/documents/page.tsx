@@ -28,6 +28,12 @@ const DOCUMENT_LABELS: Record<string, string> = {
   PATENT: "Patent",
   GOVERNMENT_ID: "Government ID",
   DIGITAL_SIGNATURE: "Digital Signature",
+  UDYAM_REGISTRATION: "Udyam (MSME) Registration",
+  STUDENT_ID: "Student ID",
+  SEBI_REGISTRATION: "SEBI Registration",
+  ACCREDITED_INVESTOR_CERTIFICATE: "Accredited Investor Certificate",
+  SCHEME_SANCTION_LETTER: "Scheme Sanction Letter",
+  AUTHORIZATION_LETTER: "Authorisation Letter",
   OTHER: "Other",
 };
 

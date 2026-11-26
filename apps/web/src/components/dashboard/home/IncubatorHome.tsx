@@ -8,6 +8,7 @@ import Link from "next/link";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 import { PageHeader, PanelLink, PanelTitle } from "../PageHeader";
+import { ProfileStrengthCard } from "../ProfileStrengthCard";
 import { type Stat, StatStrip } from "../StatStrip";
 import { VerificationChecklist } from "../VerificationChecklist";
 import { IncubatorProfilePreview } from "../incubator/IncubatorProfilePreview";
@@ -201,6 +202,7 @@ export function IncubatorHome() {
         </div>
 
         <div className="flex flex-col gap-6">
+          <ProfileStrengthCard />
           {incubator && <IncubatorProfilePreview incubator={incubator} />}
           <VerificationChecklist />
         </div>

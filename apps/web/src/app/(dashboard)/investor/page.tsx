@@ -4,9 +4,9 @@ import {
   useConnections,
   useCurrentUser,
   useInvestorRecommendations,
-  useMyInvestorProfile,
   useMyMeetings,
   usePortfolio,
+  useProfileStrength,
   useWatchlist,
   useWorkspaceHome,
 } from "@vittamhub/api-client";
@@ -23,20 +23,6 @@ const DAY = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short"
 const TIME = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-function computeProfileCompletion(investor: ReturnType<typeof useMyInvestorProfile>["data"]) {
-  if (!investor) return 0;
-  const checks = [
-    !!investor.bio,
-    !!investor.investmentThesis,
-    investor.preferredIndustries.length > 0,
-    investor.preferredStages.length > 0,
-    Number(investor.checkSizeMaxAmount) > 0,
-    investor.portfolioCompanies.length > 0,
-    !!investor.website,
-  ];
-  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-}
-
 /**
  * The investor's home, action first: the founders waiting for an answer come
  * before anything else, then this week's meetings and today's best matches,
@@ -50,7 +36,8 @@ export default function InvestorDashboardPage() {
   const { data: portfolio } = usePortfolio();
   const { data: meetings } = useMyMeetings();
   const { data: recommendations } = useInvestorRecommendations();
-  const { data: investorProfile } = useMyInvestorProfile();
+  // Sign-up counts for 20%; the rest of the questions share the other 80% (profileStrength in packages/types).
+  const { data: strength } = useProfileStrength();
   const { data: home, isLoading: homeLoading } = useWorkspaceHome();
 
   const pending = [...(pendingResult?.items ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -68,7 +55,8 @@ export default function InvestorDashboardPage() {
     const key = DAY.format(new Date(meeting.scheduledAt));
     meetingsByDay.set(key, [...(meetingsByDay.get(key) ?? []), meeting]);
   }
-  const profileCompletion = computeProfileCompletion(investorProfile);
+  const profileCompletion = strength?.percent ?? 0;
+  const nextQuestion = strength?.next[0];
   const firstName = user?.fullName.split(" ")[0] ?? "";
 
   return (
@@ -241,8 +229,10 @@ export default function InvestorDashboardPage() {
               <span className="font-numeric text-sm font-semibold text-text-primary">{profileCompletion}%</span>
             </div>
             <ProgressBar value={profileCompletion} />
-            <p className="caption-5">Founders read your thesis and ticket size before they send a request.</p>
-            <PanelLink href="/investor/profile">Complete your profile</PanelLink>
+            <p className="caption-5">
+              {nextQuestion ? `Next: ${nextQuestion.label}.` : "Every question is answered."} Founders read your thesis and cheque size before they send a request.
+            </p>
+            <PanelLink href={`/onboarding/investor?step=${nextQuestion?.step ?? "investor-info"}`}>Complete your profile</PanelLink>
           </div>
         </Card>
       </div>

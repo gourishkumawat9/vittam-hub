@@ -146,6 +146,11 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         sessionTypes: ["ONE_ON_ONE" as const],
         pricingModel: "Free",
         languages: ["English", "Hindi"],
+        mentorType: "FOUNDER_OPERATOR" as const,
+        stagesHelped: ["IDEA", "VALIDATION", "MVP"] as Prisma.MentorProfileCreateInput["stagesHelped"],
+        meetingMode: "ONLINE" as const,
+        feeType: "FREE" as const,
+        sessionLengthMinutes: 45,
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
       };
@@ -163,9 +168,14 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
           "Demo incubator profile for trying VittamHub. Takes student and first-time founders in edtech and fintech from idea to a working MVP.",
         industries: ["EDTECH", "FINTECH"],
         portfolioCompanies: ["Demo Startup", "Demo Fintech Startup"],
+        hostType: "ACADEMIC" as const,
+        city: "Jaipur",
+        state: "Rajasthan",
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
       };
+      // Your role at the organisation lives on your own profile; the wizard asks for it.
+      await tx.userProfile.update({ where: { userId: ownerId }, data: { designation: "Demo programme manager" } });
       const incubator = await tx.incubatorProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
       // The cohort's window moves with each boot, so the demo always has one programme taking applications.
       const day = 24 * 60 * 60 * 1000;
@@ -197,15 +207,18 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     email: `university@${DEMO_EMAIL_DOMAIN}`,
     fullName: "Demo University Cell",
     role: UserRole.UNIVERSITY,
-    profile: (tx, ownerId) => {
+    profile: async (tx, ownerId) => {
       const data = {
         institutionName: "Demo University",
-        affiliationType: "Private",
+        affiliationType: "STATE_PRIVATE_UNIVERSITY",
+        city: "Jaipur",
+        state: "Rajasthan",
         incubationCellName: "Demo University Startup Cell",
         departments: ["Management", "Engineering", "Design"],
         programsOffered: ["Student startup programme", "Demo ideation sprint", "Demo final-year project to startup track"],
         verificationStatus: "VERIFIED" as const,
       };
+      await tx.userProfile.update({ where: { userId: ownerId }, data: { designation: "Demo E-cell coordinator" } });
       return tx.universityProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
     },
   },

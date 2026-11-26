@@ -19,11 +19,13 @@ const DOCUMENT_LABELS: Record<string, string> = {
   [DocumentType.DPIIT_RECOGNITION]: "DPIIT recognition",
   [DocumentType.PAN]: "Company PAN",
   [DocumentType.GST]: "GST certificate",
+  [DocumentType.UDYAM_REGISTRATION]: "Udyam (MSME) registration",
   [DocumentType.TRADEMARK]: "Trademark",
   [DocumentType.PATENT]: "Patent",
   [DocumentType.FINANCIAL_STATEMENT]: "Financial statements",
   [DocumentType.GOVERNMENT_ID]: "Founder identity",
   [DocumentType.DIGITAL_SIGNATURE]: "Digital signature",
+  [DocumentType.STUDENT_ID]: "Student ID card",
 };
 
 /**
@@ -45,6 +47,8 @@ const DOCUMENT_BENEFITS: Record<string, string> = {
   [DocumentType.FINANCIAL_STATEMENT]: "Lets revenue be shown as a verified band instead of a self-reported number.",
   [DocumentType.GOVERNMENT_ID]: "Proves a real founder is behind the profile. Kept private.",
   [DocumentType.DIGITAL_SIGNATURE]: "Speeds up signing once a deal actually moves.",
+  [DocumentType.UDYAM_REGISTRATION]: "Shows the business is registered as an MSME, which many grants and schemes ask for.",
+  [DocumentType.STUDENT_ID]: "For student founders: some campus and government programmes are only open to students. Kept private.",
 };
 
 /** Asked first: what investors open first, and what proves the company exists. The rest can wait. */
