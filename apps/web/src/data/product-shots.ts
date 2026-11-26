@@ -15,7 +15,7 @@ const shot = (file: string, path: string, alt: string, height = 900): ProductSho
 });
 
 export const PRODUCT_SHOTS = {
-  founders: shot("founder-dashboard", "/founder", "The founder home on a demo account: next actions, where the startup stands, and connect requests sent"),
+  founders: shot("founder-dashboard", "/founder", "The founder home on a demo account: key numbers, next actions and where the startup stands"),
   investors: shot(
     "investor-discover",
     "/investor/discover",
