@@ -172,6 +172,8 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
       };
+      // Your role at the organisation lives on your own profile; the wizard asks for it.
+      await tx.userProfile.update({ where: { userId: ownerId }, data: { designation: "Demo programme manager" } });
       const incubator = await tx.incubatorProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
       const existing = await tx.incubatorProgram.findFirst({ where: { incubatorId: incubator.id, name: "Demo pre-incubation programme" } });
       if (!existing) {
@@ -192,7 +194,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     email: `university@${DEMO_EMAIL_DOMAIN}`,
     fullName: "Demo University Cell",
     role: UserRole.UNIVERSITY,
-    profile: (tx, ownerId) => {
+    profile: async (tx, ownerId) => {
       const data = {
         institutionName: "Demo University",
         affiliationType: "STATE_PRIVATE_UNIVERSITY",
@@ -203,6 +205,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         programsOffered: ["Student startup programme"],
         verificationStatus: "VERIFIED" as const,
       };
+      await tx.userProfile.update({ where: { userId: ownerId }, data: { designation: "Demo E-cell coordinator" } });
       return tx.universityProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
     },
   },

@@ -8,8 +8,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
-import { INSTITUTION_TYPE_LABEL } from "@/lib/signup-options";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
+import { INSTITUTION_TYPE_LABEL } from "@/lib/signup-options";
 
 export default function UniversitiesDirectoryPage() {
   const [filters, setFilters] = useState<UniversitySearchFilters>({ page: 1, pageSize: 20 });

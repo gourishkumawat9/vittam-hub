@@ -8,6 +8,7 @@ import Link from "next/link";
 import { editProfileLink } from "@/lib/role-home";
 
 import { PageHeader } from "../PageHeader";
+import { ProfileStrengthCard } from "../ProfileStrengthCard";
 import { type Stat, StatStrip } from "../StatStrip";
 import { VerificationChecklist } from "../VerificationChecklist";
 
@@ -106,7 +107,10 @@ export function OrganisationHome({ role }: { role: string }) {
           </Card>
           <CommunityPreview emptyHint={copy.postHint} />
         </div>
-        <VerificationChecklist />
+        <div className="flex flex-col gap-6">
+          <ProfileStrengthCard />
+          <VerificationChecklist />
+        </div>
       </div>
     </div>
   );

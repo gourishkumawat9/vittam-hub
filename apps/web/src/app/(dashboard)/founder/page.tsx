@@ -17,13 +17,13 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SendConnectRequestDialog } from "@/components/connections/SendConnectRequestDialog";
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
 import { PageHeader, SectionHeader } from "@/components/dashboard/PageHeader";
+import { ProfileStrengthCard } from "@/components/dashboard/ProfileStrengthCard";
 import { AddMilestoneDialog } from "@/components/dashboard/founder/AddMilestoneDialog";
 import { ConnectRequestsList } from "@/components/dashboard/founder/ConnectRequestsList";
 import { FounderActivityCard } from "@/components/dashboard/founder/FounderActivityCard";
 import { GrowthBenchmarkCard } from "@/components/dashboard/founder/GrowthBenchmarkCard";
 import { InvestorCard } from "@/components/dashboard/founder/InvestorCard";
 import { NextActionsCard } from "@/components/dashboard/founder/NextActionsCard";
-import { ProfileCompletionCard } from "@/components/dashboard/founder/ProfileCompletionCard";
 import { RecentProfileViewsCard } from "@/components/dashboard/founder/RecentProfileViewsCard";
 import { RecentUpdatesCard } from "@/components/dashboard/founder/RecentUpdatesCard";
 import { StandingPanel } from "@/components/dashboard/founder/StandingPanel";
@@ -172,7 +172,7 @@ export default function FounderDashboardPage() {
       <section className="flex flex-col gap-4" aria-labelledby="profile-heading">
         <SectionHeader id="profile-heading" title="Profile" description="What is still missing, and who can see what." />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {health && <ProfileCompletionCard completion={health.profileCompletion} onAddMilestone={openMilestone} />}
+          <ProfileStrengthCard />
           <VisibilitySettingsCard startup={startup} />
           {benchmark && <GrowthBenchmarkCard benchmark={benchmark} />}
         </div>

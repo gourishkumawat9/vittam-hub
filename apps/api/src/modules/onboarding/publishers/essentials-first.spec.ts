@@ -42,9 +42,13 @@ describe("sign-up asks only for the essentials", () => {
       expertise: ["Pricing"],
       sessionTypes: ["ONE_ON_ONE"],
       availability: "Weekday evenings",
+      mentorType: "FOUNDER_OPERATOR",
+      stagesHelped: ["IDEA", "MVP"],
+      meetingMode: "ONLINE",
+      feeType: "FREE",
     };
 
-    it("accepts a headline, expertise, session types and availability alone", () => {
+    it("accepts the essentials alone: headline, kind, areas, stages, sessions, where, fee and availability", () => {
       const result = createMentorInputSchema.safeParse(essentials);
 
       expect(result.success).toBe(true);
@@ -52,21 +56,41 @@ describe("sign-up asks only for the essentials", () => {
       expect(result.data?.languages).toEqual([]);
       // Left out is stored as empty, so clearing a field later sticks.
       expect(result.data?.yearsExperience).toBeNull();
-      expect(result.data?.pricingModel).toBeNull();
+      expect(result.data?.sessionFeeAmount).toBeNull();
+      expect(result.data?.firstSessionFree).toBe(false);
     });
 
     it("keeps the optional answers that are given", () => {
-      const result = createMentorInputSchema.safeParse({ ...essentials, yearsExperience: "8", pricingModel: "Free", languages: ["Hindi"] });
+      const result = createMentorInputSchema.safeParse({ ...essentials, yearsExperience: "8", sessionLengthMinutes: "45", languages: ["Hindi"] });
 
       expect(result.data?.yearsExperience).toBe(8);
-      expect(result.data?.pricingModel).toBe("Free");
+      expect(result.data?.sessionLengthMinutes).toBe(45);
       expect(result.data?.languages).toEqual(["Hindi"]);
+    });
+
+    it("asks a paid mentor for the fee and the session length", () => {
+      const paid = { ...essentials, feeType: "PAID" };
+      const missing = createMentorInputSchema.safeParse(paid);
+      expect(missing.success).toBe(false);
+      if (!missing.success) {
+        expect(missing.error.issues.map((issue) => issue.path[0])).toEqual(expect.arrayContaining(["sessionFeeAmount", "sessionLengthMinutes"]));
+      }
+
+      const result = createMentorInputSchema.safeParse({ ...paid, sessionFeeAmount: "2000", sessionLengthMinutes: 60, firstSessionFree: true });
+      expect(result.success).toBe(true);
+      expect(result.data?.sessionFeeAmount).toBe(2000);
+    });
+
+    it("only offers the set session lengths", () => {
+      expect(createMentorInputSchema.safeParse({ ...essentials, sessionLengthMinutes: 50 }).success).toBe(false);
     });
 
     it("still requires something founders can choose on", () => {
       expect(createMentorInputSchema.safeParse({ ...essentials, expertise: [] }).success).toBe(false);
       expect(createMentorInputSchema.safeParse({ ...essentials, sessionTypes: [] }).success).toBe(false);
       expect(createMentorInputSchema.safeParse({ ...essentials, availability: "" }).success).toBe(false);
+      expect(createMentorInputSchema.safeParse({ ...essentials, stagesHelped: [] }).success).toBe(false);
+      expect(createMentorInputSchema.safeParse({ ...essentials, feeType: undefined }).success).toBe(false);
     });
   });
 });

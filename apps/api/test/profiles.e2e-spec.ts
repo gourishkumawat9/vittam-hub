@@ -108,7 +108,13 @@ describe("Profiles (e2e)", () => {
 
       const profile = {
         personalDetails: PERSONAL_DETAILS,
-        universityInfo: { institutionName: "Test Institute of Technology", affiliationType: "Private", departments: ["Engineering"] },
+        universityInfo: {
+          institutionName: "Test Institute of Technology",
+          designation: "E-cell coordinator",
+          affiliationType: "STATE_PRIVATE_UNIVERSITY",
+          city: "Jaipur",
+          departments: ["Engineering"],
+        },
       };
       expect((await post("/v1/onboarding/publish", university, profile)).status).toBe(201);
 
@@ -146,8 +152,11 @@ describe("Profiles (e2e)", () => {
           yearsExperience: 6,
           availability: "Two evenings a week",
           sessionTypes: ["ONE_ON_ONE"],
-          pricingModel: "Free",
           languages: ["English"],
+          mentorType: "FOUNDER_OPERATOR",
+          stagesHelped: ["IDEA", "MVP"],
+          meetingMode: "ONLINE",
+          feeType: "FREE",
         },
       });
       expect(published.status).toBe(201);

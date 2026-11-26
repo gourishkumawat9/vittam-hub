@@ -356,8 +356,11 @@ describe("Security rules (e2e)", () => {
           yearsExperience: 6,
           availability: "Two evenings a week",
           sessionTypes: ["ONE_ON_ONE"],
-          pricingModel: "Free",
           languages: ["English"],
+          mentorType: "FOUNDER_OPERATOR",
+          stagesHelped: ["IDEA", "MVP"],
+          meetingMode: "ONLINE",
+          feeType: "FREE",
         },
       });
       expect(published.status).toBe(201);
@@ -527,7 +530,18 @@ describe("Security rules (e2e)", () => {
       const mentor = await registerViaApi(app, { role: "MENTOR" });
       const published = await send("post", "/v1/onboarding/publish", mentor, {
         personalDetails: PERSONAL_DETAILS,
-        mentorInfo: { headline: "Pricing for early SaaS", expertise: ["Pricing"], availability: "Evenings", sessionTypes: ["ONE_ON_ONE"] },
+        mentorInfo: {
+          headline: "Pricing for early SaaS",
+          expertise: ["Pricing"],
+          availability: "Evenings",
+          sessionTypes: ["ONE_ON_ONE"],
+          mentorType: "INDUSTRY_EXPERT",
+          stagesHelped: ["MVP"],
+          meetingMode: "ONLINE",
+          feeType: "PAID",
+          sessionFeeAmount: 1500,
+          sessionLengthMinutes: 45,
+        },
       });
       if (published.status !== 201) throw new Error(`mentor publish failed: ${JSON.stringify(published.body)}`);
       const mentorUser = await testDb.user.findUniqueOrThrow({ where: { email: mentor.email } });
