@@ -5,15 +5,16 @@ import { Skeleton } from "@vittamhub/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { IncubatorHome } from "@/components/dashboard/home/IncubatorHome";
 import { MentorHome } from "@/components/dashboard/home/MentorHome";
-import { OrganisationHome } from "@/components/dashboard/home/OrganisationHome";
+import { UniversityHome } from "@/components/dashboard/home/UniversityHome";
 import { roleHome } from "@/lib/role-home";
 
 /**
  * Home for mentors, incubators and universities (founders, investors and
- * admins have their own). Mentors get the full working dashboard; incubators
- * and universities a simpler page for now, since mentors and founders are
- * the first audience (owner's call, November 2026).
+ * admins have their own). Each is built around that member's own work:
+ * mentors their sessions, incubators their programmes, universities their
+ * startup cell.
  */
 export default function MemberHomePage() {
   const { data: user, isLoading } = useCurrentUser();
@@ -34,5 +35,6 @@ export default function MemberHomePage() {
   }
 
   if (user.role === "MENTOR") return <MentorHome firstName={user.fullName.split(" ")[0] ?? user.fullName} />;
-  return <OrganisationHome role={user.role} />;
+  if (user.role === "INCUBATOR") return <IncubatorHome />;
+  return <UniversityHome />;
 }

@@ -18,3 +18,8 @@ export function useIncubators(filters: IncubatorSearchFilters) {
 export function useIncubator(id: string) {
   return useQuery({ queryKey: incubatorKeys.detail(id), queryFn: () => incubatorsApi.getById(id), enabled: !!id });
 }
+
+/** The signed-in incubator's own profile, for its home. */
+export function useMyIncubatorProfile(enabled = true) {
+  return useQuery({ queryKey: ["incubators", "me"], queryFn: incubatorsApi.mine, enabled });
+}

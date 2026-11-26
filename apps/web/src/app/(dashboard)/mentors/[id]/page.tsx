@@ -3,14 +3,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useBookMentor, useMentor } from "@vittamhub/api-client";
 import { createMentorBookingInputSchema, SessionType, type CreateMentorBookingInput } from "@vittamhub/types";
-import { Badge, Button, Card, Dialog, ErrorState, Select, Skeleton, Textarea, Input } from "@vittamhub/ui";
-import { Star } from "lucide-react";
+import { Avatar, Badge, Button, Card, Dialog, ErrorState, Select, Skeleton, Textarea, Input } from "@vittamhub/ui";
+import { Briefcase, CalendarClock, CheckCircle2, Clock, Languages, MapPin, Rocket, Star, UserRound, Wallet } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { FollowButton } from "@/components/dashboard/FollowButton";
+import { PanelTitle } from "@/components/dashboard/PageHeader";
+import { StatStrip } from "@/components/dashboard/StatStrip";
+import { SESSION_TYPE_LABEL } from "@/components/dashboard/mentor/labels";
 import { MEETING_MODE_LABEL, MENTOR_TYPE_LABEL } from "@/lib/signup-options";
 import { STAGE_LABEL } from "@/lib/startup-options";
 
@@ -88,6 +91,24 @@ function RequestSessionDialog({ mentorId, open, onOpenChange }: { mentorId: stri
   );
 }
 
+/** What each session format means for the founder booking it. */
+const SESSION_TYPE_HINT: Record<string, string> = {
+  ONE_ON_ONE: "A private call about your question",
+  GROUP: "A session shared with a few founders",
+  WORKSHOP: "A hands-on working session on one topic",
+  ADVISORY: "Advice over several sessions",
+};
+
+const HOW_IT_WORKS = [
+  "Send a request with your question and when you're free",
+  "They accept, then set the time and share a meeting link",
+  "After the call, either of you marks it done and you leave a short review",
+];
+
+/**
+ * A mentor as founders see them: who they are, what they can help with, how
+ * their sessions work, and one clear way to ask for one.
+ */
 export default function MentorDetailPage() {
   const params = useParams<{ id: string }>();
   const { data: mentor, isLoading, isError } = useMentor(params.id);
@@ -95,7 +116,7 @@ export default function MentorDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         <div className="flex items-center gap-4">
           <Skeleton className="h-14 w-14 rounded-full" />
           <div className="flex flex-col gap-2">
@@ -103,63 +124,187 @@ export default function MentorDetailPage() {
             <Skeleton className="h-4 w-32" />
           </div>
         </div>
-        <Skeleton className="h-48 w-full rounded-card" />
+        <Skeleton className="h-24 w-full rounded-card" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Skeleton className="h-64 w-full rounded-card lg:col-span-2" />
+          <Skeleton className="h-64 w-full rounded-card" />
+        </div>
       </div>
     );
   }
   if (isError) return <ErrorState />;
   if (!mentor) return <p className="text-sm text-text-secondary">Mentor not found.</p>;
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="heading-5">{mentor.owner.fullName}</h1>
-            <VerifiedBadge status={mentor.verificationStatus} />
-          </div>
-          <p className="text-sm text-text-secondary">{mentor.headline}</p>
-          <div className="mt-1 flex items-center gap-1.5 text-sm">
-            {mentor.reputation.averageRating != null ? (
-              <>
-                <Star className="h-3.5 w-3.5 fill-warning-500 text-warning-500" />
-                <span className="font-medium text-text-primary">{mentor.reputation.averageRating.toFixed(1)}</span>
-                <span className="text-text-secondary">
-                  ({mentor.reputation.reviewCount} review{mentor.reputation.reviewCount === 1 ? "" : "s"} ·{" "}
-                  {mentor.reputation.sessionsCompleted} session{mentor.reputation.sessionsCompleted === 1 ? "" : "s"} completed)
-                </span>
-              </>
-            ) : (
-              <span className="text-text-secondary">No reviews yet · {mentor.reputation.sessionsCompleted} sessions completed</span>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <FollowButton userId={mentor.ownerId} />
-          <Button onClick={() => setRequestOpen(true)}>Request a session</Button>
-        </div>
-      </div>
+  const { averageRating, reviewCount, sessionsCompleted } = mentor.reputation;
 
-      <Card className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-1.5">
-          {mentor.expertise.map((skill) => (
-            <Badge key={skill} variant="brand">
-              {skill}
-            </Badge>
-          ))}
+  return (
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <Avatar name={mentor.owner.fullName} src={mentor.owner.avatarUrl} size="lg" />
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="heading-5">{mentor.owner.fullName}</h1>
+              <VerifiedBadge status={mentor.verificationStatus} />
+            </div>
+            {mentor.headline && <p className="body-6 text-text-secondary">{mentor.headline}</p>}
+            {mentor.mentorType && (
+              <p className="flex items-center gap-1.5 caption-2">
+                <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                {MENTOR_TYPE_LABEL[mentor.mentorType] ?? mentor.mentorType}
+              </p>
+            )}
+            <p className="flex items-center gap-1.5 caption-2">
+              {averageRating != null ? (
+                <>
+                  <Star className="h-3.5 w-3.5 fill-warning-500 text-warning-500" aria-hidden="true" />
+                  <span className="font-semibold text-text-primary">{averageRating.toFixed(1)}</span>
+                  <span>
+                    from {reviewCount} review{reviewCount === 1 ? "" : "s"}
+                  </span>
+                </>
+              ) : (
+                <span>No reviews yet</span>
+              )}
+            </p>
+          </div>
         </div>
-        <div className="grid gap-4 text-sm text-text-secondary sm:grid-cols-2">
-          <p>Industries: {mentor.industries.join(", ") || "—"}</p>
-          <p>Experience: {mentor.yearsExperience != null ? `${mentor.yearsExperience} years` : "—"}</p>
-          <p>Availability: {mentor.availability ?? "—"}</p>
-          <p>Fee: {mentor.pricingModel ?? "—"}</p>
-          {mentor.mentorType && <p>Mentor type: {MENTOR_TYPE_LABEL[mentor.mentorType] ?? mentor.mentorType}</p>}
-          {mentor.meetingMode && <p>Meets: {MEETING_MODE_LABEL[mentor.meetingMode] ?? mentor.meetingMode}</p>}
-          {mentor.stagesHelped && mentor.stagesHelped.length > 0 && (
-            <p className="sm:col-span-2">Helps at: {mentor.stagesHelped.map((stage) => STAGE_LABEL[stage] ?? stage).join(", ")}</p>
+        <div className="flex shrink-0 items-center gap-2">
+          <FollowButton userId={mentor.ownerId} />
+          {/* On wide screens the booking card beside the profile holds this button. */}
+          <Button className="lg:hidden" onClick={() => setRequestOpen(true)}>
+            Request a session
+          </Button>
+        </div>
+      </header>
+
+      <StatStrip
+        stats={[
+          { label: "Experience", value: mentor.yearsExperience != null ? `${mentor.yearsExperience} yrs` : "Not listed" },
+          { label: "Sessions completed", value: sessionsCompleted, hint: "Counted when a session is marked done" },
+          { label: "Average rating", value: averageRating != null ? averageRating.toFixed(1) : "None yet", hint: `${reviewCount} review${reviewCount === 1 ? "" : "s"} from founders` },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card className="flex flex-col gap-5">
+            <PanelTitle icon={Briefcase} title="Can help with" />
+            <div className="flex flex-wrap gap-2">
+              {mentor.expertise.map((skill) => (
+                <Badge key={skill} variant="brand">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+            {mentor.industries.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="caption-4">Industries</p>
+                <div className="flex flex-wrap gap-2">
+                  {mentor.industries.map((industry) => (
+                    <Badge key={industry} variant="neutral">
+                      {industry.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {mentor.stagesHelped && mentor.stagesHelped.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="caption-4">Stages</p>
+                <div className="flex flex-wrap gap-2">
+                  {mentor.stagesHelped.map((stage) => (
+                    <Badge key={stage} variant="neutral">
+                      {STAGE_LABEL[stage] ?? stage}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {mentor.sessionTypes.length > 0 && (
+            <Card className="flex flex-col gap-4">
+              <PanelTitle icon={CalendarClock} title="Session formats" />
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {mentor.sessionTypes.map((type) => (
+                  <li key={type} className="flex flex-col gap-0.5 rounded-button border border-border p-3">
+                    <span className="body-5 text-text-primary">{SESSION_TYPE_LABEL[type] ?? type}</span>
+                    {SESSION_TYPE_HINT[type] && <span className="caption-5">{SESSION_TYPE_HINT[type]}</span>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {mentor.pastStartups.length > 0 && (
+            <Card className="flex flex-col gap-4">
+              <PanelTitle icon={Rocket} title="Startups they've built or backed" />
+              <ul className="flex flex-wrap gap-2">
+                {mentor.pastStartups.map((name) => (
+                  <li key={name} className="rounded-button bg-background-secondary px-3 py-1.5 body-6 text-text-primary">
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
         </div>
-      </Card>
+
+        <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
+          <Card className="flex flex-col gap-4">
+            <h2 className="title-2">Book a session</h2>
+            <dl className="flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+                <div>
+                  <dt className="caption-4">Available</dt>
+                  <dd className="body-5 text-text-primary">{mentor.availability ?? "Ask in your request"}</dd>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+                <div>
+                  <dt className="caption-4">Fee</dt>
+                  <dd className="body-5 text-text-primary">{mentor.pricingModel ?? "Not listed, ask in your request"}</dd>
+                </div>
+              </div>
+              {mentor.meetingMode && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+                  <div>
+                    <dt className="caption-4">Meets</dt>
+                    <dd className="body-5 text-text-primary">{MEETING_MODE_LABEL[mentor.meetingMode] ?? mentor.meetingMode}</dd>
+                  </div>
+                </div>
+              )}
+              {mentor.languages.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <Languages className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+                  <div>
+                    <dt className="caption-4">Languages</dt>
+                    <dd className="body-5 text-text-primary">{mentor.languages.join(", ")}</dd>
+                  </div>
+                </div>
+              )}
+            </dl>
+            <Button className="w-full" onClick={() => setRequestOpen(true)}>
+              Request a session
+            </Button>
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <p className="caption-4">How it works</p>
+              <ol className="flex flex-col gap-2">
+                {HOW_IT_WORKS.map((step) => (
+                  <li key={step} className="flex items-start gap-2 caption-5">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success-600" aria-hidden="true" />
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </Card>
+        </aside>
+      </div>
 
       <RequestSessionDialog mentorId={mentor.id} open={requestOpen} onOpenChange={setRequestOpen} />
     </div>

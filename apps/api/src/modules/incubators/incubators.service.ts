@@ -50,6 +50,11 @@ export class IncubatorsService {
     return buildPaginatedResult(items, totalItems, filters.page, filters.pageSize);
   }
 
+  /** The caller's own profile, published or not; null until onboarding creates it. */
+  getMine(ownerId: string) {
+    return this.prisma.incubatorProfile.findUnique({ where: { ownerId }, include: { programs: true } });
+  }
+
   async getById(id: string) {
     const incubator = await this.prisma.incubatorProfile.findUnique({
       where: { id },

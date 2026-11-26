@@ -1,13 +1,16 @@
 "use client";
 
 import { motion, useTransform } from "framer-motion";
-import { ArrowDown, ArrowRight } from "lucide-react";
+import { ArrowDown, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 
 import { useParallax } from "@/hooks/useParallax";
 
 import { GradientOrbs } from "./hero/GradientOrbs";
 import { HeroFilm } from "./hero/HeroFilm";
+
+/** True today, and the three things a founder weighs before signing up. */
+const REASSURANCES = ["Free for founders", "Connect requests, not cold emails", "Set up in about five minutes"];
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -27,7 +30,7 @@ export function Hero() {
         className="bg-grid-pattern pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black,transparent)]"
       />
 
-      <div className="mx-auto grid max-w-content items-center gap-16 px-6 pb-24 pt-16 lg:grid-cols-2 lg:pb-32 lg:pt-24">
+      <div className="mx-auto grid max-w-content items-center gap-16 px-6 pb-16 pt-16 lg:grid-cols-2 lg:pb-20 lg:pt-24">
         {/* Left column — copy + CTAs */}
         <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-left">
           <motion.div
@@ -83,6 +86,20 @@ export function Hero() {
               <ArrowDown className="h-4 w-4" aria-hidden="true" />
             </a>
           </motion.div>
+
+          <motion.ul
+            initial={fadeUp.initial}
+            animate={fadeUp.animate}
+            transition={{ duration: 0.5, delay: 0.32 }}
+            className="flex flex-wrap justify-center gap-x-5 gap-y-2 lg:justify-start"
+          >
+            {REASSURANCES.map((item) => (
+              <li key={item} className="flex items-center gap-1.5 text-sm text-text-secondary">
+                <Check className="h-4 w-4 text-success-600" aria-hidden="true" />
+                {item}
+              </li>
+            ))}
+          </motion.ul>
         </div>
 
         {/* Right column — the brand story, played live; edge to edge on phones */}

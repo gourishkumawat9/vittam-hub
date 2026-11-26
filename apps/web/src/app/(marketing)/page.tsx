@@ -20,6 +20,9 @@ const FeaturedInvestors = dynamic(() => import("@/components/marketing/FeaturedI
 const CommunitySection = dynamic(() => import("@/components/marketing/CommunitySection").then((m) => m.CommunitySection), {
   loading: () => <SectionSkeleton />,
 });
+const FaqSection = dynamic(() => import("@/components/marketing/FaqSection").then((m) => m.FaqSection), {
+  loading: () => <SectionSkeleton />,
+});
 export const metadata: Metadata = {
   title: "Visibility for Tomorrow's Unicorns",
   description:
@@ -37,6 +40,7 @@ export default function HomePage() {
       <DiscoverStartups />
       <FeaturedInvestors />
       <CommunitySection />
+      <FaqSection />
       <CtaSection />
     </>
   );

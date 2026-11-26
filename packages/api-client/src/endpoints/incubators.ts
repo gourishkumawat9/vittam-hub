@@ -29,4 +29,6 @@ export const incubatorsApi = {
     return apiRequest<PaginatedResult<IncubatorWithPrograms>>(`/v1/incubators?${params.toString()}`);
   },
   getById: (id: string) => apiRequest<IncubatorWithPrograms>(`/v1/incubators/${id}`),
+  /** The signed-in incubator's own profile, or null before it's published. */
+  mine: () => apiRequest<IncubatorWithPrograms | null>("/v1/incubators/me"),
 };

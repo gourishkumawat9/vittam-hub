@@ -21,7 +21,7 @@ function setup(password?: string) {
     investor: { upsert: upsert() },
     mentorProfile: { upsert: upsert() },
     incubatorProfile: { upsert: upsert() },
-    incubatorProgram: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn() },
+    incubatorProgram: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn(), update: jest.fn() },
     universityProfile: { upsert: upsert() },
     serviceProviderProfile: { upsert: upsert() },
     jobSeekerProfile: { upsert: upsert() },
@@ -88,7 +88,8 @@ describe("DemoAccountsService", () => {
     expect(tx.serviceProviderProfile.upsert).not.toHaveBeenCalled();
     expect(tx.jobSeekerProfile.upsert).not.toHaveBeenCalled();
     expect(tx.investor.upsert).toHaveBeenCalledTimes(1);
-    expect(tx.incubatorProgram.create).toHaveBeenCalledTimes(1);
+    // The pre-incubation programme and the cohort with an open application window.
+    expect(tx.incubatorProgram.create).toHaveBeenCalledTimes(2);
   });
 
   it("switches off a demo login that was dropped from the list", async () => {

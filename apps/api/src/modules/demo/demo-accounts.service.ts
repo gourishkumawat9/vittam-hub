@@ -164,28 +164,41 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     profile: async (tx, ownerId) => {
       const data = {
         organizationName: "Demo Incubator",
-        description: "Demo incubator profile for trying VittamHub.",
+        description:
+          "Demo incubator profile for trying VittamHub. Takes student and first-time founders in edtech and fintech from idea to a working MVP.",
         industries: ["EDTECH", "FINTECH"],
         hostType: "ACADEMIC" as const,
         city: "Jaipur",
         state: "Rajasthan",
+        portfolioCompanies: ["Demo Startup", "Demo Fintech Startup"],
         verificationStatus: "VERIFIED" as const,
         verifiedAt: now(),
       };
       // Your role at the organisation lives on your own profile; the wizard asks for it.
       await tx.userProfile.update({ where: { userId: ownerId }, data: { designation: "Demo programme manager" } });
       const incubator = await tx.incubatorProfile.upsert({ where: { ownerId }, update: data, create: { ...data, ownerId } });
-      const existing = await tx.incubatorProgram.findFirst({ where: { incubatorId: incubator.id, name: "Demo pre-incubation programme" } });
-      if (!existing) {
-        await tx.incubatorProgram.create({
-          data: {
-            incubatorId: incubator.id,
-            name: "Demo pre-incubation programme",
-            description: "12-week demo programme. Idea to MVP stage, unregistered startups welcome.",
-            durationWeeks: 12,
-            eligibilityCriteria: "Idea to MVP stage. Company registration not required.",
-          },
-        });
+      // The cohort's window moves with each boot, so the demo always has one programme taking applications.
+      const day = 24 * 60 * 60 * 1000;
+      const programmes = [
+        {
+          name: "Demo pre-incubation programme",
+          description: "12-week demo programme. Idea to MVP stage, unregistered startups welcome.",
+          durationWeeks: 12,
+          eligibilityCriteria: "Idea to MVP stage. Company registration not required.",
+        },
+        {
+          name: "Demo MVP cohort",
+          description: "16-week demo cohort with a weekly mentor review and a demo day at the end.",
+          durationWeeks: 16,
+          eligibilityCriteria: "A prototype or MVP with first users.",
+          applicationCycleStart: new Date(Date.now() - 7 * day),
+          applicationCycleEnd: new Date(Date.now() + 28 * day),
+        },
+      ];
+      for (const programme of programmes) {
+        const existing = await tx.incubatorProgram.findFirst({ where: { incubatorId: incubator.id, name: programme.name } });
+        if (existing) await tx.incubatorProgram.update({ where: { id: existing.id }, data: programme });
+        else await tx.incubatorProgram.create({ data: { ...programme, incubatorId: incubator.id } });
       }
       return incubator;
     },
@@ -201,8 +214,8 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
         city: "Jaipur",
         state: "Rajasthan",
         incubationCellName: "Demo University Startup Cell",
-        departments: ["Management", "Engineering"],
-        programsOffered: ["Student startup programme"],
+        departments: ["Management", "Engineering", "Design"],
+        programsOffered: ["Student startup programme", "Demo ideation sprint", "Demo final-year project to startup track"],
         verificationStatus: "VERIFIED" as const,
       };
       await tx.userProfile.update({ where: { userId: ownerId }, data: { designation: "Demo E-cell coordinator" } });
