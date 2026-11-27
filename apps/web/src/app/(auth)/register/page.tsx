@@ -63,6 +63,8 @@ export default function RegisterPage() {
   // Marketing links say ?role=investor or ?persona=student; anything unknown opens the picker.
   const fromQuery = personaFromQuery({ role: searchParams.get("role"), persona: searchParams.get("persona") });
   const [selected, setSelected] = useState<PersonaOption | null>(fromQuery);
+  // Someone new pressed Google (or GitHub, LinkedIn) on the login page: they need an account type first.
+  const fromGoogleLogin = searchParams.get("error") === "oauth_no_account";
 
   if (!selected) {
     return (
@@ -71,6 +73,13 @@ export default function RegisterPage() {
           <h1 className="font-heading text-2xl font-semibold text-text-primary sm:text-3xl">Who are you joining as?</h1>
           <p className="mt-2 text-text-secondary">Pick the one that fits best. It decides which questions we ask next.</p>
         </div>
+
+        {fromGoogleLogin && (
+          <p className="mb-6 rounded-card border border-brand-200 bg-brand-50 px-4 py-3 text-center text-sm text-text-primary" role="status">
+            There&apos;s no VittamHub account with that address yet. Pick who you&apos;re joining as, then continue with it again to
+            create your account.
+          </p>
+        )}
 
         <div className="flex flex-col gap-8">
           {PERSONA_GROUPS.map((group) => (
@@ -269,7 +278,7 @@ function AccountForm({ persona, onChangePersona, onDone }: { persona: PersonaOpt
         <p className="text-center text-xs text-text-secondary">Takes a minute. You&apos;ll add the rest of your profile after this.</p>
       </form>
 
-      <OAuthButtons className="mt-6" />
+      <OAuthButtons className="mt-6" persona={persona.persona} />
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         Already have an account?{" "}

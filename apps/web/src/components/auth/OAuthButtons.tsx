@@ -49,8 +49,13 @@ function GoogleIcon({ className }: { className?: string }) {
  * Only providers the API holds keys for are offered. All three buttons used
  * to show regardless, and one that wasn't set up led to that provider's own
  * error page. With none set up, this renders nothing at all, divider included.
+ *
+ * On the sign-up page `persona` is the account type just picked: the API keeps
+ * it through the provider's round trip and gives a new account that role. On
+ * the login page there is none, so an address with no account yet is sent to
+ * sign-up to pick one first.
  */
-export function OAuthButtons({ className }: { className?: string }) {
+export function OAuthButtons({ className, persona }: { className?: string; persona?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -83,7 +88,7 @@ export function OAuthButtons({ className }: { className?: string }) {
       {providers.map((provider) => (
         <a
           key={provider.id}
-          href={`${getApiBaseUrl()}/v1/auth/${provider.id}`}
+          href={`${getApiBaseUrl()}/v1/auth/${provider.id}${persona ? `?persona=${encodeURIComponent(persona)}` : ""}`}
           onClick={(event) => void startOAuth(event, provider.label)}
           className="inline-flex items-center justify-center gap-2.5 rounded-button border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-background-secondary"
         >
@@ -91,6 +96,19 @@ export function OAuthButtons({ className }: { className?: string }) {
           {provider.label}
         </a>
       ))}
+      {persona && (
+        <p className="text-center text-xs text-text-secondary">
+          By continuing, you confirm you&apos;re 18 or older and accept the{" "}
+          <a href="/terms" className="underline hover:text-text-primary">
+            Terms
+          </a>{" "}
+          and{" "}
+          <a href="/privacy" className="underline hover:text-text-primary">
+            Privacy Policy
+          </a>
+          .
+        </p>
+      )}
       {connecting && (
         <div
           className="fixed inset-0 z-modal"

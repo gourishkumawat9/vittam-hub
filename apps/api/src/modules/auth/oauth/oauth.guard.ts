@@ -1,13 +1,15 @@
 import { ExecutionContext, Injectable, Logger, mixin, Type, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AuthGuard, IAuthGuard } from "@nestjs/passport";
+import type { Request, Response } from "express";
 
 import { isOAuthProviderConfigured, type OAuthProvider } from "./oauth-providers";
+import { rememberSignupPersona } from "./oauth-signup.cookie";
 
 /** Carries a short reason code to the login page (see OAuthRedirectFilter). */
 export class OAuthSignInException extends UnauthorizedException {
   constructor(
-    readonly reason: "oauth_unavailable" | "oauth_email" | "oauth_failed" | "oauth_closed",
+    readonly reason: "oauth_unavailable" | "oauth_email" | "oauth_failed" | "oauth_closed" | "oauth_no_account",
     message: string,
   ) {
     super(message);
@@ -32,6 +34,11 @@ export function OAuthGuard(provider: OAuthProvider): Type<IAuthGuard> {
     override canActivate(context: ExecutionContext) {
       if (!isOAuthProviderConfigured(this.configService, provider)) {
         throw new OAuthSignInException("oauth_unavailable", `Sign-in with ${provider} isn't available`);
+      }
+      const http = context.switchToHttp();
+      const req = http.getRequest<Request>();
+      if (!req.path.endsWith("/callback")) {
+        rememberSignupPersona(req, http.getResponse<Response>(), this.configService.get("NODE_ENV") === "production");
       }
       return super.canActivate(context);
     }

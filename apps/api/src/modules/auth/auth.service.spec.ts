@@ -387,17 +387,42 @@ describe("AuthService", () => {
       await expect(service.findOrCreateOAuthUser(GOOGLE_PROFILE, META)).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
-    it("creates a new, email-verified founder account when nothing matches", async () => {
+    it("creates a new, email-verified account with the account type picked on the sign-up page", async () => {
       const { service, prisma, usersService } = setup();
       usersService.findByOAuthAccount.mockResolvedValue(null);
       usersService.findByEmail.mockResolvedValue(null);
-      prisma.user.create.mockResolvedValue(fakeUser({ emailVerifiedAt: new Date() }));
+      prisma.user.create.mockResolvedValue(fakeUser({ role: "INVESTOR", emailVerifiedAt: new Date() }));
 
-      await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META);
+      await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META, "INVESTMENT_FIRM");
 
       const created = prisma.user.create.mock.calls[0][0].data;
-      expect(created).toMatchObject({ email: "person@example.com", role: "FOUNDER", emailVerifiedAt: expect.any(Date) });
+      expect(created).toMatchObject({
+        email: "person@example.com",
+        role: "INVESTOR",
+        emailVerifiedAt: expect.any(Date),
+        profile: { create: { persona: "INVESTMENT_FIRM" } },
+      });
       expect(created.passwordHash).toBeUndefined();
+    });
+
+    it("sends a new person to pick an account type instead of creating one when they started from the login page", async () => {
+      const { service, prisma, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(null);
+      usersService.findByEmail.mockResolvedValue(null);
+
+      await expect(service.findOrCreateOAuthUser(GOOGLE_PROFILE, META)).rejects.toMatchObject({ reason: "oauth_no_account" });
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it("signs an existing account in without changing its role, whatever account type the sign-up page sent", async () => {
+      const { service, prisma, usersService } = setup();
+      usersService.findByOAuthAccount.mockResolvedValue(fakeUser({ role: "FOUNDER" }));
+
+      const result = await service.findOrCreateOAuthUser(GOOGLE_PROFILE, META, "MENTOR");
+
+      expect(result.mfaRequired).toBe(false);
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ role: expect.anything() }) }));
     });
   });
 
