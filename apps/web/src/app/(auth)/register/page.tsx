@@ -163,9 +163,7 @@ function AccountForm({ persona, onChangePersona, onDone }: { persona: PersonaOpt
       </button>
 
       <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100">
-          <persona.icon className="h-5 w-5 text-brand-700" aria-hidden="true" />
-        </span>
+        <persona.icon className="h-8 w-8 shrink-0 text-brand-primary" aria-hidden="true" />
         <div>
           <h1 className="font-heading text-lg font-semibold text-text-primary">Create your account</h1>
           <p className="text-xs text-text-secondary">Joining as {persona.title.toLowerCase()}</p>

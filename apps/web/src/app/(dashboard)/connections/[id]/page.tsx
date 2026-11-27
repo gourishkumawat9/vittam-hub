@@ -10,8 +10,8 @@ import {
   type ConnectionWithRelations,
 } from "@vittamhub/api-client";
 import { Avatar, Button, Card, EmptyState, Skeleton, useToast } from "@vittamhub/ui";
+import { ArrowLeft, CalendarPlus, FileText, Lock, MessageCircle, PlayCircle, Send, Video } from "@vittamhub/ui/icons";
 import { formatMoney } from "@vittamhub/utils";
-import { ArrowLeft, CalendarPlus, FileText, Lock, MessageCircle, PlayCircle, Send, Video } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";

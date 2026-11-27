@@ -1,10 +1,10 @@
 "use client";
 
 import * as RadixCheckbox from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
 import { useId } from "react";
 import type { ReactNode } from "react";
 
+import { Check } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface CheckboxProps {

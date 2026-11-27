@@ -1,7 +1,7 @@
 "use client";
 
+import { Check, FileText, Link2 } from "@vittamhub/ui/icons";
 import { motion } from "framer-motion";
-import { Check, FileText, Link2 } from "lucide-react";
 import Link from "next/link";
 
 import { cta } from "./cta";

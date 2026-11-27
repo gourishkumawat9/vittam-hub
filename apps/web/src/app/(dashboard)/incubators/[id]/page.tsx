@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useIncubator } from "@vittamhub/api-client";
 import { Avatar, Badge, Button, Card, ErrorState, Skeleton } from "@vittamhub/ui";
-import { CheckCircle2, ExternalLink, Globe, Layers, Rocket, Users } from "lucide-react";
+import { CheckCircle2, ExternalLink, Globe, Layers, Rocket, Users } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 

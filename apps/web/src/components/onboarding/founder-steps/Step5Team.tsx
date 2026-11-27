@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HiringStatus, TeamMemberCategory, teamStepSchema, type TeamStepInput } from "@vittamhub/types";
 import { Input, Select, TagsInput } from "@vittamhub/ui";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "@vittamhub/ui/icons";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import { useAutosave } from "@/hooks/useAutosave";

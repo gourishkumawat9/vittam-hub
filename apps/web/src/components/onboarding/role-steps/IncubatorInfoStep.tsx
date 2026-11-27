@@ -11,7 +11,7 @@ import {
   type IncubatorKind,
 } from "@vittamhub/types";
 import { Input, TagsInput, Textarea } from "@vittamhub/ui";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "@vittamhub/ui/icons";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import { AvatarUpload } from "@/components/AvatarUpload";

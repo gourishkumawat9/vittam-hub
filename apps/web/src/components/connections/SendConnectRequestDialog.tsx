@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadFile, useSendConnectionRequest, type InvestorWithOwner } from "@vittamhub/api-client";
 import { createConnectionInputSchema, type CreateConnectionInput } from "@vittamhub/types";
 import { Button, Dialog, Input, Textarea } from "@vittamhub/ui";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload } from "@vittamhub/ui/icons";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 

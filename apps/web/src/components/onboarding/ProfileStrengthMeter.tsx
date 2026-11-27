@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useDocuments } from "@vittamhub/api-client";
 import { profileStrength, SIGNUP_SHARE_PERCENT, type ProfileStrength } from "@vittamhub/types";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Gauge } from "@vittamhub/ui/icons";
 import { useMemo } from "react";
 
 import { usePersona } from "@/hooks/usePersona";
@@ -83,7 +83,7 @@ export function ProfileStrengthPanel({
   return (
     <section aria-label="Profile strength" className={cn("flex flex-col gap-4 rounded-card border border-brand-100 bg-gradient-to-b from-brand-50 to-surface p-4 dark:border-white/10 dark:from-white/5", className)}>
       <div className="flex items-center gap-2 text-xs font-semibold text-brand-700 dark:text-brand-300">
-        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+        <Gauge className="h-3.5 w-3.5" aria-hidden="true" />
         Profile strength
       </div>
       <StrengthBar percent={strength.percent} />
@@ -128,7 +128,7 @@ export function ProfileStrengthPill() {
   if (!strength) return null;
   return (
     <span className="font-numeric flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 dark:bg-white/10 dark:text-brand-300 lg:hidden">
-      <Sparkles className="h-3 w-3" aria-hidden="true" />
+      <Gauge className="h-3 w-3" aria-hidden="true" />
       {strength.percent}% complete
     </span>
   );

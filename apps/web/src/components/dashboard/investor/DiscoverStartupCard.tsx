@@ -2,8 +2,8 @@
 
 import { useAddToPipeline, useFollowStartup, type StartupSearchResultItem } from "@vittamhub/api-client";
 import { Badge, Button, Card } from "@vittamhub/ui";
+import { Bookmark, Handshake, ShieldCheck, Target } from "@vittamhub/ui/icons";
 import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
-import { Bookmark, Handshake, ShieldCheck, Sparkles } from "lucide-react";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
@@ -72,7 +72,7 @@ export function DiscoverStartupCard({ startup, selectedForCompare, onToggleCompa
         </div>
         {startup.matchScore && (
           <div className="flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-brand-primary" />
+            <Target className="h-3.5 w-3.5 text-brand-primary" />
             <span className="text-text-secondary">Match</span>
             <span className="ml-auto font-numeric font-semibold text-text-primary">{startup.matchScore.score}%</span>
           </div>

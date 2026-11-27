@@ -11,7 +11,7 @@ import {
   type InvestorWithOwner,
 } from "@vittamhub/api-client";
 import { Badge, Button, Card, ErrorState, Skeleton } from "@vittamhub/ui";
-import { Eye, Plus } from "lucide-react";
+import { Eye, Plus } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useState } from "react";
 

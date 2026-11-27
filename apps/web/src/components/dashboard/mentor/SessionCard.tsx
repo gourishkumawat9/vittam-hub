@@ -2,8 +2,8 @@
 
 import { useCompleteMentorSession, type MentorBookingWithRelations } from "@vittamhub/api-client";
 import { Avatar, Badge, Button, Card, useToast } from "@vittamhub/ui";
+import { CalendarClock, CalendarPlus, CheckCircle2, MessageSquareText, Star, Video } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { CalendarClock, CalendarPlus, CheckCircle2, MessageSquareText, Star, Video } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

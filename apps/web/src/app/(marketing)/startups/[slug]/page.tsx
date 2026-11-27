@@ -2,8 +2,8 @@
 
 import { useCurrentUser, usePublicFounderActivity, useRecordProfileView, useStartup } from "@vittamhub/api-client";
 import { Badge, Button, Card, EmptyState, Skeleton, useToast } from "@vittamhub/ui";
+import { Activity, BadgeCheck, Building2, CalendarDays, FileText, Globe, History, Link2, MapPin, Users } from "@vittamhub/ui/icons";
 import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
-import { Activity, BadgeCheck, Building2, CalendarDays, FileText, Globe, History, Link2, MapPin, Users } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 

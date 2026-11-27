@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "@vittamhub/ui/icons";
 
 interface WizardNavProps {
   onBack?: () => void;

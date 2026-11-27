@@ -1,10 +1,9 @@
-import { AlertTriangle } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-
+import { AlertTriangle } from "../../icons";
+import type { IconComponent } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface ErrorStateProps {
-  icon?: LucideIcon;
+  icon?: IconComponent;
   title?: string;
   description?: string;
   onRetry?: () => void;

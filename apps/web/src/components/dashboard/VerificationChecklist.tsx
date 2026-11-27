@@ -2,7 +2,7 @@
 
 import { useMyVerification } from "@vittamhub/api-client";
 import { Card, ProgressBar, Skeleton } from "@vittamhub/ui";
-import { CheckCircle2, Circle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Circle, ShieldCheck } from "@vittamhub/ui/icons";
 
 import { PanelLink, PanelTitle } from "./PageHeader";
 import { TRUST_TIERS, TrustTierBadge } from "./TrustTierBadge";

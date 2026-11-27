@@ -3,8 +3,8 @@
 import { useInvestorAnalytics, type AnalyticsBucket } from "@vittamhub/api-client";
 import { PipelineStage } from "@vittamhub/types";
 import { Button, Card, ErrorState, Skeleton } from "@vittamhub/ui";
+import { Ban, Bookmark, Briefcase, ChevronRight, Kanban, MessageSquareReply, PieChart } from "@vittamhub/ui/icons";
 import { formatCompactMoney } from "@vittamhub/utils";
-import { Ban, Bookmark, Briefcase, ChevronRight, Kanban, MessageSquareReply, PieChart } from "lucide-react";
 import Link from "next/link";
 
 import { PageHeader, PanelLink, PanelTitle } from "@/components/dashboard/PageHeader";

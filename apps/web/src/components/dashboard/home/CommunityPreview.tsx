@@ -2,8 +2,8 @@
 
 import { useCommunityFeed } from "@vittamhub/api-client";
 import { Avatar, Badge, Card, Skeleton } from "@vittamhub/ui";
+import { Users } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Users } from "lucide-react";
 import Link from "next/link";
 
 import { PanelLink, PanelTitle } from "../PageHeader";

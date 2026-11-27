@@ -11,7 +11,7 @@ import {
   type StartupWizardStep,
 } from "@vittamhub/types";
 import { Checkbox, Input } from "@vittamhub/ui";
-import { AlertCircle, Check, MapPin, Pencil, Plus } from "lucide-react";
+import { AlertCircle, Check, MapPin, Pencil, Plus } from "@vittamhub/ui/icons";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 

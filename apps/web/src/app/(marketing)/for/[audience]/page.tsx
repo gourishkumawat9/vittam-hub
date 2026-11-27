@@ -1,5 +1,5 @@
 import { Accordion } from "@vittamhub/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@vittamhub/ui/icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -72,9 +72,7 @@ export default async function AudiencePage({ params }: Params) {
           <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {audience.capabilities.map((capability) => (
               <li key={capability.title} className="flex flex-col gap-4 rounded-card border border-border bg-surface p-6 lg:p-8">
-                <span className="flex h-11 w-11 items-center justify-center rounded-sm bg-brand-50 text-brand-700 dark:bg-brand-primary/15 dark:text-brand-primary">
-                  <capability.icon className="h-5 w-5" aria-hidden="true" />
-                </span>
+                <capability.icon className="h-8 w-8 text-brand-primary" aria-hidden="true" />
                 <h3 className="font-heading text-lg font-bold text-text-primary">{capability.title}</h3>
                 <p className="text-sm leading-relaxed text-text-secondary">{capability.description}</p>
               </li>

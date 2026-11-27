@@ -12,8 +12,8 @@ import {
 } from "@vittamhub/api-client";
 import { WatchlistTriggerType, type CreateWatchlistTriggerInput } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Input, Select } from "@vittamhub/ui";
+import { Bell, BellOff, BellRing, Bookmark, Compass, Eye, Trash2 } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Bell, BellOff, BellRing, Bookmark, Compass, Eye, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";

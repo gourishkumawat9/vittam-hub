@@ -1,7 +1,7 @@
 "use client";
 
+import { ArrowDown, ArrowRight, Check } from "@vittamhub/ui/icons";
 import { motion, useTransform } from "framer-motion";
-import { ArrowDown, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 
 import { useParallax } from "@/hooks/useParallax";

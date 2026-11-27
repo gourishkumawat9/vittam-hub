@@ -3,8 +3,8 @@
 import { useDeleteDocument, useDocumentDownloadUrl, useDocuments, useUploadDocument, uploadFile } from "@vittamhub/api-client";
 import { DocumentType } from "@vittamhub/types";
 import { Badge, Button, Card, EmptyState, Select, useToast } from "@vittamhub/ui";
+import { BadgeCheck, CheckCircle2, FileText, FolderLock, Lock, ShieldCheck, Trash2 } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { BadgeCheck, CheckCircle2, FileText, FolderLock, Lock, ShieldCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

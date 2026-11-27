@@ -11,7 +11,7 @@ import {
   useWorkspaceHome,
 } from "@vittamhub/api-client";
 import { Badge, Button, Card, ProgressBar, Skeleton } from "@vittamhub/ui";
-import { CalendarClock, Gauge, Inbox, ShieldCheck, TrendingUp, UserCheck } from "lucide-react";
+import { CalendarClock, Gauge, Inbox, ShieldCheck, TrendingUp, UserCheck } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { PageHeader, PanelLink, PanelTitle, SectionHeader } from "@/components/dashboard/PageHeader";

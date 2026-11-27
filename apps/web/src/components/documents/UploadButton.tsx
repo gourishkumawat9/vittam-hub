@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload } from "@vittamhub/ui/icons";
 
 import { cn } from "@/lib/utils";
 

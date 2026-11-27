@@ -2,7 +2,7 @@
 
 import { uploadFile } from "@vittamhub/api-client";
 import { Button, Input } from "@vittamhub/ui";
-import { FileText, Link2, Upload, X } from "lucide-react";
+import { FileText, Link2, Upload, X } from "@vittamhub/ui/icons";
 import { useRef, useState } from "react";
 
 import { externalHref } from "@/lib/safe-url";

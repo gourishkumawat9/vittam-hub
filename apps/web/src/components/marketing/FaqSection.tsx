@@ -1,7 +1,7 @@
 "use client";
 
+import { Plus } from "@vittamhub/ui/icons";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

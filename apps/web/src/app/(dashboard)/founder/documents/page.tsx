@@ -3,8 +3,8 @@
 import { useDeleteDocument, useDocumentDownloadUrl, useDocuments, useUploadDocument, uploadFile } from "@vittamhub/api-client";
 import { DocumentType } from "@vittamhub/types";
 import { Badge, Button, Card, EmptyState, Select, useToast } from "@vittamhub/ui";
+import { CheckCircle2, ChevronDown, FileText, FolderLock, Lock, Trash2 } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { CheckCircle2, ChevronDown, FileText, FolderLock, Lock, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";

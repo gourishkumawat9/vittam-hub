@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@vittamhub/ui/icons";
 import { useId, type ReactNode } from "react";
 
 import type { ChoiceOption } from "@/lib/startup-options";

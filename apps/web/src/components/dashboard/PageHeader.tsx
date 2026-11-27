@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";

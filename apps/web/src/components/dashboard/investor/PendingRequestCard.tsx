@@ -8,8 +8,8 @@ import {
   type ConnectionWithRelations,
 } from "@vittamhub/api-client";
 import { Avatar, Badge, Button, Card, useToast } from "@vittamhub/ui";
+import { Bookmark, Calendar, FileText, HelpCircle, PlayCircle } from "@vittamhub/ui/icons";
 import { formatMoney } from "@vittamhub/utils";
-import { Bookmark, Calendar, FileText, HelpCircle, PlayCircle } from "lucide-react";
 import { useState } from "react";
 
 import { ProposeMeetingDialog } from "@/components/connections/ProposeMeetingDialog";

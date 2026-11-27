@@ -3,7 +3,7 @@
 import { useUpdateMyVisibility } from "@vittamhub/api-client";
 import { MetricVisibility, ProfileVisibility, type Startup } from "@vittamhub/types";
 import { Card, Select } from "@vittamhub/ui";
-import { Eye } from "lucide-react";
+import { Eye } from "@vittamhub/ui/icons";
 import { useState } from "react";
 
 import { PanelTitle } from "../PageHeader";

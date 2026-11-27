@@ -2,7 +2,7 @@
 
 import type { GrowthBenchmark } from "@vittamhub/api-client";
 import { Card } from "@vittamhub/ui";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp } from "@vittamhub/ui/icons";
 
 import { PanelTitle } from "../PageHeader";
 

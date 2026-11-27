@@ -1,8 +1,8 @@
 "use client";
 
 import { Drawer, ProgressBar, Skeleton } from "@vittamhub/ui";
+import { ArrowLeft, Check, Cloud, CloudOff, LayoutDashboard, ListTree, Loader2, Plus } from "@vittamhub/ui/icons";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Cloud, CloudOff, LayoutDashboard, ListTree, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";

@@ -2,8 +2,8 @@
 
 import { useConnections } from "@vittamhub/api-client";
 import { Avatar, EmptyState } from "@vittamhub/ui";
+import { ChevronRight, MessageCircle } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { ChevronRight, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";

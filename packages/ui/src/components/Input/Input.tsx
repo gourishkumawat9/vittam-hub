@@ -1,6 +1,6 @@
-import { AlertCircle } from "lucide-react";
 import { forwardRef, useId } from "react";
 
+import { AlertCircle } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {

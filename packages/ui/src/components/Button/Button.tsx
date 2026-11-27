@@ -3,9 +3,9 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { motion, type HTMLMotionProps } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import { forwardRef } from "react";
 
+import { Loader2 } from "../../icons";
 import { cn } from "../../lib/cn";
 
 const buttonVariants = cva(

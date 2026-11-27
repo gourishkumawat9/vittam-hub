@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForgotPassword } from "@vittamhub/api-client";
 import { requestPasswordResetInputSchema, type RequestPasswordResetInput } from "@vittamhub/types";
 import { Button, Input } from "@vittamhub/ui";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 

@@ -2,8 +2,8 @@
 
 import type { StartupMilestone } from "@vittamhub/types";
 import { Card, EmptyState } from "@vittamhub/ui";
+import { FileText, History, Link2 } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { FileText, History, Link2 } from "lucide-react";
 
 import { externalHref } from "@/lib/safe-url";
 

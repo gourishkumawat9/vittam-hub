@@ -1,6 +1,6 @@
 import type { IncubatorWithPrograms } from "@vittamhub/api-client";
 import { Avatar, Badge, Card } from "@vittamhub/ui";
-import { Circle, Eye } from "lucide-react";
+import { Circle, Eye } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";

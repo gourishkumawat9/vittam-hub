@@ -96,7 +96,7 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "@vittamhub/ui"],
+    optimizePackageImports: ["@vittamhub/ui"],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

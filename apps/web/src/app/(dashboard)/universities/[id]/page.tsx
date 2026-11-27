@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useUniversity } from "@vittamhub/api-client";
 import { Avatar, Badge, Button, Card, ErrorState, Skeleton } from "@vittamhub/ui";
-import { ArrowRight, BookOpen, CheckCircle2, Globe, Lightbulb } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Globe, Lightbulb } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 

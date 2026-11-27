@@ -1,32 +1,7 @@
 "use client";
 
 import { useCurrentUser } from "@vittamhub/api-client";
-import {
-  BarChart3,
-  Bookmark,
-  Briefcase,
-  Building2,
-  Calendar,
-  CalendarClock,
-  ChevronDown,
-  Compass,
-  FolderLock,
-  GraduationCap,
-  Handshake,
-  Inbox,
-  Kanban,
-  LayoutDashboard,
-  MessageCircle,
-  Network,
-  School,
-  Search,
-  Settings,
-  Shield,
-  Sparkles,
-  Target,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { BarChart3, Bookmark, Briefcase, Building2, Calendar, CalendarClock, ChevronDown, Compass, FolderLock, GraduationCap, Handshake, Inbox, Kanban, LayoutDashboard, MessageCircle, Network, School, Search, Settings, Shield, Target, UserRound, Users } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -99,7 +74,7 @@ const ROLE_NAV: Record<string, NavGroup[]> = {
       collapsible: true,
       items: [
         { href: "/investor/analytics", label: "Analytics", icon: BarChart3 },
-        { href: "/investor/recommendations", label: "Recommendations", icon: Sparkles },
+        { href: "/investor/recommendations", label: "Recommendations", icon: Target },
         { href: "/investor/mandates", label: "Mandates", icon: Target },
         { href: "/investor/saved-searches", label: "Saved searches", icon: Search },
         { href: "/investor/co-investors", label: "Co-investors", icon: Network },

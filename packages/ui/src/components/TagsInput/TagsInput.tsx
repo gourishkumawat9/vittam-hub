@@ -1,8 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useId, useState } from "react";
 
+import { X } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface TagsInputProps {

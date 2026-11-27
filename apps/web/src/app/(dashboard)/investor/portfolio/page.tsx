@@ -2,8 +2,8 @@
 
 import { usePortfolio, usePortfolioDashboard, useRecordExit, useSetFollowUp, type InvestmentWithStartup } from "@vittamhub/api-client";
 import { Badge, Button, Card, CardHeader, CardTitle, EmptyState, Input } from "@vittamhub/ui";
+import { Briefcase, CalendarClock, TrendingUp } from "@vittamhub/ui/icons";
 import { formatCompactMoney, formatRelativeTime } from "@vittamhub/utils";
-import { Briefcase, CalendarClock, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

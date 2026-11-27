@@ -1,7 +1,7 @@
 "use client";
 
 import { getApiBaseUrl, useOAuthProviders, waitForApi } from "@vittamhub/api-client";
-import { Github, Linkedin } from "lucide-react";
+import { Github, Linkedin } from "@vittamhub/ui/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 

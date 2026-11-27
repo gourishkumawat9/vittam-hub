@@ -1,7 +1,7 @@
 "use client";
 
+import { ArrowLeft, ArrowRight } from "@vittamhub/ui/icons";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useState } from "react";
 
 import { PLATFORM_FEATURES } from "@/data/features";

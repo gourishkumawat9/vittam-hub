@@ -3,7 +3,7 @@
 import { useStartupSearch, type StartupSearchResultItem } from "@vittamhub/api-client";
 import type { StartupSearchFilters } from "@vittamhub/types";
 import { Badge, Button, EmptyState } from "@vittamhub/ui";
-import { Compass, Layers } from "lucide-react";
+import { Compass, Layers } from "@vittamhub/ui/icons";
 import { useState } from "react";
 
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";

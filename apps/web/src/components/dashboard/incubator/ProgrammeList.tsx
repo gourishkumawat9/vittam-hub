@@ -1,6 +1,6 @@
 import type { IncubatorProgramRecord } from "@vittamhub/api-client";
 import { Badge } from "@vittamhub/ui";
-import { AlertCircle, CalendarRange, Clock, ExternalLink } from "lucide-react";
+import { AlertCircle, CalendarRange, Clock, ExternalLink } from "@vittamhub/ui/icons";
 
 import { externalHref } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";

@@ -6,9 +6,9 @@ import {
   useUnreadNotificationCount,
 } from "@vittamhub/api-client";
 import { EmptyState } from "@vittamhub/ui";
+import { Bell, CheckCheck } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, CheckCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 

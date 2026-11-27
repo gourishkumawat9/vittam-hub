@@ -1,7 +1,7 @@
 "use client";
 
 import { useGlobalSearch } from "@vittamhub/api-client";
-import { Building2, Compass, GraduationCap, School, Search, TrendingUp } from "lucide-react";
+import { Building2, Compass, GraduationCap, School, Search, TrendingUp } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";

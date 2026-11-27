@@ -2,7 +2,7 @@
 
 import type { StartupHealth } from "@vittamhub/types";
 import { Badge, Card, ProgressBar } from "@vittamhub/ui";
-import { CheckCircle2, Circle, Gauge } from "lucide-react";
+import { CheckCircle2, Circle, Gauge } from "@vittamhub/ui/icons";
 
 import { PanelTitle } from "../PageHeader";
 

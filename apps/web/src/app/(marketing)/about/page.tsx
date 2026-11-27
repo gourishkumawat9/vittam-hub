@@ -1,4 +1,4 @@
-import { Award, Compass, Handshake, Rocket } from "lucide-react";
+import { Award, Compass, Handshake, User } from "@vittamhub/ui/icons";
 import type { Metadata } from "next";
 
 import { JoinBand } from "@/components/marketing/JoinBand";
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 const PRINCIPLES = [
   {
-    icon: Rocket,
+    icon: User,
     title: "Founders first",
     description: "Built around what an early founder needs most: a clear profile, a mentor who has done it before, and a fair way to reach investors.",
   },
@@ -57,7 +57,7 @@ export default function AboutPage() {
           <ul className="mt-12 grid gap-6 sm:grid-cols-2">
             {PRINCIPLES.map(({ icon: Icon, title, description }) => (
               <li key={title} className="flex flex-col gap-3 border-t-2 border-brand-primary pt-6">
-                <Icon className="h-6 w-6 text-brand-primary" aria-hidden="true" />
+                <Icon className="h-8 w-8 text-brand-primary" aria-hidden="true" />
                 <h3 className="font-heading text-xl font-bold text-text-primary">{title}</h3>
                 <p className="leading-relaxed text-text-secondary">{description}</p>
               </li>

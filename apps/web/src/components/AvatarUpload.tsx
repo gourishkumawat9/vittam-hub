@@ -1,7 +1,7 @@
 "use client";
 
 import { uploadFile } from "@vittamhub/api-client";
-import { Building2, Camera, Loader2, Trash2, User } from "lucide-react";
+import { Building2, Camera, Loader2, Trash2, User } from "@vittamhub/ui/icons";
 import { useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";

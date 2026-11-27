@@ -3,7 +3,7 @@
 import { useMentors } from "@vittamhub/api-client";
 import type { MentorSearchFilters } from "@vittamhub/types";
 import { Avatar, Badge, Card, EmptyState, TagsInput } from "@vittamhub/ui";
-import { ArrowRight, GraduationCap, Star } from "lucide-react";
+import { ArrowRight, GraduationCap, Star } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useState } from "react";
 

@@ -3,9 +3,9 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { motionVariants } from "@vittamhub/tokens";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { X } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface DrawerProps {

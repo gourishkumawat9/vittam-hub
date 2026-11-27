@@ -3,7 +3,7 @@
 import { useUniversities } from "@vittamhub/api-client";
 import type { UniversitySearchFilters } from "@vittamhub/types";
 import { Avatar, Badge, Card, EmptyState, Input } from "@vittamhub/ui";
-import { ArrowRight, Lightbulb, School, Search } from "lucide-react";
+import { ArrowRight, Lightbulb, School, Search } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 

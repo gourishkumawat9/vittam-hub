@@ -1,7 +1,7 @@
 "use client";
 
+import { ChevronDown } from "@vittamhub/ui/icons";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 

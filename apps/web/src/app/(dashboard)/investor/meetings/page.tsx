@@ -2,8 +2,8 @@
 
 import { useCurrentUser, useMyMeetings } from "@vittamhub/api-client";
 import { Badge, Button, Card, EmptyState } from "@vittamhub/ui";
+import { Calendar, MessageSquareText, Video } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Calendar, MessageSquareText, Video } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 

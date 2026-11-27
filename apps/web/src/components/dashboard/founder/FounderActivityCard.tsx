@@ -3,15 +3,15 @@
 import { useMyFounderActivity } from "@vittamhub/api-client";
 import type { FounderActivityEntryType } from "@vittamhub/types";
 import { Card, EmptyState, ErrorState } from "@vittamhub/ui";
+import { Activity, Briefcase, FileText, Flag, Inbox, LineChart, Rss, ShieldCheck } from "@vittamhub/ui/icons";
+import type { IconComponent } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Activity, Briefcase, FileText, Flag, Inbox, LineChart, Rss, ShieldCheck } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 
 import { PanelTitle } from "../PageHeader";
 
-const ENTRY_ICON: Record<FounderActivityEntryType, LucideIcon> = {
+const ENTRY_ICON: Record<FounderActivityEntryType, IconComponent> = {
   MILESTONE: Flag,
   STARTUP_UPDATE: Rss,
   JOB_POSTED: Briefcase,

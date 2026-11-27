@@ -1,8 +1,8 @@
 "use client";
 
+import { ArrowDown, ArrowRight, Compass, GraduationCap, Handshake, IdCard } from "@vittamhub/ui/icons";
+import type { IconComponent } from "@vittamhub/ui/icons";
 import { motion } from "framer-motion";
-import { ArrowDown, ArrowRight, Compass, GraduationCap, Rocket, Users } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { Fragment } from "react";
 
 import { SectionHeading } from "./SectionHeading";
@@ -12,11 +12,11 @@ export interface Step {
   description: string;
 }
 
-const STEPS: (Step & { icon: LucideIcon })[] = [
-  { title: "Create your startup", description: "Four short steps: about you, your startup, what you need, publish.", icon: Rocket },
+const STEPS: (Step & { icon: IconComponent })[] = [
+  { title: "Create your startup", description: "Four short steps: about you, your startup, what you need, publish.", icon: IdCard },
   { title: "Find a mentor", description: "Request a session with someone who has done it before.", icon: GraduationCap },
   { title: "Get discovered", description: "Appear in discovery, matched to investors who back your stage.", icon: Compass },
-  { title: "Connect with investors", description: "Send connect requests and track every reply in one place.", icon: Users },
+  { title: "Connect with investors", description: "Send connect requests and track every reply in one place.", icon: Handshake },
 ];
 
 /** Numbered steps in a row, each under a thin blue rule. Used on every audience page. */
@@ -57,9 +57,7 @@ export function HowItWorks() {
                 transition={{ duration: 0.4, delay: index * 0.1 }}
                 className="flex flex-1 items-start gap-4 rounded-card border border-border bg-surface p-5 shadow-sm lg:flex-col lg:items-center lg:gap-3 lg:p-6 lg:text-center"
               >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
-                  <step.icon className="h-5 w-5" aria-hidden="true" />
-                </span>
+                <step.icon className="h-8 w-8 shrink-0 text-brand-primary" aria-hidden="true" />
                 <span className="flex flex-col gap-1 lg:items-center lg:gap-3">
                   <span className="font-numeric text-xs font-bold text-brand-primary">STEP {index + 1}</span>
                   <h3 className="font-heading text-base font-semibold text-text-primary">{step.title}</h3>

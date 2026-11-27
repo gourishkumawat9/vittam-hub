@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Dialog } from "@vittamhub/ui";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "@vittamhub/ui/icons";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import { cn } from "@/lib/utils";

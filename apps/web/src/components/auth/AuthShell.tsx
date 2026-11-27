@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
 

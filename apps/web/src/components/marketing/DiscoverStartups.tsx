@@ -1,5 +1,5 @@
 import { Badge } from "@vittamhub/ui";
-import { ArrowRight, MapPin, Users } from "lucide-react";
+import { ArrowRight, MapPin, Users } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import type { StartupCard } from "@/data/startups";

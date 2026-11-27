@@ -2,8 +2,8 @@
 
 import { useConnections } from "@vittamhub/api-client";
 import { EmptyState } from "@vittamhub/ui";
+import { Inbox, MessageCircle } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Inbox, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 import { ConnectionStatusBadge } from "@/components/connections/ConnectionStatusBadge";
