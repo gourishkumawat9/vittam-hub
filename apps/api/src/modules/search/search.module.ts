@@ -4,12 +4,13 @@ import { IncubatorsModule } from "../incubators/incubators.module";
 import { InvestorsModule } from "../investors/investors.module";
 import { MentorsModule } from "../mentors/mentors.module";
 import { StartupsModule } from "../startups/startups.module";
+import { UniversitiesModule } from "../universities/universities.module";
 
 import { SearchController } from "./search.controller";
 import { SearchService } from "./search.service";
 
 @Module({
-  imports: [StartupsModule, InvestorsModule, MentorsModule, IncubatorsModule],
+  imports: [StartupsModule, InvestorsModule, MentorsModule, IncubatorsModule, UniversitiesModule],
   controllers: [SearchController],
   providers: [SearchService],
 })

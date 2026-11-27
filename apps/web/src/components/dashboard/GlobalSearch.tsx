@@ -1,7 +1,7 @@
 "use client";
 
 import { useGlobalSearch } from "@vittamhub/api-client";
-import { Building2, Compass, GraduationCap, Search, TrendingUp } from "lucide-react";
+import { Building2, Compass, GraduationCap, School, Search, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -52,7 +52,12 @@ export function GlobalSearch() {
   const { data, isFetching } = useGlobalSearch({ query: debouncedQuery }, open && debouncedQuery.trim().length > 0);
 
   const hasResults =
-    !!data && (data.startups.length > 0 || data.investors.length > 0 || data.mentors.length > 0 || data.incubators.length > 0);
+    !!data &&
+    (data.startups.length > 0 ||
+      data.investors.length > 0 ||
+      data.mentors.length > 0 ||
+      data.incubators.length > 0 ||
+      (data.universities?.length ?? 0) > 0);
 
   function goToFullResults() {
     if (!query.trim()) return;
@@ -76,7 +81,7 @@ export function GlobalSearch() {
               inputRef.current?.blur();
             }
           }}
-          aria-label="Search startups, investors and mentors"
+          aria-label="Search startups, investors, mentors, incubators and universities"
           placeholder="Search startups, investors, mentors…"
           className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-secondary focus:outline-none"
         />
@@ -128,6 +133,15 @@ export function GlobalSearch() {
                   {data!.incubators.map((incubator) => (
                     <ResultRow key={incubator.id} href={`/incubators/${incubator.id}`} onClick={() => setOpen(false)}>
                       {incubator.organizationName}
+                    </ResultRow>
+                  ))}
+                </ResultGroup>
+              )}
+              {(data!.universities?.length ?? 0) > 0 && (
+                <ResultGroup icon={School} label="Universities">
+                  {data!.universities.map((university) => (
+                    <ResultRow key={university.id} href={`/universities/${university.id}`} onClick={() => setOpen(false)}>
+                      {university.institutionName}
                     </ResultRow>
                   ))}
                 </ResultGroup>

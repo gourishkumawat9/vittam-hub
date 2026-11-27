@@ -5,6 +5,7 @@ import { IncubatorsService } from "../incubators/incubators.service";
 import { InvestorsService } from "../investors/investors.service";
 import { MentorsService } from "../mentors/mentors.service";
 import { StartupsService } from "../startups/startups.service";
+import { UniversitiesService } from "../universities/universities.service";
 
 const RESULTS_PER_GROUP = 5;
 
@@ -21,18 +22,20 @@ export class SearchService {
     private readonly investorsService: InvestorsService,
     private readonly mentorsService: MentorsService,
     private readonly incubatorsService: IncubatorsService,
+    private readonly universitiesService: UniversitiesService,
   ) {}
 
   async search(filters: GlobalSearchFilters, callerId: string, callerIsInvestor: boolean) {
     const paged = { query: filters.query, page: 1, pageSize: RESULTS_PER_GROUP };
 
-    const [startups, investors, mentors, incubators] = await Promise.all([
+    const [startups, investors, mentors, incubators, universities] = await Promise.all([
       // The projected search, not the raw one: a search box must not hand a
       // founder's burn rate and valuation to whoever types their name.
       this.startupsService.searchProjected(paged, { userId: callerId, isInvestor: callerIsInvestor }),
       this.investorsService.list(paged, callerId),
       this.mentorsService.list(paged, callerId),
       this.incubatorsService.list(paged, callerId),
+      this.universitiesService.list(paged, callerId),
     ]);
 
     return {
@@ -40,6 +43,7 @@ export class SearchService {
       investors: investors.items,
       mentors: mentors.items,
       incubators: incubators.items,
+      universities: universities.items,
     };
   }
 }

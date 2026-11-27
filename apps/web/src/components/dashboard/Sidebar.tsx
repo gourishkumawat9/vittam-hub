@@ -24,6 +24,7 @@ import {
   Shield,
   Sparkles,
   Target,
+  UserRound,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -103,6 +104,7 @@ const ROLE_NAV: Record<string, NavGroup[]> = {
         { href: "/investor/saved-searches", label: "Saved searches", icon: Search },
         { href: "/investor/co-investors", label: "Co-investors", icon: Network },
         { href: "/investor/documents", label: "Documents", icon: FolderLock },
+        { href: "/investor/profile", label: "Your profile", icon: UserRound },
       ],
     },
     { items: [COMMUNITY, SETTINGS] },

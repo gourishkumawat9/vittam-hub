@@ -5,64 +5,19 @@ import {
   useOpenConnectionAttachment,
   useRequestMoreInfo,
   useRespondToConnection,
-  useScheduleMeeting,
   type ConnectionWithRelations,
 } from "@vittamhub/api-client";
-import { Avatar, Badge, Button, Card, Dialog, Input, Textarea, useToast } from "@vittamhub/ui";
+import { Avatar, Badge, Button, Card, useToast } from "@vittamhub/ui";
 import { formatMoney } from "@vittamhub/utils";
 import { Bookmark, Calendar, FileText, HelpCircle, PlayCircle } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 
-import { localInputToIso, nowForLocalInput } from "@/lib/datetime";
+import { ProposeMeetingDialog } from "@/components/connections/ProposeMeetingDialog";
 import { openFetchedLink } from "@/lib/open-link";
 import { externalHref } from "@/lib/safe-url";
 
 const TEXT_ACTION =
   "flex items-center gap-1.5 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary disabled:opacity-60";
-
-interface MeetingFormValues {
-  scheduledAt: string;
-  notes?: string;
-  videoCallUrl?: string;
-}
-
-function ScheduleMeetingDialog({ connectionId, open, onOpenChange }: { connectionId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
-  const scheduleMeeting = useScheduleMeeting(connectionId);
-  const { register, handleSubmit, reset } = useForm<MeetingFormValues>();
-
-  const onSubmit = handleSubmit(async (data) => {
-    // The picker's value has no time zone. Sent as it was, the API read it as
-    // UTC, so a 3 pm meeting proposed from India was stored as 8:30 pm.
-    await scheduleMeeting.mutateAsync({ ...data, scheduledAt: localInputToIso(data.scheduledAt) ?? data.scheduledAt });
-    reset();
-    onOpenChange(false);
-  });
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Propose a meeting"
-      footer={
-        <>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={onSubmit} isLoading={scheduleMeeting.isPending}>
-            Propose
-          </Button>
-        </>
-      }
-    >
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <Input label="Date and time" type="datetime-local" min={nowForLocalInput()} {...register("scheduledAt", { required: true })} />
-        <Input label="Video call link (optional)" placeholder="https://…" {...register("videoCallUrl")} />
-        <Textarea label="Notes (optional)" rows={2} {...register("notes")} />
-      </form>
-    </Dialog>
-  );
-}
 
 /**
  * A founder's connect request waiting on the investor, with everything needed
@@ -189,7 +144,7 @@ export function PendingRequestCard({ connection }: { connection: ConnectionWithR
         </div>
       </div>
 
-      <ScheduleMeetingDialog connectionId={connection.id} open={meetingOpen} onOpenChange={setMeetingOpen} />
+      <ProposeMeetingDialog connectionId={connection.id} withName={connection.requester.fullName} open={meetingOpen} onOpenChange={setMeetingOpen} />
     </Card>
   );
 }

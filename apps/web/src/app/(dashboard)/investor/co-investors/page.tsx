@@ -1,100 +1,148 @@
 "use client";
 
-import { useMyCoInvestorGraph } from "@vittamhub/api-client";
-import { Avatar, Badge, Card, CardHeader, CardTitle, EmptyState, ErrorState } from "@vittamhub/ui";
-import { Network, Users } from "lucide-react";
+import { useMyCoInvestorGraph, useMyInvestorProfile } from "@vittamhub/api-client";
+import { Avatar, Badge, Card, EmptyState, ErrorState } from "@vittamhub/ui";
+import { Briefcase, Network, Users } from "lucide-react";
+import Link from "next/link";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
-import { StatTilesSkeleton } from "@/components/dashboard/StatTilesSkeleton";
-
-function titleCase(value: string) {
-  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
+import { PageHeader, PanelTitle } from "@/components/dashboard/PageHeader";
+import { StatStrip } from "@/components/dashboard/StatStrip";
+import { INVESTOR_TYPE_LABEL } from "@/lib/signup-options";
+import { INDUSTRY_LABEL, STAGE_LABEL } from "@/lib/startup-options";
 
 export default function CoInvestorGraphPage() {
   const { data, isLoading, isError } = useMyCoInvestorGraph();
+  const { data: me } = useMyInvestorProfile();
+
+  const header = (
+    <PageHeader
+      title="Co-investors"
+      description="Investors who backed the same startups as you, taken from recorded investments, and investors whose thesis overlaps with yours. Nothing here is guessed."
+    />
+  );
 
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="heading-5">Co-investor graph</h1>
-        </div>
-        <StatTilesSkeleton count={2} />
+        {header}
         <ListRowsSkeleton />
       </div>
     );
   }
-  if (isError) return <ErrorState />;
+  if (isError || !data) {
+    return (
+      <div className="flex flex-col gap-6">
+        {header}
+        <ErrorState />
+      </div>
+    );
+  }
+
+  const sharedStartups = new Set(data.coInvestors.flatMap((co) => co.sharedStartups.map((s) => s.id)));
+  const mySectors = new Set(me?.preferredIndustries ?? []);
+  const myStages = new Set<string>(me?.preferredStages ?? []);
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="heading-5">Co-investor graph</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Real shared investments and confirmed relationships. No AI, no inferred connections.
-        </p>
-      </div>
+      {header}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <p className="text-xs text-text-secondary">Co-investors</p>
-          <p className="font-numeric text-2xl font-bold text-text-primary">{data?.coInvestors.length ?? 0}</p>
-        </Card>
-        <Card>
-          <p className="text-xs text-text-secondary">Mutual confirmations</p>
-          <p className="font-numeric text-2xl font-bold text-text-primary">{data?.mutualConfirmations ?? 0}</p>
-        </Card>
-      </div>
+      <StatStrip
+        stats={[
+          { label: "Co-investors", value: data.coInvestors.length, hint: "Backed a startup you backed" },
+          { label: "Startups in common", value: sharedStartups.size, hint: "Across all of them" },
+          { label: "Confirmed by the startup", value: data.mutualConfirmations, hint: "Of your recorded investments", href: "/investor/portfolio" },
+        ]}
+      />
 
-      <Card className="flex flex-col gap-3">
-        <CardHeader className="flex-row items-center gap-2 pb-0">
-          <Network className="h-4 w-4 text-brand-primary" />
-          <CardTitle className="text-base">Most frequent co-investors</CardTitle>
-        </CardHeader>
-        {data && data.coInvestors.length > 0 ? (
-          <div className="flex flex-col divide-y divide-border">
-            {data.coInvestors.map((co) => (
-              <div key={co.investorId} className="flex items-center justify-between gap-3 py-3">
-                <div className="flex items-center gap-3">
-                  <Avatar src={co.avatarUrl} name={co.fullName} size="sm" />
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">{co.fullName}</p>
-                    <p className="text-xs text-text-secondary">{co.sharedStartups.map((s) => s.name).join(", ")}</p>
+      <div className="grid items-start gap-6 lg:grid-cols-5">
+        <Card className="flex flex-col gap-4 lg:col-span-3">
+          <PanelTitle icon={Network} title="Who you invest alongside" />
+          {data.coInvestors.length > 0 ? (
+            <ul className="flex flex-col divide-y divide-border">
+              {data.coInvestors.map((co) => (
+                <li key={co.investorId} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar src={co.avatarUrl} name={co.fullName} size="md" />
+                    <div className="min-w-0">
+                      <p className="body-5 truncate text-text-primary">{co.fullName}</p>
+                      <p className="caption-5 truncate">{co.sharedStartups.map((s) => s.name).join(", ")}</p>
+                    </div>
                   </div>
-                </div>
-                <Badge variant="brand">
-                  {co.sharedStartups.length} shared investment{co.sharedStartups.length === 1 ? "" : "s"}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState icon={Network} title="No co-investors yet" description="Once you share a portfolio company with another investor, they'll show up here." className="py-6" />
-        )}
-      </Card>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex -space-x-2" aria-hidden="true">
+                      {co.sharedStartups.slice(0, 4).map((startup) => (
+                        <Avatar key={startup.id} src={startup.logoUrl} name={startup.name} size="sm" className="rounded-button ring-2 ring-surface" />
+                      ))}
+                    </div>
+                    <Badge variant="brand">
+                      {co.sharedStartups.length} in common
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              icon={Briefcase}
+              title="No co-investors yet"
+              description="When another investor records an investment in a startup you've recorded in Portfolio, they show up here."
+              action={
+                <Link href="/investor/portfolio" className="text-sm font-medium text-brand-primary hover:underline">
+                  Open portfolio
+                </Link>
+              }
+              className="py-8"
+            />
+          )}
+        </Card>
 
-      <Card className="flex flex-col gap-3">
-        <CardHeader className="flex-row items-center gap-2 pb-0">
-          <Users className="h-4 w-4 text-brand-primary" />
-          <CardTitle className="text-base">Potential syndicate partners</CardTitle>
-        </CardHeader>
-        <p className="text-xs text-text-secondary">Investors whose declared thesis overlaps with yours, that you haven&apos;t co-invested with yet.</p>
-        {data && data.syndicatePartners.length > 0 ? (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {data.syndicatePartners.map((partner) => (
-              <div key={partner.ownerId} className="flex items-center justify-between rounded-card border border-border p-3">
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{partner.owner.fullName}</p>
-                  <p className="text-xs text-text-secondary">{partner.firmName ?? titleCase(partner.investorType)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-text-secondary">No overlapping-thesis investors found yet.</p>
-        )}
-      </Card>
+        <Card className="flex flex-col gap-4 lg:col-span-2">
+          <PanelTitle icon={Users} title="Thesis like yours" />
+          <p className="caption-5">Investors who back the same sectors or stages and haven&apos;t invested alongside you yet. People to talk to about a round.</p>
+          {data.syndicatePartners.length > 0 ? (
+            <ul className="flex flex-col gap-3">
+              {data.syndicatePartners.map((partner) => {
+                const sectors = partner.preferredIndustries.filter((s) => mySectors.has(s));
+                const stages = partner.preferredStages.filter((s) => myStages.has(s));
+                return (
+                  <li key={partner.ownerId} className="flex flex-col gap-2 rounded-button border border-border p-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar name={partner.owner.fullName} size="sm" />
+                      <div className="min-w-0">
+                        <p className="body-5 truncate text-text-primary">{partner.owner.fullName}</p>
+                        <p className="caption-5 truncate">{partner.firmName ?? INVESTOR_TYPE_LABEL[partner.investorType] ?? partner.investorType}</p>
+                      </div>
+                    </div>
+                    {sectors.length + stages.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {sectors.slice(0, 3).map((s) => (
+                          <span key={s} className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] text-brand-700 dark:bg-brand-950 dark:text-brand-200">
+                            {INDUSTRY_LABEL[s] ?? s}
+                          </span>
+                        ))}
+                        {stages.slice(0, 2).map((s) => (
+                          <span key={s} className="rounded-full bg-background-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                            {STAGE_LABEL[s] ?? s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="caption-5 rounded-button bg-background-secondary px-3 py-3">
+              No other investor shares your sectors or stages yet. Set them on your{" "}
+              <Link href="/investor/profile" className="font-medium text-brand-primary hover:underline">
+                profile
+              </Link>{" "}
+              if you haven&apos;t.
+            </p>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
