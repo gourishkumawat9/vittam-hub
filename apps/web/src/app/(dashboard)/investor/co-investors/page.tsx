@@ -2,7 +2,7 @@
 
 import { useMyCoInvestorGraph, useMyInvestorProfile } from "@vittamhub/api-client";
 import { Avatar, Badge, Card, EmptyState, ErrorState } from "@vittamhub/ui";
-import { Briefcase, Network, Users } from "lucide-react";
+import { Briefcase, Network, Users } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";

@@ -3,7 +3,7 @@
 import { uploadFile, useMyVerification, useUploadDocument } from "@vittamhub/api-client";
 import type { DocumentType, User, VerificationRequirement } from "@vittamhub/types";
 import { Badge, Card, Skeleton } from "@vittamhub/ui";
-import { CheckCircle2, Circle, Loader2, Upload } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Upload } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useState } from "react";
 

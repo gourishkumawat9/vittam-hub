@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadFile } from "@vittamhub/api-client";
 import { DocumentType, verificationStepSchema, type VerificationStepInput } from "@vittamhub/types";
-import { CheckCircle2, FileText, Loader2, Upload } from "lucide-react";
+import { CheckCircle2, FileText, Loader2, Upload } from "@vittamhub/ui/icons";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 

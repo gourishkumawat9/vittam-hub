@@ -1,9 +1,9 @@
 "use client";
 
 import * as RadixAccordion from "@radix-ui/react-accordion";
-import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { ChevronDown } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface AccordionItem {

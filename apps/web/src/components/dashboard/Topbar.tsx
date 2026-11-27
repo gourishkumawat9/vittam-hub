@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useLogout } from "@vittamhub/api-client";
 import { Avatar, Drawer } from "@vittamhub/ui";
-import { LogOut, Menu, Settings, UserCircle } from "lucide-react";
+import { LogOut, Menu, Settings, UserCircle } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";

@@ -2,7 +2,7 @@
 
 import { useRevokeOtherSessions, useRevokeSession, useSessions } from "@vittamhub/api-client";
 import { Badge, Button, Card, Skeleton, useToast } from "@vittamhub/ui";
-import { MonitorSmartphone } from "lucide-react";
+import { MonitorSmartphone } from "@vittamhub/ui/icons";
 import { useState } from "react";
 
 import { formatDateTime } from "@/lib/datetime";

@@ -1,5 +1,5 @@
 import { Badge } from "@vittamhub/ui";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck } from "@vittamhub/ui/icons";
 
 /**
  * The Verified badge beside a profile's name. Directories list every

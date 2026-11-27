@@ -1,9 +1,9 @@
 "use client";
 
 import * as RadixDialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { X } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface DialogProps {

@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useGlobalSearch } from "@vittamhub/api-client";
 import { Avatar, Badge, Card, EmptyState, ErrorState, Input } from "@vittamhub/ui";
-import { Building2, ChevronRight, Compass, GraduationCap, School, Search, TrendingUp } from "lucide-react";
+import { Building2, ChevronRight, Compass, GraduationCap, School, Search, TrendingUp } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";

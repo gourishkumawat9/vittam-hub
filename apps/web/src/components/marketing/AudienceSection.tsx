@@ -1,7 +1,7 @@
 "use client";
 
+import { ArrowRight, Check } from "@vittamhub/ui/icons";
 import { motion } from "framer-motion";
-import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 
 import { PRODUCT_SHOTS } from "@/data/product-shots";

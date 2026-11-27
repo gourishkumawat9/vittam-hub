@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCurrentUser, useMyInvestorProfile, useUpdateMyInvestorProfile, type InvestorWithOwner } from "@vittamhub/api-client";
 import { Industry, InvestorType, SEBI_CATEGORIES, updateInvestorInputSchema, type StartupStage, type UpdateInvestorInput } from "@vittamhub/types";
 import { Button, Card, Checkbox, EmptyState, ErrorState, Input, Skeleton, TagsInput, Textarea, useToast } from "@vittamhub/ui";
-import { Eye, ShieldCheck, UserRound } from "lucide-react";
+import { Eye, ShieldCheck, UserRound } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";

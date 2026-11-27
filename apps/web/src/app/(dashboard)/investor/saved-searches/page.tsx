@@ -10,8 +10,8 @@ import {
 } from "@vittamhub/api-client";
 import { Industry, StartupStage, type CreateSavedSearchInput, type SavedSearch } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, Checkbox, EmptyState, ErrorState, Input, Select, Skeleton } from "@vittamhub/ui";
+import { ChevronDown, Compass, Search, SearchCheck, Trash2 } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { ChevronDown, Compass, Search, SearchCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

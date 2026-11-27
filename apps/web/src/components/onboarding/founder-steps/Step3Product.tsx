@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadFile } from "@vittamhub/api-client";
 import { productStepSchema, type ProductStepInput } from "@vittamhub/types";
 import { Checkbox, Input, TagsInput, Textarea } from "@vittamhub/ui";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X } from "@vittamhub/ui/icons";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 

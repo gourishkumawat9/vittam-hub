@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useProfileStrength } from "@vittamhub/api-client";
 import { Card, Skeleton } from "@vittamhub/ui";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Gauge } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { StrengthBar } from "@/components/onboarding/ProfileStrengthMeter";
@@ -29,7 +29,7 @@ export function ProfileStrengthCard({ className }: { className?: string }) {
   return (
     <Card id="profile-strength" className={`flex scroll-mt-20 flex-col gap-4 ${className ?? ""}`}>
       <PanelTitle
-        icon={Sparkles}
+        icon={Gauge}
         title="Profile strength"
         right={<span className="text-xs text-text-secondary">{`${strength.answered} of ${strength.total} answered`}</span>}
       />

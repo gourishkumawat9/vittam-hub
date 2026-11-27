@@ -2,7 +2,7 @@
 
 import { useReviewMentor, useReviewMentorBooking, type MentorBookingWithRelations } from "@vittamhub/api-client";
 import { Button, Dialog, Textarea } from "@vittamhub/ui";
-import { Star } from "lucide-react";
+import { Star } from "@vittamhub/ui/icons";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";

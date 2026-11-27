@@ -2,7 +2,7 @@
 
 import { useFollowers, useMyIncubatorProfile, useMyVerification } from "@vittamhub/api-client";
 import { Badge, Button, Card, Skeleton } from "@vittamhub/ui";
-import { ArrowRight, CalendarDays, GraduationCap, Layers, Megaphone } from "lucide-react";
+import { ArrowRight, CalendarDays, GraduationCap, Layers, Megaphone } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";

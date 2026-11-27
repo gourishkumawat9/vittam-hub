@@ -1,7 +1,7 @@
 "use client";
 
+import { ArrowRight, Check, Pause, Play } from "@vittamhub/ui/icons";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowRight, Check, Pause, Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -121,14 +121,10 @@ export function WhyVittamHub() {
                     }}
                     className="flex w-full items-start gap-4 rounded-card p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary"
                   >
-                    <span
-                      className={cn(
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors duration-300",
-                        isActive ? "bg-brand-primary text-white" : "bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200",
-                      )}
-                    >
-                      <feature.icon className="h-5 w-5" aria-hidden="true" />
-                    </span>
+                    <feature.icon
+                      className={cn("mt-0.5 h-7 w-7 shrink-0 transition-colors duration-300", isActive ? "text-brand-primary" : "text-text-secondary")}
+                      aria-hidden="true"
+                    />
                     <span className="flex flex-col gap-1">
                       <span className={cn("font-heading text-lg font-semibold", isActive ? "text-text-primary" : "text-text-secondary")}>
                         {feature.title}

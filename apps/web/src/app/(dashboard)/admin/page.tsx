@@ -12,7 +12,7 @@ import {
 } from "@vittamhub/api-client";
 import { UserRole, type AdminUserListFilters, type PlanLimit, type VerificationOverview } from "@vittamhub/types";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, EmptyState, Input, ProgressBar, Select, Skeleton } from "@vittamhub/ui";
-import { Users2 } from "lucide-react";
+import { Users2 } from "@vittamhub/ui/icons";
 import { useState } from "react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";

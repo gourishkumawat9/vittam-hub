@@ -1,7 +1,7 @@
 import type { MentorBookingWithRelations } from "@vittamhub/api-client";
 import { Avatar, Card } from "@vittamhub/ui";
+import { HeartHandshake } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { HeartHandshake } from "lucide-react";
 import Link from "next/link";
 
 import { PanelLink, PanelTitle } from "../PageHeader";

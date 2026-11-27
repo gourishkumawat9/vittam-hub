@@ -4,7 +4,7 @@ import { useIncubators } from "@vittamhub/api-client";
 import { IncubatorKind } from "@vittamhub/types";
 import type { IncubatorSearchFilters } from "@vittamhub/types";
 import { Avatar, Badge, Card, EmptyState, Input } from "@vittamhub/ui";
-import { ArrowRight, Building2, CalendarRange, Search } from "lucide-react";
+import { ArrowRight, Building2, CalendarRange, Search } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 

@@ -2,8 +2,8 @@
 
 import { useMyStartupProfileViews } from "@vittamhub/api-client";
 import { Card, EmptyState, ErrorState } from "@vittamhub/ui";
+import { Eye } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Eye } from "lucide-react";
 
 import { ListRowsSkeleton } from "@/components/dashboard/ListRowsSkeleton";
 

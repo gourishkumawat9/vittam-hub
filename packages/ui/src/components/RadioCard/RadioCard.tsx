@@ -1,13 +1,12 @@
 "use client";
 
-import { Check } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-
+import { Check } from "../../icons";
+import type { IconComponent } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface RadioCardOption {
   value: string;
-  icon?: LucideIcon;
+  icon?: IconComponent;
   emoji?: string;
   title: string;
   description?: string;

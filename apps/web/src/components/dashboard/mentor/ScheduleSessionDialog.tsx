@@ -3,7 +3,7 @@
 import { useScheduleMentorSession, type MentorBookingWithRelations } from "@vittamhub/api-client";
 import { MENTOR_SESSION_DURATIONS, scheduleMentorSessionInputSchema } from "@vittamhub/types";
 import { Button, Dialog, Input, Textarea, useToast } from "@vittamhub/ui";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock } from "@vittamhub/ui/icons";
 import { useEffect, useState } from "react";
 
 import { ChoiceChips } from "@/components/onboarding/fields";

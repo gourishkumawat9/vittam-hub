@@ -1,12 +1,12 @@
 import { MemberPersona, PERSONA_ROLE, type PersonaGroup, type RegisterableRole } from "@vittamhub/types";
-import { Building2, GraduationCap, Handshake, Landmark, Lightbulb, Rocket, School, Sparkles, Users } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { BookOpen, Building2, GraduationCap, Handshake, Landmark, Lightbulb, Rocket, School, Users } from "@vittamhub/ui/icons";
+import type { IconComponent } from "@vittamhub/ui/icons";
 
 export interface PersonaOption {
   persona: MemberPersona;
   role: RegisterableRole;
   group: PersonaGroup;
-  icon: LucideIcon;
+  icon: IconComponent;
   title: string;
   description: string;
 }
@@ -39,7 +39,7 @@ export const PERSONA_OPTIONS: PersonaOption[] = [
     persona: MemberPersona.STUDENT,
     role: PERSONA_ROLE.STUDENT,
     group: "INDIVIDUAL",
-    icon: Sparkles,
+    icon: BookOpen,
     title: "Student",
     description: "You're studying and want to start something.",
   },

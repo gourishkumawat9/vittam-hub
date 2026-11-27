@@ -2,7 +2,7 @@
 
 import type { TrustScore } from "@vittamhub/types";
 import { Button, Card } from "@vittamhub/ui";
-import { ArrowRight, CheckCircle2, Target } from "lucide-react";
+import { ArrowRight, CheckCircle2, Target } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 /**

@@ -1,9 +1,9 @@
 "use client";
 
 import { getPasswordStrength } from "@vittamhub/utils";
-import { Eye, EyeOff } from "lucide-react";
 import { forwardRef, useId, useState } from "react";
 
+import { Eye, EyeOff } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export interface PasswordInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {

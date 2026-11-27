@@ -1,6 +1,6 @@
 import type { MentorWithReputation } from "@vittamhub/api-client";
 import { Avatar, Badge, Card } from "@vittamhub/ui";
-import { Eye, Star } from "lucide-react";
+import { Eye, Star } from "@vittamhub/ui/icons";
 
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 

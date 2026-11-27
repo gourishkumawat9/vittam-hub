@@ -3,8 +3,8 @@
 import { usePipeline, useUpdatePipelineEntry, type PipelineEntryWithStartup } from "@vittamhub/api-client";
 import { PipelineStage } from "@vittamhub/types";
 import { Badge, Button, Skeleton } from "@vittamhub/ui";
+import { Compass, GripVertical, Kanban } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Compass, GripVertical, Kanban } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

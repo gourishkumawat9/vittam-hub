@@ -2,7 +2,7 @@
 
 import { useIncubators } from "@vittamhub/api-client";
 import { Avatar, Card, Skeleton } from "@vittamhub/ui";
-import { CalendarRange } from "lucide-react";
+import { CalendarRange } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { PanelLink, PanelTitle } from "../PageHeader";

@@ -1,4 +1,4 @@
-import { Lock, ShieldCheck } from "lucide-react";
+import { Lock, ShieldCheck } from "@vittamhub/ui/icons";
 
 /**
  * Trust notes under the login form. Each one has to be true today: the site

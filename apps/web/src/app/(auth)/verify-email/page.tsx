@@ -2,7 +2,7 @@
 
 import { useConfirmVerificationEmail, useCurrentUser, useResendVerificationEmail } from "@vittamhub/api-client";
 import { Button, OtpInput } from "@vittamhub/ui";
-import { CheckCircle2, MailCheck } from "lucide-react";
+import { CheckCircle2, MailCheck } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

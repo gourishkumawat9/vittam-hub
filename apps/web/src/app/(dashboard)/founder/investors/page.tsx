@@ -3,7 +3,7 @@
 import { useFounderRecommendations, useInvestors, useMyStartup, type InvestorWithOwner } from "@vittamhub/api-client";
 import type { InvestorSearchFilters } from "@vittamhub/types";
 import { Button, Dialog, EmptyState } from "@vittamhub/ui";
-import { Handshake } from "lucide-react";
+import { Handshake } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useState } from "react";
 

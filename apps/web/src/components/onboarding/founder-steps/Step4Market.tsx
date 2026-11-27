@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CustomerModel, marketStepSchema, type MarketStepInput } from "@vittamhub/types";
 import { Input, TagsInput, Textarea } from "@vittamhub/ui";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "@vittamhub/ui/icons";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import { useAutosave } from "@/hooks/useAutosave";

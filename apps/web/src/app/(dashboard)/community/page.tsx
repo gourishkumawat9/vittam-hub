@@ -17,8 +17,8 @@ import {
 } from "@vittamhub/api-client";
 import { createPostInputSchema, PostType, type CommunityFeedFilters, type CreatePostInput, type UserRole } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, Dialog, EmptyState, Input, Select, TagsInput, Textarea } from "@vittamhub/ui";
+import { BarChart3, Bookmark, BookOpen, CalendarDays, Check, ExternalLink, Heart, MapPin, MessageSquare, Rocket, Trash2, Users } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { BarChart3, Bookmark, CalendarDays, Check, ExternalLink, Heart, MapPin, MessageSquare, Rocket, Sparkles, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
@@ -651,7 +651,7 @@ export default function CommunityPage() {
         <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-4" aria-label="Around the community">
           <UpcomingEventsCard />
           <Card className="flex flex-col gap-3">
-            <PanelTitle icon={Sparkles} title="How this community works" />
+            <PanelTitle icon={BookOpen} title="How this community works" />
             <ul className="flex flex-col gap-2">
               {GUIDELINES.map((line) => (
                 <li key={line} className="flex items-start gap-2 caption-2 text-text-primary">

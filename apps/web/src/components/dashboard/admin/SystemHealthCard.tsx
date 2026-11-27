@@ -3,7 +3,7 @@
 import { useSystemHealth } from "@vittamhub/api-client";
 import type { DependencyState } from "@vittamhub/types";
 import { Badge, Card, ErrorState, Skeleton } from "@vittamhub/ui";
-import { AlertTriangle, CheckCircle2, CircleSlash, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleSlash, XCircle } from "@vittamhub/ui/icons";
 
 /**
  * "Is VittamHub actually working?" — the panel that was missing when the API

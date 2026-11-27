@@ -3,7 +3,7 @@
 import { useFollowStartup, useInvestorRecommendations, useMyInvestorProfile, useWatchlist } from "@vittamhub/api-client";
 import type { Startup } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState } from "@vittamhub/ui";
-import { Activity, Bookmark, BookmarkCheck, Compass, MapPin, PieChart, ShieldCheck, Sparkles, Target, TrendingUp } from "lucide-react";
+import { Activity, Bookmark, BookmarkCheck, Compass, MapPin, PieChart, ShieldCheck, Target, TrendingUp } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { CardGridSkeleton } from "@/components/dashboard/CardGridSkeleton";
@@ -62,7 +62,7 @@ function Shelf({
   savedIds,
 }: {
   id: string;
-  icon: typeof Sparkles;
+  icon: typeof Target;
   title: string;
   why: string;
   startups: Startup[];
@@ -94,7 +94,7 @@ function CountList({
   empty,
 }: {
   title: string;
-  icon: typeof Sparkles;
+  icon: typeof Target;
   rows: { label: string; count: number }[];
   hint: string;
   empty: string;
@@ -176,7 +176,7 @@ export default function RecommendationsPage() {
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex min-w-0 flex-col gap-10">
           {nothing ? (
-            <EmptyState icon={Sparkles} title="Nothing to suggest yet" description="Suggestions come from startups' profiles and activity. As founders publish profiles, they show here." />
+            <EmptyState icon={Target} title="Nothing to suggest yet" description="Suggestions come from startups' profiles and activity. As founders publish profiles, they show here." />
           ) : (
             <>
               <Shelf

@@ -1,8 +1,8 @@
 "use client";
 
 import { Badge } from "@vittamhub/ui";
+import { Heart, MessageCircle } from "@vittamhub/ui/icons";
 import { motion } from "framer-motion";
-import { Heart, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 import { COMMUNITY_POSTS } from "@/data/community";

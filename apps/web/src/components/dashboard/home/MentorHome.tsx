@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useMentorBookings, useMyMentorProfile, useMyVerification } from "@vittamhub/api-client";
 import { Button, Skeleton } from "@vittamhub/ui";
-import { Inbox } from "lucide-react";
+import { Inbox } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { PageHeader, SectionHeader } from "../PageHeader";

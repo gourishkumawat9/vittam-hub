@@ -72,6 +72,16 @@ If a future contributor reaches for Tailwind's default `class` dark-mode strateg
 - `success`/`warning`/`danger`/`info` were chosen from Tailwind's palette specifically because they clear WCAG AA contrast against both `background` and `background-secondary`
 - `reducedMotionFallback` (above) — every motion variant has an opt-out
 
+## Icons ([`packages/ui/src/icons`](../packages/ui/src/icons))
+
+VittamHub draws its own icons; there is no stock icon library in the app (lucide-react was removed in November 2026 because the stock outlines read as machine-made and cost trust). Import from `@vittamhub/ui/icons` (inside `packages/ui`, from `../../icons`).
+
+- **The line:** a 24px grid, a 1.75 stroke, flat (butt) ends and mitred corners, taken from the cut terminals of the official mark. Dots are small squares (`Pt`), never circles.
+- **The second tone:** each icon's subject sits on a quiet plane of the current colour at 16% (`Tint`), so the set reads as one family. Utility glyphs (arrows, chevrons, check, close) have no plane.
+- **Use:** `currentColor` only, at 16, 20, 24 or 32px. Never put an icon in a coloured circle or tile, and never use an emoji as an icon. On marketing pages the icon sits on its own above or beside the heading in `text-brand-primary`.
+- **No sparkles.** The four-point "AI" sparkle is deliberately missing. Recommendations use `Target`, profile strength uses `Gauge`.
+- **Adding one:** draw it with `createIcon("Name", <>…</>)` in `icons/index.tsx` on the same grid and rules, add a `Tint` for its subject, and check it at 16px next to its neighbours. Don't copy paths from Lucide, Heroicons or similar; brand marks (GitHub, LinkedIn) are the only outside shapes.
+
 ## Patterns
 
 **Dashboard pages** start with `PageHeader` (title, one-line description, up to two actions), then a `StatStrip` of three or four numbers, then the work that needs the person ("Needs your reply"), then everything else in panels with `PanelTitle`. Empty states are a dashed card with one sentence and one action, never a blank space.

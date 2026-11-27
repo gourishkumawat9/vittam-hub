@@ -2,7 +2,7 @@
 
 import { useCurrentUser } from "@vittamhub/api-client";
 import { Avatar, Card, Skeleton } from "@vittamhub/ui";
-import { KeyRound, Laptop, Palette, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { KeyRound, Laptop, Palette, ShieldCheck, Trash2, UserRound } from "@vittamhub/ui/icons";
 import { useEffect, useState } from "react";
 
 import { ThemeToggle } from "@/components/ThemeToggle";

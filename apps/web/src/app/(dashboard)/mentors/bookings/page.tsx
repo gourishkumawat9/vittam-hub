@@ -2,8 +2,8 @@
 
 import { useCurrentUser, useMentorBookings, useMyMentorProfile, type MentorBookingWithRelations } from "@vittamhub/api-client";
 import { Avatar, Badge, Button, Card, EmptyState, Tabs } from "@vittamhub/ui";
+import { CalendarClock, History, Inbox } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { CalendarClock, History, Inbox } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 

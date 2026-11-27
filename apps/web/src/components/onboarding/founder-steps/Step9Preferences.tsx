@@ -12,8 +12,8 @@ import {
   type VerificationStepInput,
 } from "@vittamhub/types";
 import { Input } from "@vittamhub/ui";
-import { Building, Building2, Check, FileText, GraduationCap, Handshake, Loader2, Upload } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Building, Building2, Check, FileText, GraduationCap, Handshake, Loader2, Upload } from "@vittamhub/ui/icons";
+import type { IconComponent } from "@vittamhub/ui/icons";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -24,7 +24,7 @@ import { draftSection, useOnboardingStore } from "@/store/onboarding-store";
 import { WizardNav } from "../WizardNav";
 import { FieldSection, StepHeader } from "../fields";
 
-const OPTIONS: { value: LookingForType; label: string; hint: string; icon: LucideIcon }[] = [
+const OPTIONS: { value: LookingForType; label: string; hint: string; icon: IconComponent }[] = [
   { value: LookingForType.INVESTORS, label: "Investors", hint: "Angels and funds that back your stage", icon: Handshake },
   { value: LookingForType.MENTORS, label: "Mentors", hint: "Operators who have done it before", icon: GraduationCap },
   { value: LookingForType.INCUBATORS, label: "Incubators", hint: "Space, support and a cohort", icon: Building },

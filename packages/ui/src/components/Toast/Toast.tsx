@@ -3,9 +3,9 @@
 import * as ToastPrimitive from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "../../icons";
 import { cn } from "../../lib/cn";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";

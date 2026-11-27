@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useBookMentor, useMentor } from "@vittamhub/api-client";
 import { createMentorBookingInputSchema, SessionType, type CreateMentorBookingInput } from "@vittamhub/types";
 import { Avatar, Badge, Button, Card, Dialog, ErrorState, Select, Skeleton, Textarea, Input } from "@vittamhub/ui";
-import { Briefcase, CalendarClock, CheckCircle2, Clock, Languages, MonitorSmartphone, Rocket, Star, Wallet } from "lucide-react";
+import { Briefcase, CalendarClock, CheckCircle2, Clock, Languages, MonitorSmartphone, Rocket, Star, Wallet } from "@vittamhub/ui/icons";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";

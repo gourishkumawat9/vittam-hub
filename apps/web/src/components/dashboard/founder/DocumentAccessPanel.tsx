@@ -2,8 +2,8 @@
 
 import { useConnections, useDocumentGrants, useGrantDocumentAccess, useRevokeDocumentGrant } from "@vittamhub/api-client";
 import { Badge, Button, Select } from "@vittamhub/ui";
+import { Eye, ShieldAlert, X } from "@vittamhub/ui/icons";
 import { formatRelativeTime } from "@vittamhub/utils";
-import { Eye, ShieldAlert, X } from "lucide-react";
 import { useState } from "react";
 
 /**

@@ -1,31 +1,10 @@
-import {
-  Award,
-  BarChart3,
-  Bell,
-  Building2,
-  CalendarClock,
-  ClipboardList,
-  Compass,
-  GraduationCap,
-  Handshake,
-  IdCard,
-  Inbox,
-  Kanban,
-  MessageCircle,
-  MessageSquare,
-  Network,
-  Rocket,
-  School,
-  Send,
-  Target,
-  UserCircle,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Award, BarChart3, Bell, Building2, CalendarClock, ClipboardList, Compass, GraduationCap, Handshake, IdCard, Inbox, Kanban, MessageCircle, MessageSquare, Network, Rocket, School, Send, Target, UserCircle } from "@vittamhub/ui/icons";
+import type { IconComponent } from "@vittamhub/ui/icons";
 
 export type AudienceId = "founders" | "investors" | "mentors" | "incubators" | "universities";
 
 export interface AudienceCapability {
-  icon: LucideIcon;
+  icon: IconComponent;
   title: string;
   description: string;
 }
@@ -37,7 +16,7 @@ export interface Audience {
   /** "a founder", "an investor": for sentences like "Ready to join as …?" */
   singular: string;
   eyebrow: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   /** The home page card. */
   cardTitle: string;
   cardBlurb: string;

@@ -1,5 +1,5 @@
 import { Card } from "@vittamhub/ui";
-import { ArrowRight, CheckCircle2, Circle } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 export interface StartStep {

@@ -57,6 +57,7 @@ Design every module so these can be added later without a rewrite: AI fraud dete
 - **Editing a published profile** reopens the onboarding wizard on the live profile; saving updates it in place (no second startup, no second signature), and unsaved edits can be discarded.
 - **Mentor sessions** (`MentorBookingRequest`): a founder requests, the mentor accepts or declines, then the mentor sets the time, length and meeting link (`POST /v1/mentors/bookings/:id/schedule`), and either side marks it done once it has happened (`/complete`). Reviews and a mentor's "sessions completed" count only sessions marked done.
 - **Demo accounts** are shared and re-seeded on every API boot; their password lives only in the `DEMO_ACCOUNTS_PASSWORD` env var. They can't upload government ID, PAN or a digital signature.
+- **Icons** are VittamHub's own (`@vittamhub/ui/icons`, rules in docs/02-design-system.md "Icons"); there is no lucide-react. Never put an icon in a coloured circle, and don't add a sparkles icon.
 - **Code style**: there is no Prettier config, so don't run Prettier; fix lint with `eslint --fix`.
 - **Stack**: Next.js 15 with React 19 (route `params` are Promises in server components), NestJS 10, Prisma 5.
 

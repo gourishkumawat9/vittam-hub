@@ -1,5 +1,5 @@
-import { Compass, GraduationCap, MessageSquare, Rocket } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { GraduationCap, Handshake, IdCard, Users } from "@vittamhub/ui/icons";
+import type { IconComponent } from "@vittamhub/ui/icons";
 
 import type { ProductShotImage } from "@/components/marketing/ProductShot";
 
@@ -9,7 +9,7 @@ export interface PlatformFeature {
   id: "profile" | "investors" | "mentorship" | "community";
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   /** What a member can actually do with it today, shown when its tab is open. */
   points: string[];
   link: { label: string; href: string };
@@ -28,7 +28,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
     id: "profile",
     title: "Startup profile",
     description: "One page with what you do, your stage and what you need. Set up in about five minutes, add the rest later.",
-    icon: Rocket,
+    icon: IdCard,
     points: [
       "Four short steps to publish, with your deck and documents whenever you're ready",
       "Listed in discovery as soon as it's published",
@@ -41,7 +41,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
     id: "investors",
     title: "Investor connect",
     description: "Find investors by stage, industry and cheque size, then reach them with a connect request, not a cold email.",
-    icon: Compass,
+    icon: Handshake,
     points: [
       "Investors ranked by how well their stage, industry and ticket size fit you",
       "A connect request carries your summary, your raise and, if you like, your deck",
@@ -67,7 +67,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
     id: "community",
     title: "Community",
     description: "Founder updates, questions and events in one focused feed.",
-    icon: MessageSquare,
+    icon: Users,
     points: [
       "Post startup updates, questions, polls and events",
       "Hear from founders a stage ahead of you, and from mentors",

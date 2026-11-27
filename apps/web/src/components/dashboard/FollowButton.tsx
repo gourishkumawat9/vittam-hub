@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useFollowUser, useIsFollowing, useUnfollowUser } from "@vittamhub/api-client";
 import { Button } from "@vittamhub/ui";
-import { UserCheck, UserPlus } from "lucide-react";
+import { UserCheck, UserPlus } from "@vittamhub/ui/icons";
 
 export function FollowButton({ userId }: { userId: string }) {
   const { data: currentUser } = useCurrentUser();

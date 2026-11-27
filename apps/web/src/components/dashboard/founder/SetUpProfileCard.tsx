@@ -3,7 +3,7 @@
 import { useOnboardingState, useProfileStrength } from "@vittamhub/api-client";
 import { personalDetailsInputSchema, SIGNUP_SHARE_PERCENT, startupInfoStepSchema } from "@vittamhub/types";
 import { Button, Card, Skeleton } from "@vittamhub/ui";
-import { CheckCircle2, Circle, Rocket } from "lucide-react";
+import { CheckCircle2, Circle, Rocket } from "@vittamhub/ui/icons";
 import Link from "next/link";
 
 import { StrengthBar } from "@/components/onboarding/ProfileStrengthMeter";

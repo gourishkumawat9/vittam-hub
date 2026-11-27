@@ -2,7 +2,7 @@
 
 import { useConnectionQuota, useMyStartup, useMyStartupAnalytics } from "@vittamhub/api-client";
 import { Button, Card, EmptyState, ErrorState, Skeleton } from "@vittamhub/ui";
-import { ArrowRight, BarChart3, Flag, Lightbulb } from "lucide-react";
+import { ArrowRight, BarChart3, Flag, Lightbulb } from "@vittamhub/ui/icons";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
