@@ -14,6 +14,7 @@ import {
 } from "@vittamhub/types";
 import * as argon2 from "argon2";
 
+import { TooManyRequestsException } from "../../common/exceptions/too-many-requests.exception";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { EmailQueueService } from "../jobs/email-queue.service";
 import { UsersService } from "../users/users.service";
@@ -43,6 +44,16 @@ const MFA_CHALLENGE_PURPOSE = "mfa_challenge";
  * exchanged token can only be a copy of it, and is treated as theft.
  */
 const REFRESH_REUSE_GRACE_MS = 30_000;
+
+/**
+ * Wrong passwords allowed for one account in the window before sign-in is
+ * paused for it. The per-IP throttle alone lets someone guessing from many
+ * addresses keep going; this caps guesses on the account itself. Demo
+ * accounts are left out: they are shared, so anyone could pause them for all.
+ */
+const LOGIN_FAILED_ACTION = "auth.login_failed";
+const MAX_FAILED_LOGINS = 10;
+const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -117,11 +128,20 @@ export class AuthService {
     await this.captchaService.verify(input.captchaToken, meta.ipAddress);
 
     const user = await this.usersService.findByEmail(input.email);
+    const guardsAttempts = Boolean(user?.passwordHash && !user.deletedAt && !user.isDemo);
+    if (guardsAttempts && (await this.recentFailedLogins(user!.id)) >= MAX_FAILED_LOGINS) {
+      throw new TooManyRequestsException("Too many sign-in attempts. Wait 15 minutes, then try again.");
+    }
     // The password check runs even when there is no such account (against a
     // throwaway hash). Skipping it answered an unknown address many times
     // faster than a known one, which told a caller which emails are registered.
     const passwordMatches = await argon2.verify(user?.passwordHash ?? (await this.getDecoyPasswordHash()), input.password);
     if (!user?.passwordHash || user.deletedAt || !passwordMatches) {
+      if (guardsAttempts) {
+        await this.prisma.auditLog.create({
+          data: { actorId: user!.id, action: LOGIN_FAILED_ACTION, entityType: "User", entityId: user!.id, ipAddress: meta.ipAddress },
+        });
+      }
       throw new UnauthorizedException("Invalid email or password");
     }
 
@@ -448,6 +468,12 @@ export class AuthService {
    *
    * Call it after `issueSession`, which is what records this sign-in.
    */
+  private recentFailedLogins(userId: string): Promise<number> {
+    return this.prisma.auditLog.count({
+      where: { actorId: userId, action: LOGIN_FAILED_ACTION, createdAt: { gt: new Date(Date.now() - FAILED_LOGIN_WINDOW_MS) } },
+    });
+  }
+
   private async recordLogin(user: Pick<User, "id" | "email" | "isDemo">, meta: RequestMeta): Promise<void> {
     const { id: userId, email } = user;
     await this.prisma.auditLog.create({

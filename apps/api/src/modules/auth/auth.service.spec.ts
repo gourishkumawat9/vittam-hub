@@ -4,6 +4,7 @@ import type { JwtService } from "@nestjs/jwt";
 import { OtpPurpose } from "@vittamhub/types";
 import * as argon2 from "argon2";
 
+import { TooManyRequestsException } from "../../common/exceptions/too-many-requests.exception";
 import type { PrismaService } from "../../database/prisma/prisma.service";
 import type { EmailQueueService } from "../jobs/email-queue.service";
 import type { UsersService } from "../users/users.service";
@@ -29,7 +30,7 @@ function setup() {
       // 1 = only the session just issued, i.e. a sign-in from somewhere new.
       count: jest.fn().mockResolvedValue(1),
     },
-    auditLog: { create: jest.fn().mockResolvedValue({}) },
+    auditLog: { create: jest.fn().mockResolvedValue({}), count: jest.fn().mockResolvedValue(0) },
     oAuthAccount: { create: jest.fn().mockResolvedValue({}) },
     passwordResetToken: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
     mfaRecoveryCode: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
@@ -174,6 +175,37 @@ describe("AuthService", () => {
       await expect(
         service.login({ email: "person@example.com", password: "WrongPass123!", rememberMe: false }, META),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it("records a wrong password against the account", async () => {
+      const { service, usersService, prisma } = setup();
+      usersService.findByEmail.mockResolvedValue(fakeUser({ passwordHash: await argon2.hash(PASSWORD) }));
+      await expect(
+        service.login({ email: "person@example.com", password: "WrongPass123!", rememberMe: false }, META),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ action: "auth.login_failed" }) }),
+      );
+    });
+
+    it("pauses sign-in for an account after too many wrong passwords, even with the right one", async () => {
+      const { service, usersService, prisma } = setup();
+      usersService.findByEmail.mockResolvedValue(fakeUser({ passwordHash: await argon2.hash(PASSWORD) }));
+      prisma.auditLog.count.mockResolvedValue(10);
+      await expect(
+        service.login({ email: "person@example.com", password: PASSWORD, rememberMe: false }, META),
+      ).rejects.toBeInstanceOf(TooManyRequestsException);
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it("never pauses a shared demo account", async () => {
+      const { service, usersService, prisma } = setup();
+      usersService.findByEmail.mockResolvedValue(fakeUser({ passwordHash: await argon2.hash(PASSWORD), isDemo: true }));
+      prisma.auditLog.count.mockResolvedValue(50);
+      await expect(
+        service.login({ email: "person@example.com", password: "WrongPass123!", rememberMe: false }, META),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(prisma.auditLog.create).not.toHaveBeenCalled();
     });
 
     it("rejects an OAuth-only account (no password hash) with 401", async () => {

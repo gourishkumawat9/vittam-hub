@@ -18,7 +18,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const isProd = configService.get("NODE_ENV") === "production";
 
-  // Railway terminates TLS and proxies to the container, so without this
+  // Render (and before it Railway) terminates TLS and proxies to the container, so without this
   // every request's `req.ip` is the proxy's address: ThrottlerGuard collapses
   // into a single global bucket (one attacker exhausting the 10/min login
   // limit locks out every user), and AuditLog/session/login-alert IPs are all
