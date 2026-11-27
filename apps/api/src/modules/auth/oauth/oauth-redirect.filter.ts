@@ -26,6 +26,8 @@ export class OAuthRedirectFilter implements ExceptionFilter {
       this.logger.warn(`OAuth sign-in failed: ${exception instanceof Error ? exception.message : String(exception)}`);
     }
 
-    response.redirect(`${this.configService.getOrThrow<string>("APP_URL")}/login?error=${reason}`);
+    // A new person who pressed Google on the login page goes to sign-up to pick their account type first.
+    const page = reason === "oauth_no_account" ? "register" : "login";
+    response.redirect(`${this.configService.getOrThrow<string>("APP_URL")}/${page}?error=${reason}`);
   }
 }

@@ -4,7 +4,14 @@ import { ConflictException, Injectable, Logger, UnauthorizedException } from "@n
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { Prisma, type User } from "@prisma/client";
-import { DEFAULT_PERSONA_FOR_ROLE, OtpPurpose, UserRole, type LoginInput, type RegisterInput } from "@vittamhub/types";
+import {
+  DEFAULT_PERSONA_FOR_ROLE,
+  OtpPurpose,
+  PERSONA_ROLE,
+  type LoginInput,
+  type MemberPersona,
+  type RegisterInput,
+} from "@vittamhub/types";
 import * as argon2 from "argon2";
 
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -150,7 +157,16 @@ export class AuthService {
    * pickVerifiedEmail). That matters here more than anywhere: this method
    * signs the caller into whichever account has that address.
    */
-  async findOrCreateOAuthUser(profile: OAuthProfile, meta: RequestMeta) {
+  /**
+   * Signs in with a provider account, or creates a VittamHub account for it.
+   *
+   * An existing account (matched on the provider account, then on the
+   * provider-verified email) signs in whichever page the button was on. A new
+   * account needs the account type the person picked on the sign-up page
+   * (`signupPersona`); started from the login page there is none, so they are
+   * sent to pick one rather than silently made a founder.
+   */
+  async findOrCreateOAuthUser(profile: OAuthProfile, meta: RequestMeta, signupPersona?: MemberPersona) {
     if (!profile.email) {
       throw new OAuthSignInException("oauth_email", `${profile.provider} did not share a verified email address`);
     }
@@ -164,6 +180,10 @@ export class AuthService {
       return this.finishOAuthSignIn(await this.linkOAuthAccount(existingByEmail, profile), meta);
     }
 
+    if (!signupPersona) {
+      throw new OAuthSignInException("oauth_no_account", `No account uses this ${profile.provider} address yet`);
+    }
+
     let user: User;
     try {
       user = await this.prisma.user.create({
@@ -171,9 +191,10 @@ export class AuthService {
           email: profile.email,
           fullName: profile.fullName?.trim().slice(0, 120) || profile.email.split("@")[0]!,
           avatarUrl: profile.avatarUrl?.startsWith("https://") ? profile.avatarUrl : undefined,
-          role: UserRole.FOUNDER,
+          role: PERSONA_ROLE[signupPersona],
           emailVerifiedAt: new Date(), // the OAuth provider already verified this address
-          profile: { create: {} },
+          // Name, email and account type come from this sign-up; onboarding asks for the mobile number and nationality.
+          profile: { create: { persona: signupPersona } },
           oauthAccounts: { create: { provider: profile.provider, providerAccountId: profile.providerAccountId } },
         },
       });

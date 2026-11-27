@@ -51,6 +51,7 @@ import { UsersService } from "../users/users.service";
 import { AuthService, type RequestMeta } from "./auth.service";
 import { configuredOAuthProviders, type OAuthProfile } from "./oauth/oauth-providers";
 import { OAuthRedirectFilter } from "./oauth/oauth-redirect.filter";
+import { takeSignupPersona } from "./oauth/oauth-signup.cookie";
 import { OAuthGuard } from "./oauth/oauth.guard";
 import { MfaService } from "./services/mfa.service";
 import { OtpService } from "./services/otp.service";
@@ -389,7 +390,7 @@ export class AuthController {
 
   private async handleOAuthCallback(req: Request, res: Response) {
     const appUrl = this.configService.getOrThrow<string>("APP_URL");
-    const result = await this.authService.findOrCreateOAuthUser(req.user as OAuthProfile, this.requestMeta(req));
+    const result = await this.authService.findOrCreateOAuthUser(req.user as OAuthProfile, this.requestMeta(req), takeSignupPersona(req, res));
 
     if (result.mfaRequired) {
       // The provider was the first factor; the login page asks for the second.
