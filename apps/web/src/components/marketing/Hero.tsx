@@ -30,7 +30,7 @@ export function Hero() {
         className="bg-grid-pattern pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black,transparent)]"
       />
 
-      <div className="mx-auto grid max-w-content items-center gap-16 px-6 pb-16 pt-16 lg:grid-cols-2 lg:pb-20 lg:pt-24">
+      <div className="mx-auto grid max-w-content items-center gap-10 px-6 pb-16 pt-6 sm:pt-10 lg:grid-cols-2 lg:gap-16 lg:pb-20 lg:pt-24">
         {/* Left column — copy + CTAs */}
         <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-left">
           <motion.div
@@ -102,12 +102,12 @@ export function Hero() {
           </motion.ul>
         </div>
 
-        {/* Right column — the brand story, played live; edge to edge on phones */}
+        {/* Right column — the brand story, played live. On phones and tablets it leads the page, above the headline, edge to edge. */}
         <motion.div
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="relative -mx-6 sm:mx-auto sm:w-full sm:max-w-xl lg:max-w-none"
+          className="relative -mx-6 -mt-6 sm:mx-auto sm:mt-0 sm:w-full sm:max-w-xl max-lg:order-first lg:max-w-none"
           style={{ x: parallaxX, y: parallaxY }}
         >
           <HeroFilm />
